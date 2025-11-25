@@ -1,202 +1,190 @@
+// lib/pages/ponto_page.dart
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import '../widgets/bottom_nav.dart';
+import '../services/ponto_service.dart';
 
 class PontoPage extends StatefulWidget {
-  const PontoPage({Key? key}) : super(key: key);
+  const PontoPage({super.key});
 
   @override
   State<PontoPage> createState() => _PontoPageState();
 }
 
 class _PontoPageState extends State<PontoPage> {
-  Map<String, String> registros = {
-    "Entrada": "Nenhum registro",
-    "Pausa": "Nenhum registro",
-    "Retorno": "Nenhum registro",
-    "Saída": "Nenhum registro",
-  };
+  Map<String, Map<String, String>> registros = {};
+  bool loading = true;
 
   @override
   void initState() {
     super.initState();
-    carregarRegistros();
+    _loadRegistros();
   }
 
-  Future<void> carregarRegistros() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      registros = {
-        "Entrada": prefs.getString('Entrada') ?? "Nenhum registro",
-        "Pausa": prefs.getString('Pausa') ?? "Nenhum registro",
-        "Retorno": prefs.getString('Retorno') ?? "Nenhum registro",
-        "Saída": prefs.getString('Saída') ?? "Nenhum registro",
-      };
-    });
+  Future<void> _loadRegistros() async {
+    setState(() => loading = true);
+    registros = await PontoService.loadRegistros();
+    setState(() => loading = false);
   }
 
-  Future<void> registrar(String tipo) async {
-    final agora = DateTime.now();
-    final hora = DateFormat('HH:mm').format(agora);
-
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(tipo, hora);
-
-    setState(() {
-      registros[tipo] = hora;
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('$tipo registrada às $hora'),
-        duration: const Duration(seconds: 2),
-      ),
-    );
-  }
-
-  Widget buildCard({
-    required int numero,
-    required String texto,
-    required IconData icone,
-    required Color cor,
-  }) {
-    return GestureDetector(
-      onTap: () => registrar(texto),
-      child: Container(
-        decoration: BoxDecoration(
-          color: cor,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.15),
-              blurRadius: 6,
-              offset: const Offset(2, 3),
-            ),
-          ],
-        ),
-        child: Stack(
-          children: [
-            // Número no canto superior esquerdo
-            Positioned(
-              top: 8,
-              left: 12,
-              child: Text(
-                numero.toString(),
-                style: const TextStyle(
-                  fontSize: 20,
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-            // Conteúdo centralizado
-            Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(icone, color: Colors.white, size: 48),
-                  const SizedBox(height: 10),
-                  Text(
-                    texto.toLowerCase(),
-                    style: const TextStyle(
-                      fontSize: 18,
-                      color: Colors.white,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void limparRegistros() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
-
-    setState(() {
-      registros.updateAll((key, value) => "Nenhum registro");
-    });
+  Future<void> _registrar(String status) async {
+    await PontoService.registrarPonto(context, status);
+    await _loadRegistros();
   }
 
   @override
   Widget build(BuildContext context) {
-    final horaAtual = DateFormat('HH:mm').format(DateTime.now());
+    final dates = registros.keys.toList()..sort((a, b) => b.compareTo(a));
 
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      bottomNavigationBar: BottomNav(
+        index: 0,
+        args:
+            ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>?,
+      ),
       body: Padding(
-        padding: const EdgeInsets.all(24.0),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
         child: Column(
           children: [
-            const SizedBox(height: 40),
             const Text(
-              "Status de Trabalho",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              horaAtual,
-              style: const TextStyle(
-                fontSize: 36,
+              "STATUS DE TRABALHO",
+              style: TextStyle(
                 fontWeight: FontWeight.bold,
-                color: Colors.indigo,
+                color: Color(0xFF192153),
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
 
-            // Grade 2x2 com blocos coloridos
-            Expanded(
+            // GRID 2x2 (MANTIDO IGUAL)
+            SizedBox(
+              height: 380,
               child: GridView.count(
                 crossAxisCount: 2,
-                mainAxisSpacing: 16,
                 crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
+                physics: const NeverScrollableScrollPhysics(),
                 children: [
-                  buildCard(
-                    numero: 1,
-                    texto: "Entrada",
-                    icone: Icons.login_rounded,
-                    cor: const Color(0xFF4CB5AE), // Verde água
+                  _PontoTile(
+                    number: "1",
+                    label: "entrada",
+                    color: const Color(0xFF18A999),
+                    icon: Icons.login,
+                    onTap: () => _registrar("entrada"),
                   ),
-                  buildCard(
-                    numero: 2,
-                    texto: "Pausa",
-                    icone: Icons.free_breakfast_rounded,
-                    cor: const Color(0xFF5E9EDA), // Azul claro
+                  _PontoTile(
+                    number: "2",
+                    label: "pausa",
+                    color: const Color(0xFF3DB2FF),
+                    icon: Icons.coffee,
+                    onTap: () => _registrar("pausa"),
                   ),
-                  buildCard(
-                    numero: 3,
-                    texto: "Retorno",
-                    icone: Icons.local_cafe_rounded,
-                    cor: const Color(0xFFF4B860), // Amarelo
+                  _PontoTile(
+                    number: "3",
+                    label: "retorno",
+                    color: const Color(0xFFF7C548),
+                    icon: Icons.replay,
+                    onTap: () => _registrar("retorno"),
                   ),
-                  buildCard(
-                    numero: 4,
-                    texto: "Saída",
-                    icone: Icons.logout_rounded,
-                    cor: const Color(0xFFF17C67), // Vermelho alaranjado
+                  _PontoTile(
+                    number: "4",
+                    label: "saída",
+                    color: const Color(0xFFF26464),
+                    icon: Icons.logout,
+                    onTap: () => _registrar("saida"),
                   ),
                 ],
               ),
             ),
 
-            // Botão de limpar registros
-            ElevatedButton.icon(
-              onPressed: limparRegistros,
-              icon: const Icon(Icons.delete_outline),
-              label: const Text("Limpar registros"),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.indigo[50],
-                foregroundColor: Colors.indigo,
-                minimumSize: const Size(double.infinity, 50),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30),
-                ),
+            const SizedBox(height: 20),
+
+            // 📌 **TABELA DOS REGISTROS** (ÚNICA PARTE ALTERADA)
+            Expanded(
+              child: loading
+                  ? const Center(child: CircularProgressIndicator())
+                  : registros.isEmpty
+                      ? const Center(child: Text("Nenhum registro ainda"))
+                      : SingleChildScrollView(
+                          scrollDirection: Axis.vertical,
+                          child: DataTable(
+                            headingRowColor: MaterialStateProperty.all(
+                              Colors.grey.shade200,
+                            ),
+                            columns: const [
+                              DataColumn(label: Text("Data")),
+                              DataColumn(label: Text("Entrada")),
+                              DataColumn(label: Text("Pausa")),
+                              DataColumn(label: Text("Retorno")),
+                              DataColumn(label: Text("Saída")),
+                            ],
+                            rows: dates.map((date) {
+                              final map = registros[date] ?? {};
+
+                              return DataRow(cells: [
+                                DataCell(Text(date)),
+                                DataCell(Text(map["entrada"] ?? "-")),
+                                DataCell(Text(map["pausa"] ?? "-")),
+                                DataCell(Text(map["retorno"] ?? "-")),
+                                DataCell(Text(map["saida"] ?? "-")),
+                              ]);
+                            }).toList(),
+                          ),
+                        ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PontoTile extends StatelessWidget {
+  final String number;
+  final String label;
+  final Color color;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  const _PontoTile({
+    required this.number,
+    required this.label,
+    required this.color,
+    required this.icon,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              number,
+              style: const TextStyle(
+                fontSize: 34,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
               ),
             ),
+            const SizedBox(height: 4),
+            Icon(icon, color: Colors.white, size: 38),
+            const SizedBox(height: 6),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+              ),
+            )
           ],
         ),
       ),

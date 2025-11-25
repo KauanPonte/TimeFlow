@@ -1,64 +1,245 @@
 import 'package:flutter/material.dart';
-import '../widgets/ponto_button.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../services/ponto_service.dart';
+import '../widgets/bottom_nav.dart';
+import 'dart:io';
 
-class HomePage extends StatelessWidget {
-  final String nomeFuncionario;
-  const HomePage({super.key, required this.nomeFuncionario});
+class HomePage extends StatefulWidget {
+  final String employeeName;
+  final String profileImageUrl;
+  final String logoAsset;
 
-  void registrarPonto(String tipo) {
-    debugPrint("Ponto registrado: $tipo");
-    // futuramente: mostrar Snackbar, salvar no banco, etc
+  const HomePage({
+    super.key,
+    this.employeeName = "",
+    this.profileImageUrl = "",
+    this.logoAsset = 'assets/logo.png',
+  });
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  Map<String, Map<String, String>> registros = {};
+  double monthBalance = 0.0;
+  String employeeName = "";
+  String profileImageUrl = "";
+  bool loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    employeeName = widget.employeeName;
+    profileImageUrl = widget.profileImageUrl;
+    _loadAll();
   }
+
+  Future<void> _loadAll() async {
+    setState(() => loading = true);
+    registros = await PontoService.loadRegistros();
+    final prefs = await SharedPreferences.getInstance();
+    monthBalance = prefs.getDouble("month_balance") ?? 0.0;
+
+    if (employeeName.isEmpty) {
+      employeeName = prefs.getString("employee_name") ?? "";
+    }
+
+    if (profileImageUrl.isEmpty) {
+      profileImageUrl = prefs.getString("profile_image_path") ?? "";
+    }
+
+    setState(() => loading = false);
+  }
+
+  Color get balanceColor => monthBalance >= 0 ? Colors.green : Colors.red;
 
   @override
   Widget build(BuildContext context) {
-    final List<Map<String, dynamic>> botoes = [
-      {"titulo": "Entrada", "icone": Icons.login, "cor": Colors.green},
-      {"titulo": "Pausa", "icone": Icons.coffee, "cor": Colors.orange},
-      {"titulo": "Retorno", "icone": Icons.refresh, "cor": Colors.blue},
-      {"titulo": "Saída", "icone": Icons.logout, "cor": Colors.redAccent},
-    ];
-
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("App de Ponto"),
-        backgroundColor: Colors.indigo,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              "Olá, $nomeFuncionario 👋",
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 10),
-            const Text(
-              "Escolha o tipo de ponto:",
-              style: TextStyle(fontSize: 18),
-            ),
-            const SizedBox(height: 30),
-            Expanded(
-              child: GridView.builder(
-                itemCount: botoes.length,
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 20,
-                  crossAxisSpacing: 20,
-                ),
-                itemBuilder: (context, index) {
-                  final item = botoes[index];
-                  return PontoButton(
-                    titulo: item["titulo"],
-                    icone: item["icone"],
-                    cor: item["cor"],
-                    onPressed: () => registrarPonto(item["titulo"]),
-                  );
-                },
+      bottomNavigationBar: BottomNav(
+  index: 1,
+  args: {
+    "employeeName": employeeName,
+    "profileImageUrl": profileImageUrl,
+  },
+),
+
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          child: ListView(
+            children: [
+              // linha superior
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Image.asset(widget.logoAsset, height: 36, width: 36),
+                      const SizedBox(width: 10),
+                      const Text("TimeFlow",
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 16)),
+                    ],
+                  ),
+                  Row(
+                    children: const [
+                      Icon(Icons.notifications_none, size: 26),
+                      SizedBox(width: 12),
+                      Icon(Icons.more_vert, size: 28),
+                    ],
+                  ),
+                ],
               ),
-            ),
-          ],
+
+              const SizedBox(height: 18),
+
+              Text(
+                "OLÁ, ${employeeName.toUpperCase()}",
+                style: const TextStyle(
+                    fontSize: 20,
+                    color: Color(0xFF192153),
+                    fontWeight: FontWeight.bold),
+              ),
+
+              const SizedBox(height: 18),
+
+              Center(
+                child: CircleAvatar(
+                  radius: 65,
+                  backgroundColor: const Color(0xFFCCF3FE),
+                  backgroundImage: profileImageUrl.isNotEmpty
+                      ? FileImage(File(profileImageUrl))
+                      : null,
+                ),
+              ),
+
+              const SizedBox(height: 18),
+
+              const Text("Trabalhando...",
+                  style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF192153))),
+              const SizedBox(height: 8),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(25),
+                child: LinearProgressIndicator(
+                  value: 0.45,
+                  minHeight: 12,
+                  backgroundColor: const Color(0xFFEAEAFF),
+                  color: const Color(0xFF192153),
+                ),
+              ),
+
+              const SizedBox(height: 18),
+
+              Center(
+            child: ElevatedButton(
+            style: ElevatedButton.styleFrom(
+             backgroundColor: Colors.white,
+            side: BorderSide(color: Colors.grey.shade400),
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 26),
+            elevation: 0,
+                    ),
+                onPressed: () {
+                  Navigator.pushNamed(
+                          context,
+                    "/ponto",
+                 arguments: {
+                "employeeName": employeeName,
+                "profileImageUrl": profileImageUrl,
+  },
+);
+
+                  },
+            child: const Text(
+                "BATER PONTO",
+                    style: TextStyle(
+                   color: Colors.black87,
+                    fontWeight: FontWeight.w600,
+      ),
+    ),
+  ),
+),
+
+
+              const SizedBox(height: 18),
+
+              Container(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(12)),
+                child: Column(
+                  children: [
+                    const Text("Meu saldo de horas",
+                        style: TextStyle(fontSize: 13)),
+                    const SizedBox(height: 8),
+                    Text(
+                        "${monthBalance >= 0 ? '+' : ''}${monthBalance.toStringAsFixed(2)} h",
+                        style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: balanceColor)),
+                    const SizedBox(height: 8),
+                    const Text("Horas positivas ou negativas",
+                        style: TextStyle(fontSize: 12)),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
+              const Text("Registros recentes",
+                  style: TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+
+              loading
+                  ? const Center(child: CircularProgressIndicator())
+                  : registros.isEmpty
+                      ? const Text("Nenhum registro ainda.")
+                      : Column(
+                          children: (() {
+                            final datas = registros.keys.toList()
+                              ..sort((a, b) => b.compareTo(a));
+
+                            return datas.map((date) {
+                              final map = registros[date]!;
+                              final texto = map.entries
+                                  .map((e) =>
+                                      "${e.key}: ${e.value}")
+                                  .join(" • ");
+
+                              return Container(
+                                margin: const EdgeInsets.symmetric(
+                                    vertical: 6),
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  border: Border.all(
+                                      color: Colors.grey.shade300),
+                                  borderRadius:
+                                      BorderRadius.circular(10),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Text(date,
+                                        style: const TextStyle(
+                                            fontWeight:
+                                                FontWeight.bold)),
+                                    const SizedBox(width: 12),
+                                    Expanded(child: Text(texto)),
+                                  ],
+                                ),
+                              );
+                            }).toList();
+                          })(),
+                        ),
+
+              const SizedBox(height: 30),
+            ],
+          ),
         ),
       ),
     );
