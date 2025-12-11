@@ -21,6 +21,7 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  flutter_launcher_icons: "^0.14.4"
 
   flutter_lints: ^2.0.0
 
@@ -28,5 +29,25 @@ flutter:
   uses-material-design: true
 
   assets:
-    - assets/logo.png
-    - assets/default_mascote.png
+    - assets/
+    - assets/app_icon/
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/app_icon/timeflow.png"
+  adaptive_icon_background: "#303F9F"
+  adaptive_icon_foreground: "assets/app_icon/timeflow.png"
+  min_sdk_android: 21 # android min sdk min:16, default 21
+  web:
+    generate: true
+    image_path: "assets/app_icon/timeflow.png"
+    background_color: "#303F9F"
+    theme_color: "#303F9F"
+  windows:
+    generate: true
+    image_path: "assets/app_icon/timeflow.png"
+    icon_size: 48 # min:48, max:256, default: 48
+  macos:
+    generate: true
+    image_path: "assets/app_icon/timeflow.png"

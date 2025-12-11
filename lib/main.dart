@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'pages/login_page.dart';
+import 'pages/auth/welcome/welcome_page.dart';
+import 'pages/auth/login/login_page.dart';
+import 'pages/auth/register/register_page.dart';
 import 'pages/home_page.dart';
-import 'pages/register_page.dart';
 import 'pages/ponto_page.dart';
 import 'pages/profile_page.dart';
 import 'pages/history_page.dart';
@@ -17,7 +18,7 @@ class TimeFlow extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      initialRoute: "/login",
+      initialRoute: "/",
       onGenerateRoute: (settings) {
         // Rotas com argumentos
         if (settings.name == "/home") {
@@ -34,6 +35,7 @@ class TimeFlow extends StatelessWidget {
         return null;
       },
       routes: {
+        "/": (context) => const WelcomePage(),
         "/login": (context) => const LoginPage(),
         "/register": (context) => const RegisterPage(),
         "/ponto": (context) => const PontoPage(),
