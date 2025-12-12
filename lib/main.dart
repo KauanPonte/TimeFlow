@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/auth/auth_bloc.dart';
 import 'package:flutter_application_appdeponto/repositories/auth_repository.dart';
+import 'pages/splash/splash_page.dart';
 import 'pages/auth/welcome/welcome_page.dart';
 import 'pages/auth/login/login_page.dart';
 import 'pages/auth/register/register_page.dart';
@@ -43,7 +44,8 @@ class TimeFlow extends StatelessWidget {
           return null;
         },
         routes: {
-          "/": (context) => const WelcomePage(),
+          "/": (context) => const SplashPage(),
+          "/welcome": (context) => const WelcomePage(),
           "/login": (context) => const LoginPage(),
           "/register": (context) => const RegisterPage(),
           "/forgot-password": (context) => const ForgotPasswordPage(),

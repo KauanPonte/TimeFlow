@@ -105,3 +105,8 @@ class ClearFieldError extends AuthEvent {
 class AuthReset extends AuthEvent {
   const AuthReset();
 }
+
+/// Event triggered to log out
+class LogoutRequested extends AuthEvent {
+  const LogoutRequested();
+}

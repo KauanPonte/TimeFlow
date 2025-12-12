@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// Repository for managing authentication and related operations
 /// Will be connected to a real database in the future
@@ -142,5 +143,44 @@ class AuthRepository {
       return 'Nome deve ter no mínimo 3 caracteres';
     }
     return null;
+  }
+
+  /// Saves user session after successful login
+  Future<void> saveUserSession(Map<String, dynamic> userData) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('isLoggedIn', true);
+    await prefs.setString('userEmail', userData['email'] ?? '');
+    await prefs.setString('userName', userData['name'] ?? '');
+    await prefs.setString('userRole', userData['role'] ?? '');
+    await prefs.setString('profileImage', userData['profileImage'] ?? '');
+  }
+
+  /// Gets current user session if logged in
+  Future<Map<String, dynamic>?> getUserSession() async {
+    final prefs = await SharedPreferences.getInstance();
+    final isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
+
+    if (!isLoggedIn) {
+      return null;
+    }
+
+    return {
+      'email': prefs.getString('userEmail') ?? '',
+      'name': prefs.getString('userName') ?? '',
+      'role': prefs.getString('userRole') ?? '',
+      'profileImage': prefs.getString('profileImage') ?? '',
+    };
+  }
+
+  /// Checks if user is currently logged in
+  Future<bool> isLoggedIn() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool('isLoggedIn') ?? false;
+  }
+
+  /// Clears user session (logout)
+  Future<void> clearUserSession() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
   }
 }

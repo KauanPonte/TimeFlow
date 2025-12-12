@@ -7,6 +7,7 @@ import 'package:flutter_application_appdeponto/repositories/auth_repository.dart
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final AuthRepository _authRepository;
   AuthFieldsState _fieldsState = const AuthFieldsState();
+  AuthRepository get authRepository => _authRepository;
 
   AuthBloc({required AuthRepository authRepository})
       : _authRepository = authRepository,
@@ -19,6 +20,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<NameValidationRequested>(_onNameValidationRequested);
     on<ClearFieldError>(_onClearFieldError);
     on<AuthReset>(_onAuthReset);
+    on<LogoutRequested>(_onLogoutRequested);
   }
 
   /// Handler for login event
@@ -60,6 +62,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         email: event.email,
         password: event.password,
       );
+
+      // Save user session
+      await _authRepository.saveUserSession(userData);
 
       _fieldsState = const AuthFieldsState();
       emit(LoginSuccess(userData: userData));
@@ -118,6 +123,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         role: event.role,
         profileImage: event.profileImage,
       );
+
+      // Save user session
+      await _authRepository.saveUserSession(userData);
 
       _fieldsState = const AuthFieldsState();
       emit(RegisterSuccess(userData: userData));
@@ -272,6 +280,16 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     AuthReset event,
     Emitter<AuthState> emit,
   ) async {
+    _fieldsState = const AuthFieldsState();
+    emit(_fieldsState);
+  }
+
+  /// Handler for logout
+  Future<void> _onLogoutRequested(
+    LogoutRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    await _authRepository.clearUserSession();
     _fieldsState = const AuthFieldsState();
     emit(_fieldsState);
   }
