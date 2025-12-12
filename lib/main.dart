@@ -5,8 +5,15 @@ import 'pages/register_page.dart';
 import 'pages/ponto_page.dart';
 import 'pages/profile_page.dart';
 import 'pages/history_page.dart';
+import 'services/notification_service.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Inicializa as notificações logo na abertura do app
+  await NotificationService.init();
+  await NotificationService.requestPermissions();
+
   runApp(const TimeFlow());
 }
 
@@ -19,7 +26,6 @@ class TimeFlow extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       initialRoute: "/login",
       onGenerateRoute: (settings) {
-        // Rotas com argumentos
         if (settings.name == "/home") {
           final args = settings.arguments as Map<String, dynamic>;
 
@@ -30,7 +36,6 @@ class TimeFlow extends StatelessWidget {
             ),
           );
         }
-
         return null;
       },
       routes: {

@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import '../widgets/bottom_nav.dart';
 import '../services/ponto_service.dart';
+import '../services/notification_service.dart';
 
 class PontoPage extends StatefulWidget {
   const PontoPage({super.key});
@@ -17,7 +18,21 @@ class _PontoPageState extends State<PontoPage> {
   @override
   void initState() {
     super.initState();
-    _loadRegistros();
+
+    // Notificação diária (SEM criar instância)
+    NotificationService.scheduleDailyNotification(
+      title: "Bom dia! ☀️",
+      body: "Mais um day office! Já bateu seu ponto hoje?",
+      hour: 9,
+      minute: 0,
+    );
+
+    _initSistema();
+  }
+
+  Future<void> _initSistema() async {
+    await _loadRegistros();
+    await _checkPontoDoDia();
   }
 
   Future<void> _loadRegistros() async {
@@ -29,6 +44,45 @@ class _PontoPageState extends State<PontoPage> {
   Future<void> _registrar(String status) async {
     await PontoService.registrarPonto(context, status);
     await _loadRegistros();
+
+    switch (status) {
+      case "entrada":
+        NotificationService.showInstantNotification(
+          title: "Ponto registrado",
+          body: "Bom trabalho! Sua entrada foi registrada.",
+        );
+        break;
+      case "pausa":
+        NotificationService.showInstantNotification(
+          title: "Pausa iniciada",
+          body: "Lembre-se de registrar o retorno depois.",
+        );
+        break;
+      case "retorno":
+        NotificationService.showInstantNotification(
+          title: "Retorno registrado",
+          body: "Continue com foco no seu trabalho!",
+        );
+        break;
+      case "saida":
+        NotificationService.showInstantNotification(
+          title: "Saída registrada",
+          body: "Bom descanso! Até amanhã.",
+        );
+        break;
+    }
+  }
+
+  Future<void> _checkPontoDoDia() async {
+    final hoje = DateTime.now();
+    final data = "${hoje.year}-${hoje.month}-${hoje.day}";
+
+    if (!registros.containsKey(data)) {
+      NotificationService.showInstantNotification(
+        title: "Atenção!",
+        body: "Vimos que você ainda não bateu o ponto hoje.",
+      );
+    }
   }
 
   @override
@@ -38,30 +92,30 @@ class _PontoPageState extends State<PontoPage> {
     return Scaffold(
       bottomNavigationBar: BottomNav(
         index: 0,
-        args:
-            ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>?,
+        args: ModalRoute.of(context)!.settings.arguments
+            as Map<String, dynamic>?,
       ),
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-        child: Column(
-          children: [
-            const Text(
-              "STATUS DE TRABALHO",
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF192153),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+          child: Column(
+            children: [
+              const Text(
+                "STATUS DE TRABALHO",
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF192153),
+                ),
               ),
-            ),
-            const SizedBox(height: 20),
+              const SizedBox(height: 20),
 
-            // GRID 2x2 (MANTIDO IGUAL)
-            SizedBox(
-              height: 380,
-              child: GridView.count(
+              // GRID
+              GridView.count(
                 crossAxisCount: 2,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
                 crossAxisSpacing: 16,
                 mainAxisSpacing: 16,
-                physics: const NeverScrollableScrollPhysics(),
                 children: [
                   _PontoTile(
                     number: "1",
@@ -93,18 +147,16 @@ class _PontoPageState extends State<PontoPage> {
                   ),
                 ],
               ),
-            ),
 
-            const SizedBox(height: 20),
+              const SizedBox(height: 20),
 
-            // 📌 **TABELA DOS REGISTROS** (ÚNICA PARTE ALTERADA)
-            Expanded(
-              child: loading
+              // TABELA
+              loading
                   ? const Center(child: CircularProgressIndicator())
                   : registros.isEmpty
-                      ? const Center(child: Text("Nenhum registro ainda"))
+                      ? const Text("Nenhum registro ainda")
                       : SingleChildScrollView(
-                          scrollDirection: Axis.vertical,
+                          scrollDirection: Axis.horizontal,
                           child: DataTable(
                             headingRowColor: MaterialStateProperty.all(
                               Colors.grey.shade200,
@@ -118,19 +170,20 @@ class _PontoPageState extends State<PontoPage> {
                             ],
                             rows: dates.map((date) {
                               final map = registros[date] ?? {};
-
-                              return DataRow(cells: [
-                                DataCell(Text(date)),
-                                DataCell(Text(map["entrada"] ?? "-")),
-                                DataCell(Text(map["pausa"] ?? "-")),
-                                DataCell(Text(map["retorno"] ?? "-")),
-                                DataCell(Text(map["saida"] ?? "-")),
-                              ]);
+                              return DataRow(
+                                cells: [
+                                  DataCell(Text(date)),
+                                  DataCell(Text(map["entrada"] ?? "-")),
+                                  DataCell(Text(map["pausa"] ?? "-")),
+                                  DataCell(Text(map["retorno"] ?? "-")),
+                                  DataCell(Text(map["saida"] ?? "-")),
+                                ],
+                              );
                             }).toList(),
                           ),
                         ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

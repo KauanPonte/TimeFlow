@@ -56,15 +56,19 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    // 🔹 Define a imagem (arquivo salvo OU mascote padrão)
+    ImageProvider<Object> imageProvider = profileImageUrl.isNotEmpty
+        ? FileImage(File(profileImageUrl)) as ImageProvider
+        : const AssetImage('assets/default_mascote.png') as ImageProvider;
+
     return Scaffold(
       bottomNavigationBar: BottomNav(
-  index: 1,
-  args: {
-    "employeeName": employeeName,
-    "profileImageUrl": profileImageUrl,
-  },
-),
-
+        index: 1,
+        args: {
+          "employeeName": employeeName,
+          "profileImageUrl": profileImageUrl,
+        },
+      ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -108,10 +112,8 @@ class _HomePageState extends State<HomePage> {
               Center(
                 child: CircleAvatar(
                   radius: 65,
-                  backgroundColor: const Color(0xFFCCF3FE),
-                  backgroundImage: profileImageUrl.isNotEmpty
-                      ? FileImage(File(profileImageUrl))
-                      : null,
+                  backgroundColor: const Color.fromARGB(255, 193, 255, 255),
+                  backgroundImage: imageProvider,
                 ),
               ),
 
@@ -128,7 +130,7 @@ class _HomePageState extends State<HomePage> {
                 child: LinearProgressIndicator(
                   value: 0.45,
                   minHeight: 12,
-                  backgroundColor: const Color(0xFFEAEAFF),
+                  backgroundColor: const Color.fromARGB(255, 255, 255, 255),
                   color: const Color(0xFF192153),
                 ),
               ),
@@ -136,34 +138,33 @@ class _HomePageState extends State<HomePage> {
               const SizedBox(height: 18),
 
               Center(
-            child: ElevatedButton(
-            style: ElevatedButton.styleFrom(
-             backgroundColor: Colors.white,
-            side: BorderSide(color: Colors.grey.shade400),
-            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 26),
-            elevation: 0,
-                    ),
-                onPressed: () {
-                  Navigator.pushNamed(
-                          context,
-                    "/ponto",
-                 arguments: {
-                "employeeName": employeeName,
-                "profileImageUrl": profileImageUrl,
-  },
-);
-
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    side: BorderSide(color: Colors.grey.shade400),
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 10, horizontal: 26),
+                    elevation: 0,
+                  ),
+                  onPressed: () {
+                    Navigator.pushNamed(
+                      context,
+                      "/ponto",
+                      arguments: {
+                        "employeeName": employeeName,
+                        "profileImageUrl": profileImageUrl,
+                      },
+                    );
                   },
-            child: const Text(
-                "BATER PONTO",
+                  child: const Text(
+                    "BATER PONTO",
                     style: TextStyle(
-                   color: Colors.black87,
-                    fontWeight: FontWeight.w600,
-      ),
-    ),
-  ),
-),
-
+                      color: Colors.black87,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
 
               const SizedBox(height: 18),
 
@@ -208,26 +209,22 @@ class _HomePageState extends State<HomePage> {
                             return datas.map((date) {
                               final map = registros[date]!;
                               final texto = map.entries
-                                  .map((e) =>
-                                      "${e.key}: ${e.value}")
+                                  .map((e) => "${e.key}: ${e.value}")
                                   .join(" • ");
 
                               return Container(
-                                margin: const EdgeInsets.symmetric(
-                                    vertical: 6),
+                                margin: const EdgeInsets.symmetric(vertical: 6),
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
-                                  border: Border.all(
-                                      color: Colors.grey.shade300),
-                                  borderRadius:
-                                      BorderRadius.circular(10),
+                                  border:
+                                      Border.all(color: Colors.grey.shade300),
+                                  borderRadius: BorderRadius.circular(10),
                                 ),
                                 child: Row(
                                   children: [
                                     Text(date,
                                         style: const TextStyle(
-                                            fontWeight:
-                                                FontWeight.bold)),
+                                            fontWeight: FontWeight.bold)),
                                     const SizedBox(width: 12),
                                     Expanded(child: Text(texto)),
                                   ],
