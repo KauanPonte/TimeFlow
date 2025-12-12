@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
+import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
 import 'widgets/auth_header.dart';
 import 'widgets/custom_text_field.dart';
 import 'widgets/primary_button.dart';
@@ -33,7 +34,8 @@ class _LoginPageState extends State<LoginPage> {
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 32.0),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 32.0, vertical: 24.0),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -43,7 +45,7 @@ class _LoginPageState extends State<LoginPage> {
                     subtitle: "Entre com suas credenciais",
                     icon: Icons.person,
                   ),
-                  const SizedBox(height: 40),
+                  const SizedBox(height: 32),
 
                   // Email Field
                   CustomTextField(
@@ -52,7 +54,7 @@ class _LoginPageState extends State<LoginPage> {
                     prefixIcon: Icons.email_outlined,
                     keyboardType: TextInputType.emailAddress,
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 16),
 
                   // Password Field
                   CustomTextField(
@@ -73,25 +75,22 @@ class _LoginPageState extends State<LoginPage> {
                       },
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 16),
 
                   // Forgot Password Link
                   Align(
                     alignment: Alignment.centerRight,
-                    child: TextButton(
-                      onPressed: () {
-                        // TODO: Implement password recovery
+                    child: GestureDetector(
+                      onTap: () {
+                        Navigator.pushNamed(context, '/forgot-password');
                       },
-                      child: const Text(
+                      child: Text(
                         "Esqueceu a senha?",
-                        style: TextStyle(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w600,
-                        ),
+                        style: AppTextStyles.link,
                       ),
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 24),
 
                   // Login Button
                   PrimaryButton(
@@ -108,30 +107,23 @@ class _LoginPageState extends State<LoginPage> {
                       );
                     },
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 16),
 
                   // Link to Register Page
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text(
+                      Text(
                         "Não tem uma conta? ",
-                        style: TextStyle(
-                          color: AppColors.textSecondary,
-                          fontSize: 15,
-                        ),
+                        style: AppTextStyles.bodyMedium,
                       ),
                       GestureDetector(
                         onTap: () {
                           Navigator.pushNamed(context, '/register');
                         },
-                        child: const Text(
+                        child: Text(
                           "Cadastre-se",
-                          style: TextStyle(
-                            color: AppColors.primary,
-                            fontSize: 15,
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: AppTextStyles.link,
                         ),
                       ),
                     ],
