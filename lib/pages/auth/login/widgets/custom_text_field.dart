@@ -48,7 +48,7 @@ class CustomTextField extends StatelessWidget {
                   ? Colors.green
                   : null,
         ),
-        suffixIcon: isValid && errorText == null
+        suffixIcon: (isValid && errorText == null && suffixIcon == null)
             ? const Icon(Icons.check_circle, color: Colors.green)
             : suffixIcon,
         errorText: errorText,

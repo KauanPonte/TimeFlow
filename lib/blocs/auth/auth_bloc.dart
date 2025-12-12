@@ -21,6 +21,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<ClearFieldError>(_onClearFieldError);
     on<AuthReset>(_onAuthReset);
     on<LogoutRequested>(_onLogoutRequested);
+    on<CheckAuthStatus>(_onCheckAuthStatus);
   }
 
   /// Handler for login event
@@ -270,7 +271,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     Emitter<AuthState> emit,
   ) async {
     final errors = Map<String, String?>.from(_fieldsState.fieldErrors);
-    errors.remove(event.fieldName);
+    errors[event.fieldName] = null;
     _fieldsState = _fieldsState.copyWith(fieldErrors: errors);
     emit(_fieldsState);
   }
@@ -292,5 +293,31 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     await _authRepository.clearUserSession();
     _fieldsState = const AuthFieldsState();
     emit(_fieldsState);
+  }
+
+  /// Handler to check authentication status
+  Future<void> _onCheckAuthStatus(
+    CheckAuthStatus event,
+    Emitter<AuthState> emit,
+  ) async {
+    final userData = await _authRepository.getUserSession();
+
+    if (userData != null) {
+      final email = userData['email'] as String?;
+      if (email != null && email.isNotEmpty) {
+        // Validate that user still exists in registered users
+        final userExists = await _authRepository.validateEmail(email);
+        if (userExists) {
+          // User is authenticated and exists
+          emit(Authenticated(userData: userData));
+          return;
+        }
+        // User was deleted, clear session
+        await _authRepository.clearUserSession();
+      }
+    }
+
+    // Not authenticated or user no longer exists
+    emit(const Unauthenticated());
   }
 }

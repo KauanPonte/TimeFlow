@@ -107,7 +107,7 @@ class AuthRepository {
   /// Validates if an email is registered in the system
   /// Returns true if email exists
   Future<bool> validateEmail(String email) async {
-    // Simula delay de requisição de rede
+    // Simulates network request delay
     await Future.delayed(const Duration(milliseconds: 300));
 
     // TODO: Replace with real API call

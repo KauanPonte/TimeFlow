@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
 
-/// Class base for authentication states
+/// Base class for authentication states
 abstract class AuthState extends Equatable {
   const AuthState();
 
@@ -83,4 +83,19 @@ class AuthFieldsState extends AuthState {
 
   @override
   List<Object?> get props => [fieldErrors, fieldValid, isLoading];
+}
+
+/// State when user is authenticated (for splash screen)
+class Authenticated extends AuthState {
+  final Map<String, dynamic> userData;
+
+  const Authenticated({required this.userData});
+
+  @override
+  List<Object> get props => [userData];
+}
+
+/// State when user is not authenticated (for splash screen)
+class Unauthenticated extends AuthState {
+  const Unauthenticated();
 }

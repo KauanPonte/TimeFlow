@@ -53,7 +53,7 @@ class ForgotPasswordRequested extends AuthEvent {
   List<Object> get props => [email];
 }
 
-/// Evento disparado para validar formato de email
+/// Event triggered to validate email format
 class EmailFormatValidationRequested extends AuthEvent {
   final String email;
   final String fieldName; // To identify which field (login, register, etc)
@@ -109,4 +109,9 @@ class AuthReset extends AuthEvent {
 /// Event triggered to log out
 class LogoutRequested extends AuthEvent {
   const LogoutRequested();
+}
+
+/// Event triggered to check authentication status on app start
+class CheckAuthStatus extends AuthEvent {
+  const CheckAuthStatus();
 }

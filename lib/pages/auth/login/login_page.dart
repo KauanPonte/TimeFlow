@@ -20,6 +20,21 @@ class _LoginPageState extends State<LoginPage> {
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
   bool _obscurePassword = true;
+  late AuthBloc _authBloc;
+
+  @override
+  void initState() {
+    super.initState();
+    _authBloc = context.read<AuthBloc>();
+  }
+
+  @override
+  void dispose() {
+    _authBloc.add(const AuthReset());
+    emailController.dispose();
+    passwordController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -96,12 +111,18 @@ class _LoginPageState extends State<LoginPage> {
                         errorText: fieldsState.fieldErrors['email'],
                         isValid: fieldsState.fieldValid['email'] ?? false,
                         onChanged: (value) {
-                          context.read<AuthBloc>().add(
-                                EmailFormatValidationRequested(
-                                  email: value,
-                                  fieldName: 'email',
-                                ),
-                              );
+                          if (value.isEmpty) {
+                            context.read<AuthBloc>().add(
+                                  const ClearFieldError(fieldName: 'email'),
+                                );
+                          } else {
+                            context.read<AuthBloc>().add(
+                                  EmailFormatValidationRequested(
+                                    email: value,
+                                    fieldName: 'email',
+                                  ),
+                                );
+                          }
                         },
                       ),
                       const SizedBox(height: 16),
@@ -115,12 +136,18 @@ class _LoginPageState extends State<LoginPage> {
                         errorText: fieldsState.fieldErrors['password'],
                         isValid: fieldsState.fieldValid['password'] ?? false,
                         onChanged: (value) {
-                          context.read<AuthBloc>().add(
-                                PasswordValidationRequested(
-                                  password: value,
-                                  fieldName: 'password',
-                                ),
-                              );
+                          if (value.isEmpty) {
+                            context.read<AuthBloc>().add(
+                                  const ClearFieldError(fieldName: 'password'),
+                                );
+                          } else {
+                            context.read<AuthBloc>().add(
+                                  PasswordValidationRequested(
+                                    password: value,
+                                    fieldName: 'password',
+                                  ),
+                                );
+                          }
                         },
                         suffixIcon: IconButton(
                           icon: Icon(

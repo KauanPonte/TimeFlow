@@ -23,6 +23,23 @@ class _RegisterPageState extends State<RegisterPage> {
   final roleController = TextEditingController();
   File? selectedImage;
   bool _obscurePassword = true;
+  late AuthBloc _authBloc;
+
+  @override
+  void initState() {
+    super.initState();
+    _authBloc = context.read<AuthBloc>();
+  }
+
+  @override
+  void dispose() {
+    _authBloc.add(const AuthReset());
+    nameController.dispose();
+    emailController.dispose();
+    passwordController.dispose();
+    roleController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {

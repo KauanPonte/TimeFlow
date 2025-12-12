@@ -89,18 +89,32 @@ class _HomePageState extends State<HomePage> {
                     children: [
                       const Icon(Icons.notifications_none, size: 26),
                       const SizedBox(width: 12),
-                      const Icon(Icons.more_vert, size: 28),
-                      IconButton(
-                        icon: const Icon(Icons.logout, size: 28),
-                        onPressed: () {
-                          // Dispatch logout and navigate to welcome (clear stack)
-                          context.read<AuthBloc>().add(const LogoutRequested());
-                          Navigator.pushNamedAndRemoveUntil(
-                            context,
-                            '/welcome',
-                            (route) => false,
-                          );
+                      PopupMenuButton<String>(
+                        icon: const Icon(Icons.more_vert, size: 28),
+                        onSelected: (String value) {
+                          if (value == 'logout') {
+                            context
+                                .read<AuthBloc>()
+                                .add(const LogoutRequested());
+                            Navigator.pushNamedAndRemoveUntil(
+                              context,
+                              '/welcome',
+                              (route) => false,
+                            );
+                          }
                         },
+                        itemBuilder: (BuildContext context) => [
+                          const PopupMenuItem<String>(
+                            value: 'logout',
+                            child: Row(
+                              children: [
+                                Icon(Icons.logout),
+                                SizedBox(width: 8),
+                                Text('Logout'),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),

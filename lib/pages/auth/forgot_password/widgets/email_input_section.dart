@@ -6,12 +6,14 @@ class EmailInputSection extends StatelessWidget {
   final TextEditingController emailController;
   final VoidCallback onSendPressed;
   final String? errorText;
+  final Function(String)? onChanged;
 
   const EmailInputSection({
     super.key,
     required this.emailController,
     required this.onSendPressed,
     this.errorText,
+    this.onChanged,
   });
 
   @override
@@ -26,6 +28,7 @@ class EmailInputSection extends StatelessWidget {
           prefixIcon: Icons.email_outlined,
           keyboardType: TextInputType.emailAddress,
           errorText: errorText,
+          onChanged: onChanged,
         ),
         const SizedBox(height: 16),
 
