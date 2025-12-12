@@ -17,6 +17,20 @@ class ForgotPasswordPage extends StatefulWidget {
 
 class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   final emailController = TextEditingController();
+  late AuthBloc _authBloc;
+
+  @override
+  void initState() {
+    super.initState();
+    _authBloc = context.read<AuthBloc>();
+  }
+
+  @override
+  void dispose() {
+    _authBloc.add(const AuthReset(fieldNames: ['reset_email']));
+    emailController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,7 +42,6 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: AppColors.primary),
           onPressed: () {
-            context.read<AuthBloc>().add(const AuthReset());
             Navigator.pop(context);
           },
         ),
@@ -87,7 +100,22 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                       if (!isEmailSent)
                         EmailInputSection(
                           emailController: emailController,
-                          errorText: fieldsState.fieldErrors['email'],
+                          errorText: fieldsState.fieldErrors['reset_email'],
+                          onChanged: (value) {
+                            if (value.isEmpty) {
+                              context.read<AuthBloc>().add(
+                                    const ClearFieldError(
+                                        fieldName: 'reset_email'),
+                                  );
+                            } else {
+                              context.read<AuthBloc>().add(
+                                    EmailFormatValidationRequested(
+                                      email: value,
+                                      fieldName: 'reset_email',
+                                    ),
+                                  );
+                            }
+                          },
                           onSendPressed: isLoading
                               ? () {}
                               : () {
@@ -102,11 +130,11 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                         EmailSentSection(
                           email: emailController.text,
                           onBackToLogin: () {
-                            context.read<AuthBloc>().add(const AuthReset());
                             Navigator.pop(context);
                           },
                           onResendEmail: () {
-                            context.read<AuthBloc>().add(const AuthReset());
+                            context.read<AuthBloc>().add(
+                                const AuthReset(fieldNames: ['reset_email']));
                           },
                         ),
                     ],

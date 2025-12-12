@@ -30,7 +30,7 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   void dispose() {
-    _authBloc.add(const AuthReset());
+    _authBloc.add(const AuthReset(fieldNames: ['email', 'password']));
     emailController.dispose();
     passwordController.dispose();
     super.dispose();
@@ -169,7 +169,6 @@ class _LoginPageState extends State<LoginPage> {
                         alignment: Alignment.centerRight,
                         child: GestureDetector(
                           onTap: () {
-                            context.read<AuthBloc>().add(const AuthReset());
                             Navigator.pushNamed(context, '/forgot-password');
                           },
                           child: Text(
@@ -206,7 +205,6 @@ class _LoginPageState extends State<LoginPage> {
                           ),
                           GestureDetector(
                             onTap: () {
-                              context.read<AuthBloc>().add(const AuthReset());
                               Navigator.pushReplacementNamed(
                                   context, '/register');
                             },

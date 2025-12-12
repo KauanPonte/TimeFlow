@@ -102,8 +102,15 @@ class ClearFieldError extends AuthEvent {
 }
 
 /// Event triggered to reset the authentication state
+/// If [fieldNames] is provided, only those fields will be reset
+/// If [fieldNames] is null or empty, all fields will be reset
 class AuthReset extends AuthEvent {
-  const AuthReset();
+  final List<String>? fieldNames;
+
+  const AuthReset({this.fieldNames});
+
+  @override
+  List<Object?> get props => [fieldNames];
 }
 
 /// Event triggered to log out

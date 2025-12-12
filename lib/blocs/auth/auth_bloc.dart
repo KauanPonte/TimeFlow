@@ -149,7 +149,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       // Validate email format
       if (event.email.trim().isEmpty) {
         final errors = Map<String, String?>.from(_fieldsState.fieldErrors);
-        errors['email'] = 'Por favor, insira um email';
+        errors['reset_email'] = 'Por favor, insira um email';
         _fieldsState = _fieldsState.copyWith(
           fieldErrors: errors,
           isLoading: false,
@@ -160,7 +160,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
       if (!_authRepository.isValidEmailFormat(event.email)) {
         final errors = Map<String, String?>.from(_fieldsState.fieldErrors);
-        errors['email'] = 'Email inválido';
+        errors['reset_email'] = 'Email inválido';
         _fieldsState = _fieldsState.copyWith(
           fieldErrors: errors,
           isLoading: false,
@@ -171,12 +171,24 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
       // Try to send password reset email
       await _authRepository.sendPasswordResetEmail(event.email);
-      _fieldsState = const AuthFieldsState();
+
+      // Only reset reset_email field, keep other fields intact
+      final fieldErrors = Map<String, String?>.from(_fieldsState.fieldErrors);
+      final fieldValid = Map<String, bool>.from(_fieldsState.fieldValid);
+      fieldErrors.remove('reset_email');
+      fieldValid.remove('reset_email');
+
+      _fieldsState = AuthFieldsState(
+        fieldErrors: fieldErrors,
+        fieldValid: fieldValid,
+        isLoading: false,
+      );
+
       emit(PasswordResetEmailSent(email: event.email));
     } catch (e) {
       // Update field state and emit error with field context
       final errors = Map<String, String?>.from(_fieldsState.fieldErrors);
-      errors['email'] = e.toString().replaceAll('Exception: ', '');
+      errors['reset_email'] = e.toString().replaceAll('Exception: ', '');
       _fieldsState = _fieldsState.copyWith(
         fieldErrors: errors,
         isLoading: false,
@@ -281,7 +293,25 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     AuthReset event,
     Emitter<AuthState> emit,
   ) async {
-    _fieldsState = const AuthFieldsState();
+    if (event.fieldNames == null || event.fieldNames!.isEmpty) {
+      // Reset all fields
+      _fieldsState = const AuthFieldsState();
+    } else {
+      // Reset only specified fields
+      final fieldErrors = Map<String, String?>.from(_fieldsState.fieldErrors);
+      final fieldValid = Map<String, bool>.from(_fieldsState.fieldValid);
+
+      for (final fieldName in event.fieldNames!) {
+        fieldErrors.remove(fieldName);
+        fieldValid.remove(fieldName);
+      }
+
+      _fieldsState = AuthFieldsState(
+        fieldErrors: fieldErrors,
+        fieldValid: fieldValid,
+        isLoading: false,
+      );
+    }
     emit(_fieldsState);
   }
 

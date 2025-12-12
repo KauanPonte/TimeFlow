@@ -33,7 +33,8 @@ class _RegisterPageState extends State<RegisterPage> {
 
   @override
   void dispose() {
-    _authBloc.add(const AuthReset());
+    _authBloc.add(
+        const AuthReset(fieldNames: ['name', 'email', 'password', 'role']));
     nameController.dispose();
     emailController.dispose();
     passwordController.dispose();
@@ -248,9 +249,6 @@ class _RegisterPageState extends State<RegisterPage> {
                               ),
                               GestureDetector(
                                 onTap: () {
-                                  context
-                                      .read<AuthBloc>()
-                                      .add(const AuthReset());
                                   Navigator.pushReplacementNamed(
                                       context, '/login');
                                 },
