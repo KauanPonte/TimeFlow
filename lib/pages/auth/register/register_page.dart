@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/auth/auth_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/auth/auth_event.dart';
+import 'package:flutter_application_appdeponto/models/auth_field.dart';
 import 'package:flutter_application_appdeponto/blocs/auth/auth_state.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
@@ -34,8 +35,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
   @override
   void dispose() {
-    _authBloc.add(
-        const AuthReset(fieldNames: ['name', 'email', 'password', 'role']));
+    _authBloc.add(const AuthReset(fields: AuthFields.registerFields));
     nameController.dispose();
     emailController.dispose();
     passwordController.dispose();
@@ -117,10 +117,11 @@ class _RegisterPageState extends State<RegisterPage> {
                           // Name Field
                           CustomTextField(
                             controller: nameController,
-                            labelText: "Nome Completo",
+                            labelText: AuthFields.name.displayName,
                             prefixIcon: Icons.person_outline,
-                            errorText: fieldsState.fieldErrors['name'],
-                            isValid: fieldsState.fieldValid['name'] ?? false,
+                            errorText: fieldsState.fieldErrors[AuthFields.name],
+                            isValid: fieldsState.fieldValid[AuthFields.name] ??
+                                false,
                             onChanged: (value) {
                               if (value.isNotEmpty) {
                                 context.read<AuthBloc>().add(
@@ -128,7 +129,8 @@ class _RegisterPageState extends State<RegisterPage> {
                                     );
                               } else {
                                 context.read<AuthBloc>().add(
-                                      const ClearFieldError(fieldName: 'name'),
+                                      const ClearFieldError(
+                                          field: AuthFields.name),
                                     );
                               }
                             },
@@ -138,22 +140,26 @@ class _RegisterPageState extends State<RegisterPage> {
                           // Email Field
                           CustomTextField(
                             controller: emailController,
-                            labelText: "Email",
+                            labelText: AuthFields.emailRegister.displayName,
                             prefixIcon: Icons.email_outlined,
                             keyboardType: TextInputType.emailAddress,
-                            errorText: fieldsState.fieldErrors['email'],
-                            isValid: fieldsState.fieldValid['email'] ?? false,
+                            errorText: fieldsState
+                                .fieldErrors[AuthFields.emailRegister],
+                            isValid: fieldsState
+                                    .fieldValid[AuthFields.emailRegister] ??
+                                false,
                             onChanged: (value) {
                               if (value.isNotEmpty) {
                                 context.read<AuthBloc>().add(
                                       EmailFormatValidationRequested(
                                         email: value,
-                                        fieldName: 'email',
+                                        field: AuthFields.emailRegister,
                                       ),
                                     );
                               } else {
                                 context.read<AuthBloc>().add(
-                                      const ClearFieldError(fieldName: 'email'),
+                                      const ClearFieldError(
+                                          field: AuthFields.emailRegister),
                                     );
                               }
                             },
@@ -163,14 +169,16 @@ class _RegisterPageState extends State<RegisterPage> {
                           // Role Field
                           CustomTextField(
                             controller: roleController,
-                            labelText: "Cargo/Função",
+                            labelText: AuthFields.role.displayName,
                             prefixIcon: Icons.work_outline,
-                            errorText: fieldsState.fieldErrors['role'],
-                            isValid: fieldsState.fieldValid['role'] ?? false,
+                            errorText: fieldsState.fieldErrors[AuthFields.role],
+                            isValid: fieldsState.fieldValid[AuthFields.role] ??
+                                false,
                             onChanged: (value) {
                               if (value.trim().isEmpty) {
                                 context.read<AuthBloc>().add(
-                                      const ClearFieldError(fieldName: 'role'),
+                                      const ClearFieldError(
+                                          field: AuthFields.role),
                                     );
                               }
                             },
@@ -180,24 +188,26 @@ class _RegisterPageState extends State<RegisterPage> {
                           // Password Field
                           CustomTextField(
                             controller: passwordController,
-                            labelText: "Senha",
+                            labelText: AuthFields.passwordRegister.displayName,
                             prefixIcon: Icons.lock_outline,
                             obscureText: _obscurePassword,
-                            errorText: fieldsState.fieldErrors['password'],
-                            isValid:
-                                fieldsState.fieldValid['password'] ?? false,
+                            errorText: fieldsState
+                                .fieldErrors[AuthFields.passwordRegister],
+                            isValid: fieldsState
+                                    .fieldValid[AuthFields.passwordRegister] ??
+                                false,
                             onChanged: (value) {
                               if (value.isNotEmpty) {
                                 context.read<AuthBloc>().add(
                                       PasswordValidationRequested(
                                         password: value,
-                                        fieldName: 'password',
+                                        field: AuthFields.passwordRegister,
                                       ),
                                     );
                               } else {
                                 context.read<AuthBloc>().add(
                                       const ClearFieldError(
-                                          fieldName: 'password'),
+                                          field: AuthFields.passwordRegister),
                                     );
                               }
                             },

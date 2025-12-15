@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/auth/auth_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/auth/auth_event.dart';
+import 'package:flutter_application_appdeponto/models/auth_field.dart';
 import 'package:flutter_application_appdeponto/blocs/auth/auth_state.dart';
 import 'package:flutter_application_appdeponto/pages/auth/forgot_password/widgets/email_input_section.dart';
 import 'package:flutter_application_appdeponto/pages/auth/forgot_password/widgets/email_sent_section.dart';
@@ -27,7 +28,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
 
   @override
   void dispose() {
-    _authBloc.add(const AuthReset(fieldNames: ['reset_email']));
+    _authBloc.add(const AuthReset(fields: AuthFields.forgotPasswordFields));
     emailController.dispose();
     super.dispose();
   }
@@ -100,18 +101,19 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                       if (!isEmailSent)
                         EmailInputSection(
                           emailController: emailController,
-                          errorText: fieldsState.fieldErrors['reset_email'],
+                          errorText:
+                              fieldsState.fieldErrors[AuthFields.resetEmail],
                           onChanged: (value) {
                             if (value.isEmpty) {
                               context.read<AuthBloc>().add(
                                     const ClearFieldError(
-                                        fieldName: 'reset_email'),
+                                        field: AuthFields.resetEmail),
                                   );
                             } else {
                               context.read<AuthBloc>().add(
                                     EmailFormatValidationRequested(
                                       email: value,
-                                      fieldName: 'reset_email',
+                                      field: AuthFields.resetEmail,
                                     ),
                                   );
                             }
@@ -133,8 +135,8 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                             Navigator.pop(context);
                           },
                           onResendEmail: () {
-                            context.read<AuthBloc>().add(
-                                const AuthReset(fieldNames: ['reset_email']));
+                            context.read<AuthBloc>().add(const AuthReset(
+                                fields: [AuthFields.resetEmail]));
                           },
                         ),
                     ],

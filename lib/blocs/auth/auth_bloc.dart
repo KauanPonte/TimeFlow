@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/auth/auth_event.dart';
+import 'package:flutter_application_appdeponto/models/auth_field.dart';
 import 'package:flutter_application_appdeponto/blocs/auth/auth_state.dart';
 import 'package:flutter_application_appdeponto/repositories/auth_repository.dart';
 
@@ -35,8 +36,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     try {
       // Validate email format
       if (!_authRepository.isValidEmailFormat(event.email)) {
-        final errors = Map<String, String?>.from(_fieldsState.fieldErrors);
-        errors['email'] = 'Email inválido';
+        final errors = Map<AuthField, String?>.from(_fieldsState.fieldErrors);
+        errors[AuthFields.emailLogin] = 'Email inválido';
         _fieldsState = _fieldsState.copyWith(
           fieldErrors: errors,
           isLoading: false,
@@ -48,8 +49,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       // Validate password
       final passwordError = _authRepository.validatePassword(event.password);
       if (passwordError != null) {
-        final errors = Map<String, String?>.from(_fieldsState.fieldErrors);
-        errors['password'] = passwordError;
+        final errors = Map<AuthField, String?>.from(_fieldsState.fieldErrors);
+        errors[AuthFields.passwordLogin] = passwordError;
         _fieldsState = _fieldsState.copyWith(
           fieldErrors: errors,
           isLoading: false,
@@ -86,24 +87,24 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
     try {
       // Validate all fields
-      final errors = <String, String?>{};
+      final errors = <AuthField, String?>{};
 
       if (!_authRepository.isValidEmailFormat(event.email)) {
-        errors['email'] = 'Email inválido';
+        errors[AuthFields.emailRegister] = 'Email inválido';
       }
 
       final passwordError = _authRepository.validatePassword(event.password);
       if (passwordError != null) {
-        errors['password'] = passwordError;
+        errors[AuthFields.passwordRegister] = passwordError;
       }
 
       final nameError = _authRepository.validateName(event.name);
       if (nameError != null) {
-        errors['name'] = nameError;
+        errors[AuthFields.name] = nameError;
       }
 
       if (event.role.trim().isEmpty) {
-        errors['role'] = 'Cargo não pode estar vazio';
+        errors[AuthFields.role] = 'Cargo não pode estar vazio';
       }
 
       // If there are validation errors, emit error state
@@ -148,8 +149,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     try {
       // Validate email format
       if (event.email.trim().isEmpty) {
-        final errors = Map<String, String?>.from(_fieldsState.fieldErrors);
-        errors['reset_email'] = 'Por favor, insira um email';
+        final errors = Map<AuthField, String?>.from(_fieldsState.fieldErrors);
+        errors[AuthFields.resetEmail] = 'Por favor, insira um email';
         _fieldsState = _fieldsState.copyWith(
           fieldErrors: errors,
           isLoading: false,
@@ -159,8 +160,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       }
 
       if (!_authRepository.isValidEmailFormat(event.email)) {
-        final errors = Map<String, String?>.from(_fieldsState.fieldErrors);
-        errors['reset_email'] = 'Email inválido';
+        final errors = Map<AuthField, String?>.from(_fieldsState.fieldErrors);
+        errors[AuthFields.resetEmail] = 'Email inválido';
         _fieldsState = _fieldsState.copyWith(
           fieldErrors: errors,
           isLoading: false,
@@ -173,10 +174,11 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       await _authRepository.sendPasswordResetEmail(event.email);
 
       // Only reset reset_email field, keep other fields intact
-      final fieldErrors = Map<String, String?>.from(_fieldsState.fieldErrors);
-      final fieldValid = Map<String, bool>.from(_fieldsState.fieldValid);
-      fieldErrors.remove('reset_email');
-      fieldValid.remove('reset_email');
+      final fieldErrors =
+          Map<AuthField, String?>.from(_fieldsState.fieldErrors);
+      final fieldValid = Map<AuthField, bool>.from(_fieldsState.fieldValid);
+      fieldErrors.remove(AuthFields.resetEmail);
+      fieldValid.remove(AuthFields.resetEmail);
 
       _fieldsState = AuthFieldsState(
         fieldErrors: fieldErrors,
@@ -187,8 +189,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       emit(PasswordResetEmailSent(email: event.email));
     } catch (e) {
       // Update field state and emit error with field context
-      final errors = Map<String, String?>.from(_fieldsState.fieldErrors);
-      errors['reset_email'] = e.toString().replaceAll('Exception: ', '');
+      final errors = Map<AuthField, String?>.from(_fieldsState.fieldErrors);
+      errors[AuthFields.resetEmail] =
+          e.toString().replaceAll('Exception: ', '');
       _fieldsState = _fieldsState.copyWith(
         fieldErrors: errors,
         isLoading: false,
@@ -202,18 +205,18 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     EmailFormatValidationRequested event,
     Emitter<AuthState> emit,
   ) async {
-    final errors = Map<String, String?>.from(_fieldsState.fieldErrors);
-    final valid = Map<String, bool>.from(_fieldsState.fieldValid);
+    final errors = Map<AuthField, String?>.from(_fieldsState.fieldErrors);
+    final valid = Map<AuthField, bool>.from(_fieldsState.fieldValid);
 
     if (event.email.isEmpty) {
-      errors[event.fieldName] = null;
-      valid[event.fieldName] = false;
+      errors[event.field] = null;
+      valid[event.field] = false;
     } else if (!_authRepository.isValidEmailFormat(event.email)) {
-      errors[event.fieldName] = 'Email inválido';
-      valid[event.fieldName] = false;
+      errors[event.field] = 'Email inválido';
+      valid[event.field] = false;
     } else {
-      errors[event.fieldName] = null;
-      valid[event.fieldName] = true;
+      errors[event.field] = null;
+      valid[event.field] = true;
     }
 
     _fieldsState = _fieldsState.copyWith(
@@ -228,19 +231,19 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     PasswordValidationRequested event,
     Emitter<AuthState> emit,
   ) async {
-    final errors = Map<String, String?>.from(_fieldsState.fieldErrors);
-    final valid = Map<String, bool>.from(_fieldsState.fieldValid);
+    final errors = Map<AuthField, String?>.from(_fieldsState.fieldErrors);
+    final valid = Map<AuthField, bool>.from(_fieldsState.fieldValid);
     final error = _authRepository.validatePassword(event.password);
 
     if (event.password.isEmpty) {
-      errors[event.fieldName] = null;
-      valid[event.fieldName] = false;
+      errors[event.field] = null;
+      valid[event.field] = false;
     } else if (error != null) {
-      errors[event.fieldName] = error;
-      valid[event.fieldName] = false;
+      errors[event.field] = error;
+      valid[event.field] = false;
     } else {
-      errors[event.fieldName] = null;
-      valid[event.fieldName] = true;
+      errors[event.field] = null;
+      valid[event.field] = true;
     }
 
     _fieldsState = _fieldsState.copyWith(
@@ -255,19 +258,19 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     NameValidationRequested event,
     Emitter<AuthState> emit,
   ) async {
-    final errors = Map<String, String?>.from(_fieldsState.fieldErrors);
-    final valid = Map<String, bool>.from(_fieldsState.fieldValid);
+    final errors = Map<AuthField, String?>.from(_fieldsState.fieldErrors);
+    final valid = Map<AuthField, bool>.from(_fieldsState.fieldValid);
     final error = _authRepository.validateName(event.name);
 
     if (event.name.isEmpty) {
-      errors['name'] = null;
-      valid['name'] = false;
+      errors[AuthFields.name] = null;
+      valid[AuthFields.name] = false;
     } else if (error != null) {
-      errors['name'] = error;
-      valid['name'] = false;
+      errors[AuthFields.name] = error;
+      valid[AuthFields.name] = false;
     } else {
-      errors['name'] = null;
-      valid['name'] = true;
+      errors[AuthFields.name] = null;
+      valid[AuthFields.name] = true;
     }
 
     _fieldsState = _fieldsState.copyWith(
@@ -282,8 +285,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     ClearFieldError event,
     Emitter<AuthState> emit,
   ) async {
-    final errors = Map<String, String?>.from(_fieldsState.fieldErrors);
-    errors[event.fieldName] = null;
+    final errors = Map<AuthField, String?>.from(_fieldsState.fieldErrors);
+    errors[event.field] = null;
     _fieldsState = _fieldsState.copyWith(fieldErrors: errors);
     emit(_fieldsState);
   }
@@ -293,17 +296,18 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     AuthReset event,
     Emitter<AuthState> emit,
   ) async {
-    if (event.fieldNames == null || event.fieldNames!.isEmpty) {
+    if (event.fields == null || event.fields!.isEmpty) {
       // Reset all fields
       _fieldsState = const AuthFieldsState();
     } else {
       // Reset only specified fields
-      final fieldErrors = Map<String, String?>.from(_fieldsState.fieldErrors);
-      final fieldValid = Map<String, bool>.from(_fieldsState.fieldValid);
+      final fieldErrors =
+          Map<AuthField, String?>.from(_fieldsState.fieldErrors);
+      final fieldValid = Map<AuthField, bool>.from(_fieldsState.fieldValid);
 
-      for (final fieldName in event.fieldNames!) {
-        fieldErrors.remove(fieldName);
-        fieldValid.remove(fieldName);
+      for (final field in event.fields!) {
+        fieldErrors.remove(field);
+        fieldValid.remove(field);
       }
 
       _fieldsState = AuthFieldsState(
