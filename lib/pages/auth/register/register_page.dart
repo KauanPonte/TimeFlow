@@ -6,6 +6,7 @@ import 'package:flutter_application_appdeponto/blocs/auth/auth_event.dart';
 import 'package:flutter_application_appdeponto/blocs/auth/auth_state.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
+import 'package:flutter_application_appdeponto/widgets/custom_snackbar.dart';
 import 'widgets/profile_image_picker.dart';
 import 'widgets/login_widgets.dart';
 
@@ -64,12 +65,7 @@ class _RegisterPageState extends State<RegisterPage> {
               },
             );
           } else if (state is AuthError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message),
-                backgroundColor: Colors.red,
-              ),
-            );
+            CustomSnackbar.showError(context, state.message);
           }
         },
         buildWhen: (previous, current) {

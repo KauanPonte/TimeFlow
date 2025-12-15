@@ -4,13 +4,15 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter_application_appdeponto/widgets/custom_snackbar.dart';
 
 class PontoService {
   static const _kRegistrosKey = 'registros';
 
   /// Registra um ponto com a chave [status] (ex: 'entrada','pausa','retorno','saida').
   /// Precisa do [context] apenas para mostrar SnackBar.
-  static Future<void> registrarPonto(BuildContext context, String status) async {
+  static Future<void> registrarPonto(
+      BuildContext context, String status) async {
     final prefs = await SharedPreferences.getInstance();
     final hoje = DateFormat('yyyy-MM-dd').format(DateTime.now());
     final horaAtual = DateFormat('HH:mm').format(DateTime.now());
@@ -29,14 +31,17 @@ class PontoService {
     }
 
     // assegura que existe mapa para a data
-    final hojeMap = (registros[hoje] is Map) ? Map<String, dynamic>.from(registros[hoje]) : <String, dynamic>{};
+    final hojeMap = (registros[hoje] is Map)
+        ? Map<String, dynamic>.from(registros[hoje])
+        : <String, dynamic>{};
     hojeMap[status] = horaAtual;
     registros[hoje] = hojeMap;
 
     await prefs.setString(_kRegistrosKey, jsonEncode(registros));
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Ponto "$status" registrado às $horaAtual')),
+    CustomSnackbar.showSuccess(
+      context,
+      'Ponto "$status" registrado às $horaAtual',
     );
   }
 
@@ -51,7 +56,8 @@ class PontoService {
       final Map<String, Map<String, String>> result = {};
       decoded.forEach((date, map) {
         if (map is Map) {
-          result[date] = Map<String, String>.from(map.map((k, v) => MapEntry(k.toString(), v.toString())));
+          result[date] = Map<String, String>.from(
+              map.map((k, v) => MapEntry(k.toString(), v.toString())));
         }
       });
       return result;
