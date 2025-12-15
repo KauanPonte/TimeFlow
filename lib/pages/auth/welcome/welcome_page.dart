@@ -15,11 +15,12 @@ class WelcomePage extends StatelessWidget {
         ),
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 50),
+            padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 64.0),
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 const AppLogo(),
+                const SizedBox(height: 48),
                 Column(
                   children: [
                     AuthButton(
@@ -36,7 +37,6 @@ class WelcomePage extends StatelessWidget {
                         Navigator.pushNamed(context, '/login');
                       },
                     ),
-                    const SizedBox(height: 30),
                   ],
                 ),
               ],

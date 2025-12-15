@@ -8,6 +8,9 @@ class CustomTextField extends StatelessWidget {
   final bool obscureText;
   final TextInputType? keyboardType;
   final Widget? suffixIcon;
+  final String? errorText;
+  final bool isValid;
+  final Function(String)? onChanged;
 
   const CustomTextField({
     super.key,
@@ -17,28 +20,63 @@ class CustomTextField extends StatelessWidget {
     this.obscureText = false,
     this.keyboardType,
     this.suffixIcon,
+    this.errorText,
+    this.isValid = false,
+    this.onChanged,
   });
 
   @override
   Widget build(BuildContext context) {
+    final borderColor = errorText != null
+        ? Colors.red
+        : isValid
+            ? Colors.green
+            : AppColors.border;
+
     return TextField(
       controller: controller,
       obscureText: obscureText,
       keyboardType: keyboardType,
+      onChanged: onChanged,
       decoration: InputDecoration(
         labelText: labelText,
-        prefixIcon: Icon(prefixIcon),
-        suffixIcon: suffixIcon,
+        prefixIcon: Icon(
+          prefixIcon,
+          color: errorText != null
+              ? Colors.red
+              : isValid
+                  ? Colors.green
+                  : null,
+        ),
+        suffixIcon: (isValid && errorText == null && suffixIcon == null)
+            ? const Icon(Icons.check_circle, color: Colors.green)
+            : suffixIcon,
+        errorText: errorText,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.border),
+          borderSide: BorderSide(color: borderColor, width: isValid ? 2 : 1),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.primary, width: 2),
+          borderSide: BorderSide(
+            color: errorText != null
+                ? Colors.red
+                : isValid
+                    ? Colors.green
+                    : AppColors.primary,
+            width: 2,
+          ),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Colors.red, width: 2),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Colors.red, width: 2),
         ),
         filled: true,
         fillColor: AppColors.surface,

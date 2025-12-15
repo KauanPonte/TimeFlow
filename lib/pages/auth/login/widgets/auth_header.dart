@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
+import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
 
 class AuthHeader extends StatelessWidget {
   final String title;
@@ -34,19 +35,13 @@ class AuthHeader extends StatelessWidget {
         Text(
           title,
           textAlign: TextAlign.center,
-          style: const TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.bold,
-          ).copyWith(color: AppColors.textPrimary),
+          style: AppTextStyles.h2.copyWith(color: AppColors.textPrimary),
         ),
         const SizedBox(height: 10),
         Text(
           subtitle,
           textAlign: TextAlign.center,
-          style: const TextStyle(
-            fontSize: 15,
-            color: AppColors.textSecondary,
-          ),
+          style: AppTextStyles.bodyMedium,
         ),
       ],
     );
