@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_application_appdeponto/blocs/auth/auth_bloc.dart';
+import 'package:flutter_application_appdeponto/repositories/auth_repository.dart';
+import 'pages/splash/splash_page.dart';
 import 'pages/auth/welcome/welcome_page.dart';
 import 'pages/auth/login/login_page.dart';
 import 'pages/auth/register/register_page.dart';
+import 'pages/auth/forgot_password/forgot_password_page.dart';
 import 'pages/home_page.dart';
 import 'pages/ponto_page.dart';
 import 'pages/profile_page.dart';
@@ -23,12 +28,17 @@ class TimeFlow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      initialRoute: "/",
-      onGenerateRoute: (settings) {
-        if (settings.name == "/home") {
-          final args = settings.arguments as Map<String, dynamic>;
+    return BlocProvider(
+      create: (context) => AuthBloc(
+        authRepository: AuthRepository(),
+      ),
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        initialRoute: "/",
+        onGenerateRoute: (settings) {
+          // Rotas com argumentos
+          if (settings.name == "/home") {
+            final args = settings.arguments as Map<String, dynamic>;
 
           return MaterialPageRoute(
             builder: (context) => HomePage(
@@ -37,6 +47,7 @@ class TimeFlow extends StatelessWidget {
             ),
           );
         }
+
         return null;
       },
       routes: {

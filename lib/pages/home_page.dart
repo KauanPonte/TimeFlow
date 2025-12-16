@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/blocs/auth/auth_bloc.dart';
+import 'package:flutter_application_appdeponto/blocs/auth/auth_event.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/ponto_service.dart';
 import '../widgets/bottom_nav.dart';
@@ -69,6 +72,12 @@ class _HomePageState extends State<HomePage> {
           "profileImageUrl": profileImageUrl,
         },
       ),
+        index: 1,
+        args: {
+          "employeeName": employeeName,
+          "profileImageUrl": profileImageUrl,
+        },
+      ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -88,10 +97,36 @@ class _HomePageState extends State<HomePage> {
                     ],
                   ),
                   Row(
-                    children: const [
-                      Icon(Icons.notifications_none, size: 26),
-                      SizedBox(width: 12),
-                      Icon(Icons.more_vert, size: 28),
+                    children: [
+                      const Icon(Icons.notifications_none, size: 26),
+                      const SizedBox(width: 12),
+                      PopupMenuButton<String>(
+                        icon: const Icon(Icons.more_vert, size: 28),
+                        onSelected: (String value) {
+                          if (value == 'logout') {
+                            context
+                                .read<AuthBloc>()
+                                .add(const LogoutRequested());
+                            Navigator.pushNamedAndRemoveUntil(
+                              context,
+                              '/welcome',
+                              (route) => false,
+                            );
+                          }
+                        },
+                        itemBuilder: (BuildContext context) => [
+                          const PopupMenuItem<String>(
+                            value: 'logout',
+                            child: Row(
+                              children: [
+                                Icon(Icons.logout),
+                                SizedBox(width: 8),
+                                Text('Logout'),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
                 ],
@@ -127,10 +162,10 @@ class _HomePageState extends State<HomePage> {
               const SizedBox(height: 8),
               ClipRRect(
                 borderRadius: BorderRadius.circular(25),
-                child: LinearProgressIndicator(
+                child: const LinearProgressIndicator(
                   value: 0.45,
                   minHeight: 12,
-                  backgroundColor: const Color.fromARGB(255, 255, 255, 255),
+                  backgroundColor: const Color(0xFFEAEAFF),
                   color: const Color(0xFF192153),
                 ),
               ),

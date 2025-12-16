@@ -1,6 +1,13 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_application_appdeponto/blocs/auth/auth_bloc.dart';
+import 'package:flutter_application_appdeponto/blocs/auth/auth_event.dart';
+import 'package:flutter_application_appdeponto/models/auth_field.dart';
+import 'package:flutter_application_appdeponto/blocs/auth/auth_state.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
+import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
+import 'package:flutter_application_appdeponto/widgets/custom_snackbar.dart';
 import 'widgets/profile_image_picker.dart';
 import 'widgets/login_widgets.dart';
 
@@ -18,141 +25,253 @@ class _RegisterPageState extends State<RegisterPage> {
   final roleController = TextEditingController();
   File? selectedImage;
   bool _obscurePassword = true;
+  late AuthBloc _authBloc;
+
+  @override
+  void initState() {
+    super.initState();
+    _authBloc = context.read<AuthBloc>();
+  }
+
+  @override
+  void dispose() {
+    _authBloc.add(const AuthReset(fields: AuthFields.registerFields));
+    nameController.dispose();
+    emailController.dispose();
+    passwordController.dispose();
+    roleController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          return Container(
-            height: constraints.maxHeight,
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  AppColors.bgLight,
-                  AppColors.surface,
-                ],
-              ),
-            ),
-            child: SafeArea(
-              child: SingleChildScrollView(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 32.0, vertical: 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // Title and Subtitle
-                    const AuthHeader(
-                      title: "Criar Conta",
-                      subtitle: "Preencha seus dados para começar",
-                      icon: null,
-                    ),
-                    const SizedBox(height: 30),
+      body: BlocConsumer<AuthBloc, AuthState>(
+        listenWhen: (previous, current) {
+          // Just listens for changes to RegisterSuccess or AuthError
+          return (current is RegisterSuccess && previous is! RegisterSuccess) ||
+              (current is AuthError && previous is! AuthError);
+        },
+        listener: (context, state) {
+          if (state is RegisterSuccess) {
+            Navigator.pushNamedAndRemoveUntil(
+              context,
+              "/home",
+              (route) => false,
+              arguments: {
+                "employeeName": state.userData['name'],
+                "profileImageUrl": state.userData['profileImage'] ?? "",
+                "employeeRole": state.userData['role'],
+              },
+            );
+          } else if (state is AuthError) {
+            CustomSnackbar.showError(context, state.message);
+          }
+        },
+        buildWhen: (previous, current) {
+          return current is AuthFieldsState;
+        },
+        builder: (context, state) {
+          final fieldsState =
+              state is AuthFieldsState ? state : const AuthFieldsState();
+          final isLoading = fieldsState.isLoading;
 
-                    // Profile Image Picker
-                    ProfileImagePicker(
-                      onImageSelected: (image) {
-                        setState(() => selectedImage = image);
-                      },
-                    ),
-                    const SizedBox(height: 30),
-
-                    // Name Field
-                    CustomTextField(
-                      controller: nameController,
-                      labelText: "Nome Completo",
-                      prefixIcon: Icons.person_outline,
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Email Field
-                    CustomTextField(
-                      controller: emailController,
-                      labelText: "Email",
-                      prefixIcon: Icons.email_outlined,
-                      keyboardType: TextInputType.emailAddress,
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Role Field
-                    CustomTextField(
-                      controller: roleController,
-                      labelText: "Cargo/Função",
-                      prefixIcon: Icons.work_outline,
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Password Field
-                    CustomTextField(
-                      controller: passwordController,
-                      labelText: "Senha",
-                      prefixIcon: Icons.lock_outline,
-                      obscureText: _obscurePassword,
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscurePassword
-                              ? Icons.visibility_off
-                              : Icons.visibility,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _obscurePassword = !_obscurePassword;
-                          });
-                        },
-                      ),
-                    ),
-                    const SizedBox(height: 30),
-
-                    // Register Button
-                    PrimaryButton(
-                      text: "Criar Conta",
-                      onPressed: () {
-                        // TODO: Implement registration logic
-                        Navigator.pushNamed(
-                          context,
-                          "/home",
-                          arguments: {
-                            "employeeName": nameController.text,
-                            "profileImageUrl": selectedImage?.path ?? "",
-                            "employeeRole": roleController.text,
-                          },
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 24),
-
-                    // Link to Login Page
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Text(
-                          "Já tem uma conta? ",
-                          style: TextStyle(
-                            color: AppColors.textSecondary,
-                            fontSize: 15,
+          return LayoutBuilder(
+            builder: (context, constraints) {
+              return Container(
+                height: constraints.maxHeight,
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      AppColors.bgLight,
+                      AppColors.surface,
+                    ],
+                  ),
+                ),
+                child: SafeArea(
+                  child: Center(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 32.0, vertical: 24.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          // Title and Subtitle
+                          const AuthHeader(
+                            title: "Criar Conta",
+                            subtitle: "Preencha seus dados para começar",
+                            icon: null,
                           ),
-                        ),
-                        GestureDetector(
-                          onTap: () {
-                            Navigator.pushNamed(context, '/login');
-                          },
-                          child: const Text(
-                            "Entrar",
-                            style: TextStyle(
-                              color: AppColors.primary,
-                              fontSize: 15,
-                              fontWeight: FontWeight.bold,
+                          const SizedBox(height: 32),
+
+                          // Profile Image Picker
+                          ProfileImagePicker(
+                            onImageSelected: (image) {
+                              setState(() => selectedImage = image);
+                            },
+                          ),
+                          const SizedBox(height: 32),
+
+                          // Name Field
+                          CustomTextField(
+                            controller: nameController,
+                            labelText: AuthFields.name.displayName,
+                            prefixIcon: Icons.person_outline,
+                            errorText: fieldsState.fieldErrors[AuthFields.name],
+                            isValid: fieldsState.fieldValid[AuthFields.name] ??
+                                false,
+                            onChanged: (value) {
+                              if (value.isNotEmpty) {
+                                context.read<AuthBloc>().add(
+                                      NameValidationRequested(name: value),
+                                    );
+                              } else {
+                                context.read<AuthBloc>().add(
+                                      const ClearFieldError(
+                                          field: AuthFields.name),
+                                    );
+                              }
+                            },
+                          ),
+                          const SizedBox(height: 16),
+
+                          // Email Field
+                          CustomTextField(
+                            controller: emailController,
+                            labelText: AuthFields.emailRegister.displayName,
+                            prefixIcon: Icons.email_outlined,
+                            keyboardType: TextInputType.emailAddress,
+                            errorText: fieldsState
+                                .fieldErrors[AuthFields.emailRegister],
+                            isValid: fieldsState
+                                    .fieldValid[AuthFields.emailRegister] ??
+                                false,
+                            onChanged: (value) {
+                              if (value.isNotEmpty) {
+                                context.read<AuthBloc>().add(
+                                      EmailFormatValidationRequested(
+                                        email: value,
+                                        field: AuthFields.emailRegister,
+                                      ),
+                                    );
+                              } else {
+                                context.read<AuthBloc>().add(
+                                      const ClearFieldError(
+                                          field: AuthFields.emailRegister),
+                                    );
+                              }
+                            },
+                          ),
+                          const SizedBox(height: 16),
+
+                          // Role Field
+                          CustomTextField(
+                            controller: roleController,
+                            labelText: AuthFields.role.displayName,
+                            prefixIcon: Icons.work_outline,
+                            errorText: fieldsState.fieldErrors[AuthFields.role],
+                            isValid: fieldsState.fieldValid[AuthFields.role] ??
+                                false,
+                            onChanged: (value) {
+                              if (value.trim().isEmpty) {
+                                context.read<AuthBloc>().add(
+                                      const ClearFieldError(
+                                          field: AuthFields.role),
+                                    );
+                              }
+                            },
+                          ),
+                          const SizedBox(height: 16),
+
+                          // Password Field
+                          CustomTextField(
+                            controller: passwordController,
+                            labelText: AuthFields.passwordRegister.displayName,
+                            prefixIcon: Icons.lock_outline,
+                            obscureText: _obscurePassword,
+                            errorText: fieldsState
+                                .fieldErrors[AuthFields.passwordRegister],
+                            isValid: fieldsState
+                                    .fieldValid[AuthFields.passwordRegister] ??
+                                false,
+                            onChanged: (value) {
+                              if (value.isNotEmpty) {
+                                context.read<AuthBloc>().add(
+                                      PasswordValidationRequested(
+                                        password: value,
+                                        field: AuthFields.passwordRegister,
+                                      ),
+                                    );
+                              } else {
+                                context.read<AuthBloc>().add(
+                                      const ClearFieldError(
+                                          field: AuthFields.passwordRegister),
+                                    );
+                              }
+                            },
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _obscurePassword
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  _obscurePassword = !_obscurePassword;
+                                });
+                              },
                             ),
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 32),
+
+                          // Register Button
+                          PrimaryButton(
+                            text: isLoading ? "Criando..." : "Criar Conta",
+                            onPressed: isLoading
+                                ? () {}
+                                : () {
+                                    context.read<AuthBloc>().add(
+                                          RegisterRequested(
+                                            email: emailController.text.trim(),
+                                            password: passwordController.text,
+                                            name: nameController.text.trim(),
+                                            role: roleController.text.trim(),
+                                            profileImage: selectedImage,
+                                          ),
+                                        );
+                                  },
+                          ),
+                          const SizedBox(height: 16),
+
+                          // Link to Login Page
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                "Já tem uma conta? ",
+                                style: AppTextStyles.bodyMedium,
+                              ),
+                              GestureDetector(
+                                onTap: () {
+                                  Navigator.pushReplacementNamed(
+                                      context, '/login');
+                                },
+                                child: Text(
+                                  "Entrar",
+                                  style: AppTextStyles.link,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
-                  ],
+                  ),
                 ),
-              ),
-            ),
+              );
+            },
           );
         },
       ),

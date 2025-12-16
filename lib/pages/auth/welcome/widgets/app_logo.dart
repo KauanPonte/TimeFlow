@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
+import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
 
 class AppLogo extends StatelessWidget {
   const AppLogo({super.key});
@@ -24,20 +25,11 @@ class AppLogo extends StatelessWidget {
         ),
         Text(
           'TimeFlow',
-          style: const TextStyle(
-            fontSize: 42,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 1.2,
-          ).copyWith(color: AppColors.surface),
+          style: AppTextStyles.h1.copyWith(color: AppColors.surface),
         ),
-        const SizedBox(height: 20),
-        const Text(
+        Text(
           'Controle de Ponto Simplificado',
-          style: TextStyle(
-            fontSize: 16,
-            color: AppColors.surface90,
-            letterSpacing: 0.5,
-          ),
+          style: AppTextStyles.subtitle.copyWith(color: AppColors.surface90),
         ),
       ],
     );
