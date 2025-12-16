@@ -11,15 +11,8 @@ import 'pages/home_page.dart';
 import 'pages/ponto_page.dart';
 import 'pages/profile_page.dart';
 import 'pages/history_page.dart';
-import 'services/notification_service.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-
-  // Inicializa as notificações logo na abertura do app
-  await NotificationService.init();
-  await NotificationService.requestPermissions();
-
+void main() {
   runApp(const TimeFlow());
 }
 
@@ -40,24 +33,27 @@ class TimeFlow extends StatelessWidget {
           if (settings.name == "/home") {
             final args = settings.arguments as Map<String, dynamic>;
 
-          return MaterialPageRoute(
-            builder: (context) => HomePage(
-              employeeName: args["employeeName"] ?? "",
-              profileImageUrl: args["profileImageUrl"] ?? "",
-            ),
-          );
-        }
+            return MaterialPageRoute(
+              builder: (context) => HomePage(
+                employeeName: args["employeeName"] ?? "",
+                profileImageUrl: args["profileImageUrl"] ?? "",
+              ),
+            );
+          }
 
-        return null;
-      },
-      routes: {
-        "/": (context) => const WelcomePage(),
-        "/login": (context) => const LoginPage(),
-        "/register": (context) => const RegisterPage(),
-        "/ponto": (context) => const PontoPage(),
-        "/profile": (context) => const ProfilePage(),
-        "/history": (context) => const HistoryPage(),
-      },
+          return null;
+        },
+        routes: {
+          "/": (context) => const SplashPage(),
+          "/welcome": (context) => const WelcomePage(),
+          "/login": (context) => const LoginPage(),
+          "/register": (context) => const RegisterPage(),
+          "/forgot-password": (context) => const ForgotPasswordPage(),
+          "/ponto": (context) => const PontoPage(),
+          "/profile": (context) => const ProfilePage(),
+          "/history": (context) => const HistoryPage(),
+        },
+      ),
     );
   }
 }

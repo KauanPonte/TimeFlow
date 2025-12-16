@@ -59,7 +59,7 @@ class NotificationService {
   /// -----------------------------------------------------------
   /// ⏰ Notificação diária (ex: todos os dias 09:00)
   /// -----------------------------------------------------------
-  static gitFuture<void> scheduleDailyNotification({
+  static Future<void> scheduleDailyNotification({
     required String title,
     required String body,
     required int hour,
@@ -95,8 +95,6 @@ class NotificationService {
         ),
       ),
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
       matchDateTimeComponents: DateTimeComponents.time,
     );
   }
