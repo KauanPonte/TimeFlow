@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:equatable/equatable.dart';
+import '../../models/auth_field.dart';
 
 /// Base class for authentication events
 abstract class AuthEvent extends Equatable {
@@ -56,29 +57,29 @@ class ForgotPasswordRequested extends AuthEvent {
 /// Event triggered to validate email format
 class EmailFormatValidationRequested extends AuthEvent {
   final String email;
-  final String fieldName; // To identify which field (login, register, etc)
+  final AuthField field; // To identify which field (login, register, etc)
 
   const EmailFormatValidationRequested({
     required this.email,
-    required this.fieldName,
+    required this.field,
   });
 
   @override
-  List<Object> get props => [email, fieldName];
+  List<Object> get props => [email, field];
 }
 
 /// Event triggered to validate a password
 class PasswordValidationRequested extends AuthEvent {
   final String password;
-  final String fieldName;
+  final AuthField field;
 
   const PasswordValidationRequested({
     required this.password,
-    required this.fieldName,
+    required this.field,
   });
 
   @override
-  List<Object> get props => [password, fieldName];
+  List<Object> get props => [password, field];
 }
 
 /// Event triggered to validate a name
@@ -93,24 +94,24 @@ class NameValidationRequested extends AuthEvent {
 
 /// Event triggered to clear validation errors
 class ClearFieldError extends AuthEvent {
-  final String fieldName;
+  final AuthField field;
 
-  const ClearFieldError({required this.fieldName});
+  const ClearFieldError({required this.field});
 
   @override
-  List<Object> get props => [fieldName];
+  List<Object> get props => [field];
 }
 
 /// Event triggered to reset the authentication state
-/// If [fieldNames] is provided, only those fields will be reset
-/// If [fieldNames] is null or empty, all fields will be reset
+/// If [fields] is provided, only those fields will be reset
+/// If [fields] is null or empty, all fields will be reset
 class AuthReset extends AuthEvent {
-  final List<String>? fieldNames;
+  final List<AuthField>? fields;
 
-  const AuthReset({this.fieldNames});
+  const AuthReset({this.fields});
 
   @override
-  List<Object?> get props => [fieldNames];
+  List<Object?> get props => [fields];
 }
 
 /// Event triggered to log out

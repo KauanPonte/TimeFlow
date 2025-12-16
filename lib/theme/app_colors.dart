@@ -20,4 +20,10 @@ class AppColors {
 
   static const Color textPrimary = Color(0xFF212121); // black87
   static const Color textSecondary = Color(0xFF757575); // grey600
+
+  // Snackbar colors
+  static const Color success = Color(0xFF4CAF50); // green
+  static const Color error = Color(0xFFE53935); // red
+  static const Color info = Color(0xFF2196F3); // blue
+  static const Color warning = Color(0xFFFF9800); // orange
 }

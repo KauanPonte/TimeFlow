@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import '../../models/auth_field.dart';
 
 /// Base class for authentication states
 abstract class AuthState extends Equatable {
@@ -46,21 +47,21 @@ class PasswordResetEmailSent extends AuthState {
 /// State when a general authentication error occurs
 class AuthError extends AuthState {
   final String message;
-  final String? fieldName; // Specific field that caused the error
+  final AuthField? field; // Specific field that caused the error
 
   const AuthError({
     required this.message,
-    this.fieldName,
+    this.field,
   });
 
   @override
-  List<Object?> get props => [message, fieldName];
+  List<Object?> get props => [message, field];
 }
 
 /// State that holds information about field validation
 class AuthFieldsState extends AuthState {
-  final Map<String, String?> fieldErrors;
-  final Map<String, bool> fieldValid;
+  final Map<AuthField, String?> fieldErrors;
+  final Map<AuthField, bool> fieldValid;
   final bool isLoading;
 
   const AuthFieldsState({
@@ -70,8 +71,8 @@ class AuthFieldsState extends AuthState {
   });
 
   AuthFieldsState copyWith({
-    Map<String, String?>? fieldErrors,
-    Map<String, bool>? fieldValid,
+    Map<AuthField, String?>? fieldErrors,
+    Map<AuthField, bool>? fieldValid,
     bool? isLoading,
   }) {
     return AuthFieldsState(

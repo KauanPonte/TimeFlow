@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/auth/auth_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/auth/auth_event.dart';
+import 'package:flutter_application_appdeponto/models/auth_field.dart';
 import 'package:flutter_application_appdeponto/blocs/auth/auth_state.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
+import 'package:flutter_application_appdeponto/widgets/custom_snackbar.dart';
 import 'widgets/auth_header.dart';
 import 'widgets/custom_text_field.dart';
 import 'widgets/primary_button.dart';
@@ -30,7 +32,7 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   void dispose() {
-    _authBloc.add(const AuthReset(fieldNames: ['email', 'password']));
+    _authBloc.add(const AuthReset(fields: AuthFields.loginFields));
     emailController.dispose();
     passwordController.dispose();
     super.dispose();
@@ -58,12 +60,7 @@ class _LoginPageState extends State<LoginPage> {
               },
             );
           } else if (state is AuthError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message),
-                backgroundColor: Colors.red,
-              ),
-            );
+            CustomSnackbar.showError(context, state.message);
           }
         },
         buildWhen: (previous, current) {
@@ -105,21 +102,25 @@ class _LoginPageState extends State<LoginPage> {
                       // Email Field
                       CustomTextField(
                         controller: emailController,
-                        labelText: "Email",
+                        labelText: AuthFields.emailLogin.displayName,
                         prefixIcon: Icons.email_outlined,
                         keyboardType: TextInputType.emailAddress,
-                        errorText: fieldsState.fieldErrors['email'],
-                        isValid: fieldsState.fieldValid['email'] ?? false,
+                        errorText:
+                            fieldsState.fieldErrors[AuthFields.emailLogin],
+                        isValid:
+                            fieldsState.fieldValid[AuthFields.emailLogin] ??
+                                false,
                         onChanged: (value) {
                           if (value.isEmpty) {
                             context.read<AuthBloc>().add(
-                                  const ClearFieldError(fieldName: 'email'),
+                                  const ClearFieldError(
+                                      field: AuthFields.emailLogin),
                                 );
                           } else {
                             context.read<AuthBloc>().add(
                                   EmailFormatValidationRequested(
                                     email: value,
-                                    fieldName: 'email',
+                                    field: AuthFields.emailLogin,
                                   ),
                                 );
                           }
@@ -130,21 +131,25 @@ class _LoginPageState extends State<LoginPage> {
                       // Password Field
                       CustomTextField(
                         controller: passwordController,
-                        labelText: "Senha",
+                        labelText: AuthFields.passwordLogin.displayName,
                         prefixIcon: Icons.lock_outline,
                         obscureText: _obscurePassword,
-                        errorText: fieldsState.fieldErrors['password'],
-                        isValid: fieldsState.fieldValid['password'] ?? false,
+                        errorText:
+                            fieldsState.fieldErrors[AuthFields.passwordLogin],
+                        isValid:
+                            fieldsState.fieldValid[AuthFields.passwordLogin] ??
+                                false,
                         onChanged: (value) {
                           if (value.isEmpty) {
                             context.read<AuthBloc>().add(
-                                  const ClearFieldError(fieldName: 'password'),
+                                  const ClearFieldError(
+                                      field: AuthFields.passwordLogin),
                                 );
                           } else {
                             context.read<AuthBloc>().add(
                                   PasswordValidationRequested(
                                     password: value,
-                                    fieldName: 'password',
+                                    field: AuthFields.passwordLogin,
                                   ),
                                 );
                           }
