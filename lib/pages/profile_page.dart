@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../widgets/bottom_nav.dart';
@@ -11,14 +11,18 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  String? imagePath;
+  Uint8List? imageBytes; // <-- Agora funciona Web + Android + iOS
 
   Future<void> pickImage() async {
-    final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
+    final picker = ImagePicker();
+    final XFile? file = await picker.pickImage(source: ImageSource.gallery);
 
-    if (picked != null) {
+    if (file != null) {
+      final bytes =
+          await file.readAsBytes(); // <-- funciona em TODOS plataformas
+
       setState(() {
-        imagePath = picked.path;
+        imageBytes = bytes;
       });
     }
   }
@@ -29,7 +33,6 @@ class _ProfilePageState extends State<ProfilePage> {
         ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>?;
 
     final String name = args?["employeeName"] ?? "";
-    final String profileImage = args?["profileImageUrl"] ?? "";
 
     return Scaffold(
       appBar: AppBar(
@@ -42,23 +45,23 @@ class _ProfilePageState extends State<ProfilePage> {
         child: Column(
           children: [
             const SizedBox(height: 20),
+
+            // ------------------------ FOTO CENTRALIZADA ------------------------
             Center(
               child: GestureDetector(
                 onTap: pickImage,
                 child: CircleAvatar(
                   radius: 70,
                   backgroundColor: Colors.grey.shade300,
-                  backgroundImage: imagePath != null
-                      ? FileImage(File(imagePath!))
-                      : (profileImage.isNotEmpty
-                          ? FileImage(File(profileImage))
-                          : null),
-                  child: imagePath == null && profileImage.isEmpty
+                  backgroundImage:
+                      imageBytes != null ? MemoryImage(imageBytes!) : null,
+                  child: imageBytes == null
                       ? const Icon(Icons.person, size: 60, color: Colors.white)
                       : null,
                 ),
               ),
             ),
+
             const SizedBox(height: 20),
             Text(
               name.toUpperCase(),
@@ -68,6 +71,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 color: Color(0xFF192153),
               ),
             ),
+
             const SizedBox(height: 30),
             const Text(
               "Edite sua foto clicando no ícone acima",
@@ -76,6 +80,8 @@ class _ProfilePageState extends State<ProfilePage> {
           ],
         ),
       ),
+
+      // ------------------------ BOTTOM NAV ------------------------
       bottomNavigationBar: BottomNav(
         index: 2,
         args: args,
