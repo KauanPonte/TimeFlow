@@ -189,26 +189,31 @@ class _HomePageState extends State<HomePage> {
     final List<Widget> registrosWidgets = [];
     if (!loading && registros.isNotEmpty) {
       final datas = registros.keys.toList()..sort((a, b) => b.compareTo(a));
-      registrosWidgets.addAll(datas.map((date) {
-        final map = registros[date]!;
-        final texto =
-            map.entries.map((e) => '${e.key}: ${e.value}').join(' • ');
-        return Container(
-          margin: const EdgeInsets.symmetric(vertical: 6),
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            border: Border.all(color: const Color.fromARGB(255, 232, 234, 246)),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Row(
-            children: [
-              Text(date, style: const TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(width: 12),
-              Expanded(child: Text(texto)),
-            ],
-          ),
-        );
-      }));
+      registrosWidgets.addAll(
+        datas.map((date) {
+          final map = registros[date]!;
+          final texto = map.entries
+              .map((e) => '${e.key}: ${e.value}')
+              .join(' • ');
+          return Container(
+            margin: const EdgeInsets.symmetric(vertical: 6),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              border: Border.all(
+                color: const Color.fromARGB(255, 232, 234, 246),
+              ),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              children: [
+                Text(date, style: const TextStyle(fontWeight: FontWeight.bold)),
+                const SizedBox(width: 12),
+                Expanded(child: Text(texto)),
+              ],
+            ),
+          );
+        }),
+      );
     }
 
     return Scaffold(
@@ -232,9 +237,13 @@ class _HomePageState extends State<HomePage> {
                     children: [
                       Image.asset(logo, height: 36, width: 36),
                       const SizedBox(width: 10),
-                      const Text('TimeFlow',
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 16)),
+                      const Text(
+                        'TimeFlow',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
                     ],
                   ),
                   Row(
@@ -245,9 +254,9 @@ class _HomePageState extends State<HomePage> {
                         icon: const Icon(Icons.more_vert, size: 28),
                         onSelected: (String value) {
                           if (value == 'logout') {
-                            context
-                                .read<AuthBloc>()
-                                .add(const LogoutRequested());
+                            context.read<AuthBloc>().add(
+                              const LogoutRequested(),
+                            );
                             Navigator.pushNamedAndRemoveUntil(
                               context,
                               '/welcome',
@@ -275,11 +284,14 @@ class _HomePageState extends State<HomePage> {
 
               const SizedBox(height: 18),
 
-              Text('OLÁ, ${employeeName.toUpperCase()}',
-                  style: const TextStyle(
-                      fontSize: 20,
-                      color: Color(0xFF192153),
-                      fontWeight: FontWeight.bold)),
+              Text(
+                'OLÁ, ${employeeName.toUpperCase()}',
+                style: const TextStyle(
+                  fontSize: 20,
+                  color: Color(0xFF192153),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
 
               const SizedBox(height: 18),
 
@@ -289,45 +301,61 @@ class _HomePageState extends State<HomePage> {
                   width: 130,
                   height: 130,
                   decoration: const BoxDecoration(
-                      shape: BoxShape.circle, color: Color(0xFF303F9F)),
+                    shape: BoxShape.circle,
+                    color: Color(0xFF303F9F),
+                  ),
                   child: Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Image.asset('assets/app_icon/timeflow.png',
-                          fit: BoxFit.contain)),
+                    padding: const EdgeInsets.all(12),
+                    child: Image.asset(
+                      'assets/app_icon/timeflow.png',
+                      fit: BoxFit.contain,
+                    ),
+                  ),
                 ),
               ),
 
               const SizedBox(height: 18),
 
               Container(
-                padding:
-                    const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 8,
+                  horizontal: 12,
+                ),
                 child: Row(
                   children: [
                     Expanded(
                       child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text('Trabalhando...',
-                                style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                    color: Color(0xFF192153))),
-                            const SizedBox(height: 6),
-                            Text(todayWorkedDisplay,
-                                style: const TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w500,
-                                    color: Color(0xFF192153))),
-                            const SizedBox(height: 8),
-                            ClipRRect(
-                                borderRadius: BorderRadius.circular(25),
-                                child: LinearProgressIndicator(
-                                    value: workProgress,
-                                    minHeight: 12,
-                                    backgroundColor: const Color(0xFFEEEEEE),
-                                    color: const Color(0xFF192153))),
-                          ]),
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Trabalhando...',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF192153),
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            todayWorkedDisplay,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: Color(0xFF192153),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(25),
+                            child: LinearProgressIndicator(
+                              value: workProgress,
+                              minHeight: 12,
+                              backgroundColor: const Color(0xFFEEEEEE),
+                              color: const Color(0xFF192153),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
 
                     // Lottie anim à direita (verificação com rootBundle)
@@ -352,12 +380,15 @@ class _HomePageState extends State<HomePage> {
                           // Protege o build do Lottie com try/catch — algumas Lotties
                           // podem falhar ao serem parseadas em runtime (especialmente na web).
                           try {
-                            return Lottie.asset('assets/lottie/gears.json',
-                                fit: BoxFit.contain);
+                            return Lottie.asset(
+                              'assets/lottie/gears.json',
+                              fit: BoxFit.contain,
+                            );
                           } catch (e, st) {
                             // evita crash e mostra fallback
                             debugPrint(
-                                'Lottie parse error (gears.json): $e\n$st');
+                              'Lottie parse error (gears.json): $e\n$st',
+                            );
                             return const Icon(Icons.animation, size: 38);
                           }
                         },
@@ -372,21 +403,31 @@ class _HomePageState extends State<HomePage> {
               Center(
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color.fromARGB(255, 48, 63, 159),
-                      side: const BorderSide(
-                          color: Color.fromARGB(255, 48, 63, 159)),
-                      padding: const EdgeInsets.symmetric(
-                          vertical: 10, horizontal: 26),
-                      elevation: 0),
-                  onPressed: () => Navigator.pushNamed(context, '/ponto',
-                      arguments: {
-                        'employeeName': employeeName,
-                        'profileImageUrl': profileImageUrl
-                      }).then((_) => _loadAll()),
-                  child: const Text('BATER PONTO',
-                      style: TextStyle(
-                          color: Color.fromARGB(255, 255, 255, 255),
-                          fontWeight: FontWeight.w600)),
+                    backgroundColor: const Color.fromARGB(255, 48, 63, 159),
+                    side: const BorderSide(
+                      color: Color.fromARGB(255, 48, 63, 159),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 10,
+                      horizontal: 26,
+                    ),
+                    elevation: 0,
+                  ),
+                  onPressed: () => Navigator.pushNamed(
+                    context,
+                    '/ponto',
+                    arguments: {
+                      'employeeName': employeeName,
+                      'profileImageUrl': profileImageUrl,
+                    },
+                  ).then((_) => _loadAll()),
+                  child: const Text(
+                    'BATER PONTO',
+                    style: TextStyle(
+                      color: Color.fromARGB(255, 255, 255, 255),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
               ),
 
@@ -395,35 +436,46 @@ class _HomePageState extends State<HomePage> {
               Container(
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 decoration: BoxDecoration(
-                    color: const Color.fromARGB(255, 255, 255, 255),
-                    borderRadius: BorderRadius.circular(12)),
-                child: Column(children: [
-                  const Text('Meu saldo de horas',
-                      style: TextStyle(fontSize: 13)),
-                  const SizedBox(height: 8),
-                  Text(
+                  color: const Color.fromARGB(255, 255, 255, 255),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  children: [
+                    const Text(
+                      'Meu saldo de horas',
+                      style: TextStyle(fontSize: 13),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
                       '${monthBalance >= 0 ? '+' : ''}${monthBalance.toStringAsFixed(2)} h',
                       style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: balanceColor)),
-                  const SizedBox(height: 8),
-                  const Text('Horas positivas ou negativas',
-                      style: TextStyle(fontSize: 12)),
-                ]),
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: balanceColor,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Horas positivas ou negativas',
+                      style: TextStyle(fontSize: 12),
+                    ),
+                  ],
+                ),
               ),
 
               const SizedBox(height: 20),
 
-              const Text('Registros recentes',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
+              const Text(
+                'Registros recentes',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
               const SizedBox(height: 8),
 
               loading
                   ? const Center(child: CircularProgressIndicator())
                   : registros.isEmpty
-                      ? const Text('Nenhum registro ainda.')
-                      : Column(children: registrosWidgets),
+                  ? const Text('Nenhum registro ainda.')
+                  : Column(children: registrosWidgets),
 
               const SizedBox(height: 30),
             ],

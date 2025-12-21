@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "841452398876",
+    "project_id": "timeflow-5b4e6",
+    "storage_bucket": "timeflow-5b4e6.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:841452398876:android:b79fe744e59862a8be72d9",
+        "android_client_info": {
+          "package_name": "com.example.flutter_application_appdeponto"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBRxFnoTQa8DYYHF_UH3vp0aTmELM5Hg64"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

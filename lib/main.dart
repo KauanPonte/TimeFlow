@@ -1,4 +1,6 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/firebase_options.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/auth/auth_bloc.dart';
 import 'package:flutter_application_appdeponto/repositories/auth_repository.dart';
@@ -12,7 +14,9 @@ import 'pages/ponto_page.dart';
 import 'pages/profile_page.dart';
 import 'pages/history_page.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(const TimeFlow());
 }
 
