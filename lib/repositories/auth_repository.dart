@@ -1,119 +1,125 @@
 import 'dart:io';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
-/// Repository for managing authentication and related operations
-/// Will be connected to a real database in the future
 class AuthRepository {
-  // Simulated list of registered users (remove when integrating with backend)
-  final List<Map<String, dynamic>> _registeredUsers = [
-    {
-      'email': 'usuario@exemplo.com',
-      'password': '123456',
-      'name': 'Usuário Exemplo',
-      'role': 'Desenvolvedor',
-    },
-    {
-      'email': 'teste@teste.com',
-      'password': 'senha123',
-      'name': 'Teste da Silva',
-      'role': 'Gerente',
-    },
-  ];
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  static const String _usersCollection = 'usuarios';
 
-  /// Performs user login
-  /// Returns user data if credentials are valid
-  /// Throws exception if credentials are invalid
-  Future<Map<String, dynamic>> login({
-    required String email,
-    required String password,
-  }) async {
-    // Simulates network request delay
-    await Future.delayed(const Duration(seconds: 1));
-
-    // TODO: Replace with real API call
-    // Example: final response = await http.post('$baseUrl/login', body: {...});
-    final user = _registeredUsers.firstWhere(
-      (u) => u['email'] == email && u['password'] == password,
-      orElse: () => throw Exception('Email ou senha incorretos'),
-    );
-
-    return {
-      'email': user['email'],
-      'name': user['name'],
-      'role': user['role'],
-    };
-  }
-
-  /// Registers a new user
-  /// Returns created user data
-  /// Throws exception if email is already registered
   Future<Map<String, dynamic>> register({
-    required String email,
-    required String password,
-    required String name,
-    required String role,
+    required email,
+    required password,
+    required name,
+    required role,
     File? profileImage,
   }) async {
-    // Simulates network request delay
-    await Future.delayed(const Duration(seconds: 1));
+    try {
+      final cred = await _auth.createUserWithEmailAndPassword(
+          email: email.trim(), password: password);
 
-    // Checks if email is already registered
-    final emailExists = _registeredUsers.any((u) => u['email'] == email);
-    if (emailExists) {
-      throw Exception('Email já cadastrado');
+      final uid = cred.user!.uid;
+
+      await _db.collection(_usersCollection).doc(uid).set({
+        'uid': uid,
+        'email': email.trim(),
+        'name': name.trim(),
+        'role': role.trim(),
+        'profileImage': '',
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      return {
+        'uid': uid,
+        'email': email.trim(),
+        'name': name.trim(),
+        'role': role.trim(),
+        'profileImage': '',
+      };
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'email-already-in-use') {
+        throw Exception('Email já cadastrado');
+      }
+      if (e.code == 'weak-password') {
+        throw Exception('Senha fraca: use pelo menos 6 caracteres');
+      }
+      if (e.code == 'invalid-email') {
+        throw Exception('Email inválido');
+      }
+      throw Exception('Erro ao cadastrar: ${e.message ?? e.code}');
+    } catch (e) {
+      throw Exception('Erro inesperado: $e');
     }
-
-    // TODO: Replace with real API call
-    // Example: final response = await http.post('$baseUrl/register', body: {...});
-    // If there is an image, upload it: await uploadImage(profileImage);
-
-    final newUser = {
-      'email': email,
-      'password': password,
-      'name': name,
-      'role': role,
-      'profileImage': profileImage?.path,
-    };
-
-    _registeredUsers.add(newUser);
-
-    return {
-      'email': newUser['email'],
-      'name': newUser['name'],
-      'role': newUser['role'],
-      'profileImage': newUser['profileImage'],
-    };
   }
 
-  /// Sends password reset email
-  /// Returns true if email was sent successfully
-  /// Throws exception if email is not registered
+  Future<Map<String, dynamic>> login({
+    required email,
+    required password,
+  }) async {
+    try {
+      final cred = await _auth.signInWithEmailAndPassword(
+        email: email.trim(),
+        password: password,
+      );
+
+      final uid = cred.user!.uid;
+
+      final doc = await _db.collection(_usersCollection).doc(uid).get();
+      final data = doc.data();
+
+      if (data == null) {
+        throw Exception('Perfil do usuário não encontrado');
+      }
+
+      return {
+        'uid': uid,
+        'email': data['email'] ?? email.trim(),
+        'name': data['name'] ?? '',
+        'role': data['role'] ?? '',
+        'profileImage': data['profileImage'] ?? '',
+      };
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'user-not-foud' || e.code == 'wrong-password') {
+        throw Exception('Email ou senha incorretos');
+      }
+      if (e.code == 'invalid-email') {
+        throw Exception('Email inválido ');
+      }
+      if (e.code == 'too-many-requests') {
+        throw Exception('Muitas tentativas. Tente novamente mais tarde.');
+      }
+      throw Exception('Erro ao entrar: ${e.message ?? e.code}');
+    } catch (e) {
+      throw Exception('Erro inesperado: $e');
+    }
+  }
+
   Future<bool> sendPasswordResetEmail(String email) async {
-    // Simulates network request delay
-    await Future.delayed(const Duration(seconds: 1));
-
-    // Checks if email is registered
-    final emailExists = _registeredUsers.any((u) => u['email'] == email);
-    if (!emailExists) {
-      throw Exception('Email não cadastrado');
+    try {
+      await _auth.sendPasswordResetEmail(email: email.trim());
+      return true;
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'invalid-email') {
+        throw Exception('Email inválido');
+      }
+      if (e.code == 'user-not-found') {
+        throw Exception('Email não cadastrado');
+      }
+      throw Exception('Erro ao enviar email: ${e.message ?? e.code}');
+    } catch (e) {
+      throw Exception('Erro inesperado: $e');
     }
-
-    // TODO: Replace with real API call
-    // Example: await http.post('$baseUrl/forgot-password', body: {'email': email});
-
-    return true;
   }
 
-  /// Validates if an email is registered in the system
-  /// Returns true if email exists
   Future<bool> validateEmail(String email) async {
-    // Simulates network request delay
-    await Future.delayed(const Duration(milliseconds: 300));
+    final snap = await _db
+        .collection(_usersCollection)
+        .where('email', isEqualTo: email.trim())
+        .limit(1)
+        .get();
 
-    // TODO: Replace with real API call
-    // Example: final response = await http.get('$baseUrl/validate-email?email=$email');
-
-    return _registeredUsers.any((u) => u['email'] == email);
+    return snap.docs.isNotEmpty;
   }
 
   /// Validates email format
@@ -153,18 +159,17 @@ class AuthRepository {
     await prefs.setString('userName', userData['name'] ?? '');
     await prefs.setString('userRole', userData['role'] ?? '');
     await prefs.setString('profileImage', userData['profileImage'] ?? '');
+    await prefs.setString('userUid', userData['userUid'] ?? '' );
   }
 
-  /// Gets current user session if logged in
   Future<Map<String, dynamic>?> getUserSession() async {
     final prefs = await SharedPreferences.getInstance();
     final isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
 
-    if (!isLoggedIn) {
-      return null;
-    }
+    if (!isLoggedIn) return null;
 
     return {
+      'uid': prefs.getString('userUid') ?? '',
       'email': prefs.getString('userEmail') ?? '',
       'name': prefs.getString('userName') ?? '',
       'role': prefs.getString('userRole') ?? '',
@@ -182,5 +187,10 @@ class AuthRepository {
   Future<void> clearUserSession() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
+  }
+
+  Future<void> logout() async {
+    await _auth.signOut();
+    await clearUserSession();
   }
 }
