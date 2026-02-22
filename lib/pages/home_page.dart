@@ -6,7 +6,7 @@ import 'package:flutter_application_appdeponto/blocs/auth/auth_event.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/ponto_service.dart';
 import '../widgets/bottom_nav.dart';
 
@@ -28,6 +28,9 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   Map<String, Map<String, String>> registros = {};
+  List<Map<String, dynamic>> eventosHoje = [];
+  String statusLabel = 'Fora do expediente';
+  String? ultimoTipoHoje;
   double monthBalance = 0.0;
   String employeeName = '';
   String profileImageUrl = '';
@@ -43,27 +46,24 @@ class _HomePageState extends State<HomePage> {
     employeeName = widget.employeeName;
     profileImageUrl = widget.profileImageUrl;
     _loadAll();
-    // start a timer to refresh progress in case user stays on screen
-    _tickTimer ??= Timer.periodic(const Duration(seconds: 30), (_) {
-      if (!mounted) return;
-      // refresh calculation only (no heavy reload from service)
-      final now = DateTime.now();
-      final hojeKey = "${now.year}-${now.month}-${now.day}";
-      final hojeMap = registros[hojeKey];
-      final minutesNow = _computeTodayWorkedMinutes(hojeMap, now: now);
-      final display = _computeWorkedTimeDisplay(hojeMap, now: now);
-      setState(() {
-        todayWorkedDisplay = display;
-        workProgress = (_targetMinutesPerDay == 0)
-            ? 0.0
-            : (minutesNow / _targetMinutesPerDay).clamp(0.0, 1.0);
-      });
-    });
   }
 
   Future<void> _loadAll() async {
     setState(() => loading = true);
     registros = await PontoService.loadRegistros();
+
+    eventosHoje = await PontoService.loadEventosHoje();
+    ultimoTipoHoje = await PontoService.getUltimoTipoHoje();
+
+    final now = DateTime.now();
+    statusLabel = _labelFromUltimoTipo(ultimoTipoHoje);
+    todayWorkedDisplay = _computeWorkedFromEventos(eventosHoje, now: now);
+
+    final minutesNow = _computeWorkedMinutesFromEventos(eventosHoje, now: now);
+    workProgress = (_targetMinutesPerDay == 0 )
+    ? 0.0
+    : (minutesNow / _targetMinutesPerDay).clamp(0.0, 1.0);
+
     final prefs = await SharedPreferences.getInstance();
     monthBalance = prefs.getDouble('month_balance') ?? 0.0;
 
@@ -74,105 +74,77 @@ class _HomePageState extends State<HomePage> {
       profileImageUrl = prefs.getString('profile_image_path') ?? '';
     }
 
-    // calcula o tempo trabalhado hoje
-    final hoje = DateTime.now();
-    final hojeKey = "${hoje.year}-${hoje.month}-${hoje.day}";
-    final hojeMap = registros[hojeKey];
-    todayWorkedDisplay = _computeWorkedTimeDisplay(hojeMap);
-    final minutes = _computeTodayWorkedMinutes(hojeMap);
-    workProgress = (_targetMinutesPerDay == 0)
-        ? 0.0
-        : (minutes / _targetMinutesPerDay).clamp(0.0, 1.0);
-
-    // inicia timer que atualiza a cada 30s para mostrar progresso em tempo real
     _tickTimer?.cancel();
-    _tickTimer = Timer.periodic(const Duration(seconds: 30), (_) {
-      // se usuário estiver trabalhando (sem pausa) ou retornou sem saída, precisa re-calcular usando 'now'
-      final now = DateTime.now();
-      final hojeKey2 = "${now.year}-${now.month}-${now.day}";
-      final hojeMap2 = registros[hojeKey2];
-      final minutesNow = _computeTodayWorkedMinutes(hojeMap2, now: now);
-      final p = (_targetMinutesPerDay == 0)
-          ? 0.0
-          : (minutesNow / _targetMinutesPerDay).clamp(0.0, 1.0);
-      final display = _computeWorkedTimeDisplay(hojeMap2, now: now);
+    _tickTimer = Timer.periodic(const Duration(seconds: 30), (_){
+      if (!mounted) return;
+
+      final now2 = DateTime.now();
+      final minutes2 = _computeWorkedMinutesFromEventos(eventosHoje, now: now2);
+      final display2 = _computeWorkedFromEventos(eventosHoje, now: now2);
+
       setState(() {
-        workProgress = p;
-        todayWorkedDisplay = display;
+        todayWorkedDisplay = display2;
+        workProgress = (_targetMinutesPerDay == 0)
+        ? 0.0
+        :(minutes2/_targetMinutesPerDay).clamp(0.0, 1.0);
       });
     });
-
+   
     setState(() => loading = false);
   }
 
-  // Calcula o tempo trabalhado com base nos pares: entrada/pausa e retorno/saida
-  String _computeWorkedTimeDisplay(Map<String, String>? map, {DateTime? now}) {
-    if (map == null) return '0h 0m';
-
-    final base = now ?? DateTime.now();
-
-    DateTime? parseClock(String? hhmm) {
-      if (hhmm == null) return null;
-      final parts = hhmm.split(':');
-      if (parts.length != 2) return null;
-      final h = int.tryParse(parts[0]);
-      final m = int.tryParse(parts[1]);
-      if (h == null || m == null) return null;
-      return DateTime(base.year, base.month, base.day, h, m);
+  String _labelFromUltimoTipo(String? ultimo) {
+    switch(ultimo) {
+      case 'entrada':
+      case 'retorno':
+        return 'Trabalhando...';
+      case 'pausa':
+        return 'Pausado';
+      case 'saida':
+      default:
+        return 'Fora do expediente';    
     }
-
-    final entrada = parseClock(map['entrada']);
-    final pausa = parseClock(map['pausa']);
-    final retorno = parseClock(map['retorno']);
-    final saida = parseClock(map['saida']);
-
-    Duration total = Duration.zero;
-    if (entrada != null) {
-      final end1 = pausa ?? base;
-      if (end1.isAfter(entrada)) total += end1.difference(entrada);
-    }
-    if (retorno != null) {
-      final end2 = saida ?? base;
-      if (end2.isAfter(retorno)) total += end2.difference(retorno);
-    }
-
-    final hours = total.inHours;
-    final minutes = total.inMinutes % 60;
-    return '${hours}h ${minutes}m';
+  }
+  
+  String _computeWorkedFromEventos(List<Map<String, dynamic>> eventos, {required DateTime now}) {
+    final totalMin = _computeWorkedMinutesFromEventos(eventos, now: now);
+    final h = totalMin ~/ 60;
+    final m = totalMin % 60;
+    return '${h}h ${m}m'; 
   }
 
-  /// Retorna minutos trabalhados hoje (inteiro) considerando pausa/retorno
-  int _computeTodayWorkedMinutes(Map<String, String>? map, {DateTime? now}) {
-    if (map == null) return 0;
-    final base = now ?? DateTime.now();
-
-    DateTime? parseClock(String? hhmm) {
-      if (hhmm == null) return null;
-      final parts = hhmm.split(':');
-      if (parts.length != 2) return null;
-      final h = int.tryParse(parts[0]);
-      final m = int.tryParse(parts[1]);
-      if (h == null || m == null) return null;
-      return DateTime(base.year, base.month, base.day, h, m);
-    }
-
-    final entrada = parseClock(map['entrada']);
-    final pausa = parseClock(map['pausa']);
-    final retorno = parseClock(map['retorno']);
-    final saida = parseClock(map['saida']);
-
+  int _computeWorkedMinutesFromEventos(List<Map<String, dynamic>> eventos, {required DateTime now}) {
+    DateTime? openWork;
     Duration total = Duration.zero;
-    if (entrada != null) {
-      final end1 = pausa ?? base;
-      if (end1.isAfter(entrada)) total += end1.difference(entrada);
+
+    DateTime? tsToDate(dynamic ts){
+      if (ts is Timestamp) return ts.toDate();
+      return null;
     }
-    if (retorno != null) {
-      final end2 = saida ?? base;
-      if (end2.isAfter(retorno)) total += end2.difference(retorno);
+
+    for(final ev in eventos){
+      final tipo = (ev['tipo'] ?? '').toString();
+      final at = tsToDate(ev['at']);
+      if(at == null) continue;
+
+      if (tipo == 'entrada' || tipo == 'retorno'){
+       openWork ??= at;
+      }else if (tipo == 'pausa' || tipo == 'saida'){
+        if(openWork != null && at.isAfter(openWork)){
+          total += at.difference(openWork);
+        }
+        openWork = null;
+      }  
+    }
+
+    if (openWork != null && now.isAfter(openWork)){
+      total += now.difference(openWork);
     }
 
     return total.inMinutes;
   }
+
+
 
   Color get balanceColor => monthBalance >= 0 ? Colors.green : Colors.red;
 
@@ -308,8 +280,8 @@ class _HomePageState extends State<HomePage> {
                       child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('Trabalhando...',
-                                style: TextStyle(
+                            Text(statusLabel,
+                                style: const TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w600,
                                     color: Color(0xFF192153))),
