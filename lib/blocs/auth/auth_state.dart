@@ -1,7 +1,6 @@
 import 'package:equatable/equatable.dart';
 import '../../models/auth_field.dart';
 
-/// Base class for authentication states
 abstract class AuthState extends Equatable {
   const AuthState();
 
@@ -9,12 +8,11 @@ abstract class AuthState extends Equatable {
   List<Object?> get props => [];
 }
 
-/// Initial state - no authentication action has been initiated
 class AuthInitial extends AuthState {
   const AuthInitial();
 }
 
-/// State when login is successful
+/// 🔐 Login sucesso (apenas feedback imediato)
 class LoginSuccess extends AuthState {
   final Map<String, dynamic> userData;
 
@@ -24,7 +22,7 @@ class LoginSuccess extends AuthState {
   List<Object> get props => [userData];
 }
 
-/// State when registration is successful
+/// 📝 Registro sucesso
 class RegisterSuccess extends AuthState {
   final Map<String, dynamic> userData;
 
@@ -34,7 +32,7 @@ class RegisterSuccess extends AuthState {
   List<Object> get props => [userData];
 }
 
-/// State when password reset email has been sent successfully
+/// 📩 Reset senha enviado
 class PasswordResetEmailSent extends AuthState {
   final String email;
 
@@ -44,10 +42,10 @@ class PasswordResetEmailSent extends AuthState {
   List<Object> get props => [email];
 }
 
-/// State when a general authentication error occurs
+/// ❌ Erro geral
 class AuthError extends AuthState {
   final String message;
-  final AuthField? field; // Specific field that caused the error
+  final AuthField? field;
 
   const AuthError({
     required this.message,
@@ -58,7 +56,7 @@ class AuthError extends AuthState {
   List<Object?> get props => [message, field];
 }
 
-/// State that holds information about field validation
+/// 🧠 Estado dos campos (validação e loading)
 class AuthFieldsState extends AuthState {
   final Map<AuthField, String?> fieldErrors;
   final Map<AuthField, bool> fieldValid;
@@ -86,17 +84,27 @@ class AuthFieldsState extends AuthState {
   List<Object?> get props => [fieldErrors, fieldValid, isLoading];
 }
 
-/// State when user is authenticated (for splash screen)
-class Authenticated extends AuthState {
+/// 👑 ADMIN autenticado
+class AdminAuthenticated extends AuthState {
   final Map<String, dynamic> userData;
 
-  const Authenticated({required this.userData});
+  const AdminAuthenticated({required this.userData});
 
   @override
   List<Object> get props => [userData];
 }
 
-/// State when user is not authenticated (for splash screen)
+/// 👤 Usuário normal autenticado
+class UserAuthenticated extends AuthState {
+  final Map<String, dynamic> userData;
+
+  const UserAuthenticated({required this.userData});
+
+  @override
+  List<Object> get props => [userData];
+}
+
+/// 🚪 Não autenticado
 class Unauthenticated extends AuthState {
   const Unauthenticated();
 }
