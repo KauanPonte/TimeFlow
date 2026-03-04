@@ -33,8 +33,18 @@ class _SplashPageState extends State<SplashPage> {
   Widget build(BuildContext context) {
     return BlocListener<AuthBloc, AuthState>(
       listener: (context, state) {
-        if (state is Authenticated) {
-          // User is authenticated, navigate to home
+        if (state is AdminAuthenticated) {
+          Navigator.pushNamedAndRemoveUntil(
+            context,
+            '/admin',
+            (route) => false,
+            arguments: {
+              'employeeName': state.userData['name'],
+              'profileImageUrl': state.userData['profileImage'] ?? '',
+              'employeeRole': state.userData['role'],
+            },
+          );
+        } else if (state is UserAuthenticated) {
           Navigator.pushNamedAndRemoveUntil(
             context,
             '/home',
@@ -46,7 +56,6 @@ class _SplashPageState extends State<SplashPage> {
             },
           );
         } else if (state is Unauthenticated) {
-          // User is not authenticated, navigate to welcome
           Navigator.pushReplacementNamed(context, '/welcome');
         }
       },

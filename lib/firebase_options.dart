@@ -18,10 +18,7 @@ import 'package:flutter/foundation.dart'
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
-      throw UnsupportedError(
-        'DefaultFirebaseOptions have not been configured for web - '
-        'you can reconfigure this by running the FlutterFire CLI again.',
-      );
+      return web;
     }
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
@@ -29,15 +26,9 @@ class DefaultFirebaseOptions {
       case TargetPlatform.iOS:
         return ios;
       case TargetPlatform.macOS:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for macos - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return macos;
       case TargetPlatform.windows:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for windows - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return windows;
       case TargetPlatform.linux:
         throw UnsupportedError(
           'DefaultFirebaseOptions have not been configured for linux - '
@@ -66,4 +57,34 @@ class DefaultFirebaseOptions {
     storageBucket: 'timeflow-5b4e6.firebasestorage.app',
     iosBundleId: 'com.example.flutterApplicationAppdeponto',
   );
+
+  static const FirebaseOptions web = FirebaseOptions(
+    apiKey: 'AIzaSyBDMULCa5c3NpVR6ENbTakAvnmVmFwbyas',
+    appId: '1:841452398876:web:13636ac6e6a7fc05be72d9',
+    messagingSenderId: '841452398876',
+    projectId: 'timeflow-5b4e6',
+    authDomain: 'timeflow-5b4e6.firebaseapp.com',
+    storageBucket: 'timeflow-5b4e6.firebasestorage.app',
+    measurementId: 'G-0MSGS3G4PV',
+  );
+
+  static const FirebaseOptions macos = FirebaseOptions(
+    apiKey: 'AIzaSyBRLsz31F8EdS84dlDgLHlpNfuE2uyQPkw',
+    appId: '1:841452398876:ios:1d10ac9d129e4f58be72d9',
+    messagingSenderId: '841452398876',
+    projectId: 'timeflow-5b4e6',
+    storageBucket: 'timeflow-5b4e6.firebasestorage.app',
+    iosBundleId: 'com.example.flutterApplicationAppdeponto',
+  );
+
+  static const FirebaseOptions windows = FirebaseOptions(
+    apiKey: 'AIzaSyBDMULCa5c3NpVR6ENbTakAvnmVmFwbyas',
+    appId: '1:841452398876:web:229cad57978f18bdbe72d9',
+    messagingSenderId: '841452398876',
+    projectId: 'timeflow-5b4e6',
+    authDomain: 'timeflow-5b4e6.firebaseapp.com',
+    storageBucket: 'timeflow-5b4e6.firebasestorage.app',
+    measurementId: 'G-VWBSVKJ7BP',
+  );
+
 }

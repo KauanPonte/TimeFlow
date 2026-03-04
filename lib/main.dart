@@ -13,6 +13,9 @@ import 'pages/home_page.dart';
 import 'pages/ponto_page.dart';
 import 'pages/profile_page.dart';
 import 'pages/history_page.dart';
+import 'pages/admin/admin_dashboard_page.dart';
+import 'package:flutter_application_appdeponto/blocs/admin/admin_bloc.dart';
+import 'package:flutter_application_appdeponto/repositories/admin_repository.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,23 +28,38 @@ class TimeFlow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => AuthBloc(
-        authRepository: AuthRepository(),
-      ),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider<AuthBloc>(
+          create: (context) => AuthBloc(
+            authRepository: AuthRepository(),
+          ),
+        ),
+        BlocProvider<AdminBloc>(
+          create: (context) => AdminBloc(
+            repository: AdminRepository(),
+          ),
+        ),
+      ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
         initialRoute: "/",
         onGenerateRoute: (settings) {
-          // Rotas com argumentos
           if (settings.name == "/home") {
-            final args = settings.arguments as Map<String, dynamic>;
+            final args = settings.arguments as Map<String, dynamic>?;
 
             return MaterialPageRoute(
               builder: (context) => HomePage(
-                employeeName: args["employeeName"] ?? "",
-                profileImageUrl: args["profileImageUrl"] ?? "",
+                employeeName: args?["employeeName"] ?? "",
+                profileImageUrl: args?["profileImageUrl"] ?? "",
+                employeeRole: args?["employeeRole"] ?? "",
               ),
+            );
+          }
+
+          if (settings.name == "/admin") {
+            return MaterialPageRoute(
+              builder: (context) => const AdminDashboardPage(),
             );
           }
 
@@ -50,7 +68,7 @@ class TimeFlow extends StatelessWidget {
         routes: {
           "/": (context) => const SplashPage(),
           "/welcome": (context) => const WelcomePage(),
-          "/login": (context) => const LoginPage(),
+          "/login": (context) => const LoginPage(),""
           "/register": (context) => const RegisterPage(),
           "/forgot-password": (context) => const ForgotPasswordPage(),
           "/ponto": (context) => const PontoPage(),

@@ -43,12 +43,22 @@ class _LoginPageState extends State<LoginPage> {
     return Scaffold(
       body: BlocConsumer<AuthBloc, AuthState>(
         listenWhen: (previous, current) {
-          // Only listens for changes to LoginSuccess or AuthError
-          return (current is LoginSuccess && previous is! LoginSuccess) ||
+          return (current is AdminAuthenticated &&
+                  previous is! AdminAuthenticated) ||
+              (current is UserAuthenticated &&
+                  previous is! UserAuthenticated) ||
               (current is AuthError && previous is! AuthError);
         },
         listener: (context, state) {
-          if (state is LoginSuccess) {
+          if (state is AdminAuthenticated) {
+            Navigator.pushNamedAndRemoveUntil(
+              context,
+              "/admin",
+              (route) => false,
+            );
+          }
+
+          if (state is UserAuthenticated) {
             Navigator.pushNamedAndRemoveUntil(
               context,
               "/home",
@@ -56,10 +66,12 @@ class _LoginPageState extends State<LoginPage> {
               arguments: {
                 "employeeName": state.userData['name'],
                 "profileImageUrl": state.userData['profileImage'] ?? "",
-                "employeeRole": state.userData['role'] ?? "",
+                "employeeRole": state.userData['role'],
               },
             );
-          } else if (state is AuthError) {
+          }
+
+          if (state is AuthError) {
             CustomSnackbar.showError(context, state.message);
           }
         },

@@ -69,7 +69,11 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       await _authRepository.saveUserSession(userData);
 
       _fieldsState = const AuthFieldsState();
-      emit(LoginSuccess(userData: userData));
+     if (userData['role'] == 'admin') {
+  emit(AdminAuthenticated(userData: userData));
+} else {
+  emit(UserAuthenticated(userData: userData));
+}
     } catch (e) {
       _fieldsState = _fieldsState.copyWith(isLoading: false);
       emit(AuthError(message: e.toString().replaceAll('Exception: ', '')));
@@ -343,7 +347,11 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         final userExists = await _authRepository.validateEmail(email);
         if (userExists) {
           // User is authenticated and exists
-          emit(Authenticated(userData: userData));
+          if (userData['role'] == 'admin') {
+          emit(AdminAuthenticated(userData: userData));
+              } else {
+          emit(UserAuthenticated(userData: userData));
+             }
           return;
         }
         // User was deleted, clear session
