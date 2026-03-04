@@ -17,7 +17,7 @@ class AdminPage extends StatelessWidget {
               title: const Text("Gerenciar Usuários"),
               leading: const Icon(Icons.people),
               onTap: () {
-                //........................... futura tela de usuários
+                
               },
             ),
           ),
