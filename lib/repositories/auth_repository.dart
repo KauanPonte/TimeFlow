@@ -60,7 +60,7 @@ class AuthRepository {
     try {
       final cred = await _auth.signInWithEmailAndPassword(
         email: email.trim(),
-        password: password,
+        password: password.trim(),
       );
 
       final uid = cred.user!.uid;
@@ -80,15 +80,19 @@ class AuthRepository {
         'profileImage': data['profileImage'] ?? '',
       };
     } on FirebaseAuthException catch (e) {
-      if (e.code == 'user-not-foud' || e.code == 'wrong-password') {
-        throw Exception('Email ou senha incorretos');
+      if (e.code == 'user-not-found') {
+        throw Exception('Usuário não encontrado');
+      }
+      if (e.code == 'wrong-password') {
+        throw Exception('Senha incorreta');
       }
       if (e.code == 'invalid-email') {
-        throw Exception('Email inválido ');
+        throw Exception('Email inválido');
       }
       if (e.code == 'too-many-requests') {
         throw Exception('Muitas tentativas. Tente novamente mais tarde.');
       }
+
       throw Exception('Erro ao entrar: ${e.message ?? e.code}');
     } catch (e) {
       throw Exception('Erro inesperado: $e');
@@ -159,7 +163,7 @@ class AuthRepository {
     await prefs.setString('userName', userData['name'] ?? '');
     await prefs.setString('userRole', userData['role'] ?? '');
     await prefs.setString('profileImage', userData['profileImage'] ?? '');
-    await prefs.setString('userUid', userData['userUid'] ?? '' );
+    await prefs.setString('userUid', userData['uid'] ?? '');
   }
 
   Future<Map<String, dynamic>?> getUserSession() async {

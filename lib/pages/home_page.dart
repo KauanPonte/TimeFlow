@@ -14,20 +14,22 @@ class HomePage extends StatefulWidget {
   final String employeeName;
   final String profileImageUrl;
   final String logoAsset;
+  final String employeeRole;
 
   const HomePage({
-    super.key,
-    this.employeeName = '',
-    this.profileImageUrl = '',
-    this.logoAsset = 'assets/app_icon/timeflow_background.png',
-  });
+  super.key,
+  required this.employeeName,
+  required this.profileImageUrl,
+  required this.employeeRole,
+  this.logoAsset = 'assets/app_icon/timeflow_background.png',
+});
 
   @override
   State<HomePage> createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage> {
-  Map<String, Map<String, String>> registros = {};
+  //Map<String, Map<String, String>> registros = {};
   List<Map<String, dynamic>> eventosHoje = [];
   String statusLabel = 'Fora do expediente';
   String? ultimoTipoHoje;
@@ -50,7 +52,7 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _loadAll() async {
     setState(() => loading = true);
-    registros = await PontoService.loadRegistros();
+    //registros = await PontoService.loadRegistros();
 
     eventosHoje = await PontoService.loadEventosHoje();
     ultimoTipoHoje = await PontoService.getUltimoTipoHoje();
@@ -60,9 +62,9 @@ class _HomePageState extends State<HomePage> {
     todayWorkedDisplay = _computeWorkedFromEventos(eventosHoje, now: now);
 
     final minutesNow = _computeWorkedMinutesFromEventos(eventosHoje, now: now);
-    workProgress = (_targetMinutesPerDay == 0 )
-    ? 0.0
-    : (minutesNow / _targetMinutesPerDay).clamp(0.0, 1.0);
+    workProgress = (_targetMinutesPerDay == 0)
+        ? 0.0
+        : (minutesNow / _targetMinutesPerDay).clamp(0.0, 1.0);
 
     final prefs = await SharedPreferences.getInstance();
     monthBalance = prefs.getDouble('month_balance') ?? 0.0;
@@ -75,7 +77,7 @@ class _HomePageState extends State<HomePage> {
     }
 
     _tickTimer?.cancel();
-    _tickTimer = Timer.periodic(const Duration(seconds: 30), (_){
+    _tickTimer = Timer.periodic(const Duration(seconds: 30), (_) {
       if (!mounted) return;
 
       final now2 = DateTime.now();
@@ -85,16 +87,16 @@ class _HomePageState extends State<HomePage> {
       setState(() {
         todayWorkedDisplay = display2;
         workProgress = (_targetMinutesPerDay == 0)
-        ? 0.0
-        :(minutes2/_targetMinutesPerDay).clamp(0.0, 1.0);
+            ? 0.0
+            : (minutes2 / _targetMinutesPerDay).clamp(0.0, 1.0);
       });
     });
-   
+
     setState(() => loading = false);
   }
 
   String _labelFromUltimoTipo(String? ultimo) {
-    switch(ultimo) {
+    switch (ultimo) {
       case 'entrada':
       case 'retorno':
         return 'Trabalhando...';
@@ -102,49 +104,49 @@ class _HomePageState extends State<HomePage> {
         return 'Pausado';
       case 'saida':
       default:
-        return 'Fora do expediente';    
+        return 'Fora do expediente';
     }
   }
-  
-  String _computeWorkedFromEventos(List<Map<String, dynamic>> eventos, {required DateTime now}) {
+
+  String _computeWorkedFromEventos(List<Map<String, dynamic>> eventos,
+      {required DateTime now}) {
     final totalMin = _computeWorkedMinutesFromEventos(eventos, now: now);
     final h = totalMin ~/ 60;
     final m = totalMin % 60;
-    return '${h}h ${m}m'; 
+    return '${h}h ${m}m';
   }
 
-  int _computeWorkedMinutesFromEventos(List<Map<String, dynamic>> eventos, {required DateTime now}) {
+  int _computeWorkedMinutesFromEventos(List<Map<String, dynamic>> eventos,
+      {required DateTime now}) {
     DateTime? openWork;
     Duration total = Duration.zero;
 
-    DateTime? tsToDate(dynamic ts){
+    DateTime? tsToDate(dynamic ts) {
       if (ts is Timestamp) return ts.toDate();
       return null;
     }
 
-    for(final ev in eventos){
+    for (final ev in eventos) {
       final tipo = (ev['tipo'] ?? '').toString();
       final at = tsToDate(ev['at']);
-      if(at == null) continue;
+      if (at == null) continue;
 
-      if (tipo == 'entrada' || tipo == 'retorno'){
-       openWork ??= at;
-      }else if (tipo == 'pausa' || tipo == 'saida'){
-        if(openWork != null && at.isAfter(openWork)){
+      if (tipo == 'entrada' || tipo == 'retorno') {
+        openWork ??= at;
+      } else if (tipo == 'pausa' || tipo == 'saida') {
+        if (openWork != null && at.isAfter(openWork)) {
           total += at.difference(openWork);
         }
         openWork = null;
-      }  
+      }
     }
 
-    if (openWork != null && now.isAfter(openWork)){
+    if (openWork != null && now.isAfter(openWork)) {
       total += now.difference(openWork);
     }
 
     return total.inMinutes;
   }
-
-
 
   Color get balanceColor => monthBalance >= 0 ? Colors.green : Colors.red;
 
@@ -158,7 +160,7 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     final logo = widget.logoAsset;
     // Precompute widgets for registros to avoid inline expression issues
-    final List<Widget> registrosWidgets = [];
+    /*final List<Widget> registrosWidgets = [];
     if (!loading && registros.isNotEmpty) {
       final datas = registros.keys.toList()..sort((a, b) => b.compareTo(a));
       registrosWidgets.addAll(datas.map((date) {
@@ -181,7 +183,7 @@ class _HomePageState extends State<HomePage> {
           ),
         );
       }));
-    }
+    }*/
 
     return Scaffold(
       backgroundColor: const Color.fromARGB(255, 232, 234, 246),
@@ -385,7 +387,7 @@ class _HomePageState extends State<HomePage> {
                 ]),
               ),
 
-              const SizedBox(height: 20),
+              /*const SizedBox(height: 20),
 
               const Text('Registros recentes',
                   style: TextStyle(fontWeight: FontWeight.bold)),
@@ -397,7 +399,7 @@ class _HomePageState extends State<HomePage> {
                       ? const Text('Nenhum registro ainda.')
                       : Column(children: registrosWidgets),
 
-              const SizedBox(height: 30),
+              const SizedBox(height: 30),*/
             ],
           ),
         ),

@@ -6,6 +6,8 @@ import 'package:flutter_application_appdeponto/widgets/custom_snackbar.dart';
 
 class PontoService {
   static const String _root = 'pontos'; 
+  static const int _targetMinutesPerDay = 8 * 60;
+  static String _mesIdFromDiaId(String diaId) => diaId.substring(0,7);
 
   static String _hojeId() =>  DateFormat('dd-MM-yyyy').format(DateTime.now());
 
@@ -101,6 +103,8 @@ class PontoService {
         });
       });
 
+      await recalcularBancoDeHorasDoDia(uid: uid, diaId: diaId);
+
       final horas = DateFormat('HH:mm').format(DateTime.now());
       CustomSnackbar.showSuccess(context, 'Ponto "$tipo" registrado ás $horas.');
     }catch (e){
@@ -188,6 +192,90 @@ class PontoService {
     }
 
     return result;
+
+  }
+
+  static DocumentReference<Map<String, dynamic>> _refMes(String uid, String mesId){
+    return FirebaseFirestore.instance
+    .collection(_root)
+    .doc(uid)
+    .collection('meses')
+    .doc(mesId);
+  }
+
+  static Future<void> recalcularBancoDeHorasDoDia({
+    required String uid,
+    required String diaId,
+  }) async {
+    final refDia = _refDia(uid, diaId);
+    final refEventos = _refEventos(uid, diaId);
+    final mesId = _mesIdFromDiaId(diaId);
+    final refMes = _refMes(uid, mesId);
+
+    final eventosSnap = await refEventos.orderBy('at', descending: false).get();
+    final eventos = eventosSnap.docs.map((d) => d.data()).toList();
+
+    final workedMinutes = _computeWorkedMinutesFromEventosFechado(eventos);
+    final deltaMinutes = workedMinutes - _targetMinutesPerDay;
+
+    await FirebaseFirestore.instance.runTransaction((tx) async {
+      final diaSnap = await tx.get(refDia);
+      final oldDelta = (diaSnap.data()?['deltaMinutes'] as int?) ?? 0;
+
+      tx.set(refDia, {
+       'workedMinutes': workedMinutes,
+       'deltaMinutes': deltaMinutes,
+       'updatedAt': Timestamp.now(),
+      }, SetOptions(merge: true));
+
+      final mesSnap = await tx.get(refMes);
+      final oldBalance = (mesSnap.data()?['balanceMinutes'] as int?) ?? 0;
+      final newBalance = oldBalance + (deltaMinutes - oldDelta);
+
+      tx.set(refMes, {
+        'balanceMinutes': newBalance,
+        'updatedAt': Timestamp.now(), 
+      }, SetOptions(merge: true));
+    });
+  }
+
+  static int _computeWorkedMinutesFromEventosFechado(List<Map<String, dynamic>> eventos){
+    DateTime? openWork;
+    Duration total = Duration.zero;
+
+    DateTime? tsToDate(dynamic ts){
+      if(ts is Timestamp) return ts.toDate();
+      return null;
+    }
+
+    for (final ev in eventos ){
+      final tipo = (ev['tipo'] ?? '').toString();
+      final at = tsToDate(ev['at']);
+      if (at == null) continue;
+
+      if(tipo == 'entrada' || tipo == 'retorno'){
+        openWork ??= at;
+      }else if (tipo == 'pausa' || tipo == 'saida'){
+        if (openWork != null && at.isAfter(openWork)){
+          total += at.difference(openWork);
+        }
+        openWork = null;
+      }
+    }
+    return total.inMinutes;
+  }
+
+  static Future<double> getSaldoMesAtualHora() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return 0.0;
+
+    final uid = user.uid;
+    final mesId = DateFormat('MM-yyyy').format(DateTime.now());
+
+    final snap = await _refMes(uid,mesId).get();
+    final minutes = (snap.data()?['balanceMinutes'] as int?) ?? 0;
+
+    return minutes / 60.0 ;
 
   }
 
