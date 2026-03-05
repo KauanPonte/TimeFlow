@@ -16,7 +16,7 @@ class AuthRepository {
       'email': 'teste@teste.com',
       'password': 'senha123',
       'name': 'Teste da Silva',
-      'role': 'Gerente',
+      'role': 'ADM',
     },
   ];
 

@@ -8,6 +8,8 @@ import 'pages/auth/login/login_page.dart';
 import 'pages/auth/register/register_page.dart';
 import 'pages/auth/forgot_password/forgot_password_page.dart';
 import 'pages/home_page.dart';
+import 'pages/admin/home/home_admin_page.dart';
+import 'pages/admin/users_management/users_management_page.dart';
 import 'pages/ponto_page.dart';
 import 'pages/profile_page.dart';
 import 'pages/history_page.dart';
@@ -32,6 +34,18 @@ class TimeFlow extends StatelessWidget {
           // Rotas com argumentos
           if (settings.name == "/home") {
             final args = settings.arguments as Map<String, dynamic>;
+            final employeeRole = args["employeeRole"] ?? "";
+
+            // Redireciona para home admin se o cargo contém "ADM"
+            if (employeeRole.toUpperCase().contains("ADM")) {
+              return MaterialPageRoute(
+                builder: (context) => HomeAdminPage(
+                  employeeName: args["employeeName"] ?? "",
+                  profileImageUrl: args["profileImageUrl"] ?? "",
+                  employeeRole: employeeRole,
+                ),
+              );
+            }
 
             return MaterialPageRoute(
               builder: (context) => HomePage(
@@ -52,6 +66,7 @@ class TimeFlow extends StatelessWidget {
           "/ponto": (context) => const PontoPage(),
           "/profile": (context) => const ProfilePage(),
           "/history": (context) => const HistoryPage(),
+          "/admin/users": (context) => const UsersManagementPage(),
         },
       ),
     );
