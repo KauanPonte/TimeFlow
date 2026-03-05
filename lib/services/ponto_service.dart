@@ -9,7 +9,7 @@ class PontoService {
   static const int _targetMinutesPerDay = 8 * 60;
   static String _mesIdFromDiaId(String diaId) => diaId.substring(0,7);
 
-  static String _hojeId() =>  DateFormat('dd-MM-yyyy').format(DateTime.now());
+  static String _hojeId() =>  DateFormat('yyyy-MM-dd').format(DateTime.now());
 
   static DocumentReference<Map<String, dynamic>> _refDia(String uid, String diaId){
     return FirebaseFirestore.instance
@@ -42,7 +42,7 @@ class PontoService {
 
   static String _mensagemErroTransicao(String? ultimo, String novo ){
     if(ultimo == null) return 'O primeiro ponto do dia precisa ser "entrada".';
-    return 'Não pode registrar "$novo" agora. Último ponto foi "$novo".';
+    return 'Não pode registrar "$novo" agora. Último ponto foi "$ultimo".';
   }
 
   static Future<void> registrarPonto(BuildContext context, String tipo) async {
@@ -61,7 +61,7 @@ class PontoService {
       final uid = user.uid;
       final diaId = _hojeId();
       final refDia = _refDia(uid, diaId);
-      final refEvendtos = _refEventos(uid, diaId);
+      final refEventos = _refEventos(uid, diaId);
       final now = Timestamp.now();
 
       await FirebaseFirestore.instance.runTransaction((tx) async{
@@ -74,14 +74,14 @@ class PontoService {
 
           tx.set(refDia, {
             'uid': uid,
-            'data': diaId,
+            'date': diaId,
             'createdAt': now,
             'updatedAt': now,
             'lastTipo': 'entrada',
             'lastAt': now,
           });
 
-          final newDoc = refEvendtos.doc();
+          final newDoc = refEventos.doc();
           tx.set(newDoc, {'tipo': 'entrada', 'at': now});
           return;
         }
@@ -93,7 +93,7 @@ class PontoService {
           throw Exception(_mensagemErroTransicao(ultimoTipo, tipo));
         }
 
-        final newDoc = refEvendtos.doc();
+        final newDoc = refEventos.doc();
         tx.set(newDoc, {'tipo': tipo , 'at': now});
 
         tx.update(refDia, {
@@ -152,7 +152,7 @@ class PontoService {
     .collection(_root)
     .doc(uid)
     .collection('dias')
-    .orderBy('data', descending: true)
+    .orderBy('date', descending: true)
     .get();
 
     String ftm(dynamic ts) {
@@ -216,21 +216,38 @@ class PontoService {
     final eventos = eventosSnap.docs.map((d) => d.data()).toList();
 
     final workedMinutes = _computeWorkedMinutesFromEventosFechado(eventos);
-    final deltaMinutes = workedMinutes - _targetMinutesPerDay;
+
+    final String? ultimoTipoEvento = eventos.isNotEmpty ? (eventos.last['tipo'] ?? '').toString() : null;
+    
+    final bool diaFechado = ultimoTipoEvento == 'saida';
+
+    final hojeId = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    final bool ehHoje = diaId == hojeId;
+
+    final bool falta = !ehHoje && eventos.isEmpty;
+
+    final bool emAberto = !diaFechado && eventos.isNotEmpty;
+
+    final int deltaMinutes = falta ? -_targetMinutesPerDay : (diaFechado ? (workedMinutes - _targetMinutesPerDay) : 0);
 
     await FirebaseFirestore.instance.runTransaction((tx) async {
       final diaSnap = await tx.get(refDia);
+      final mesSnap = await tx.get(refMes);
+      
       final oldDelta = (diaSnap.data()?['deltaMinutes'] as int?) ?? 0;
+      final oldBalance = (mesSnap.data()?['balanceMinutes'] as int?) ?? 0;
+
+      final diff = deltaMinutes - oldDelta;
+      final newBalance = oldBalance + diff;
 
       tx.set(refDia, {
        'workedMinutes': workedMinutes,
        'deltaMinutes': deltaMinutes,
+       'isClosed': diaFechado,
+       'isToday': emAberto,
+       'isAbsent': falta,
        'updatedAt': Timestamp.now(),
       }, SetOptions(merge: true));
-
-      final mesSnap = await tx.get(refMes);
-      final oldBalance = (mesSnap.data()?['balanceMinutes'] as int?) ?? 0;
-      final newBalance = oldBalance + (deltaMinutes - oldDelta);
 
       tx.set(refMes, {
         'balanceMinutes': newBalance,
@@ -265,12 +282,12 @@ class PontoService {
     return total.inMinutes;
   }
 
-  static Future<double> getSaldoMesAtualHora() async {
+  static Future<double> getSaldoMesAtualHoras() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return 0.0;
 
     final uid = user.uid;
-    final mesId = DateFormat('MM-yyyy').format(DateTime.now());
+    final mesId = DateFormat('yyyy-MM').format(DateTime.now());
 
     final snap = await _refMes(uid,mesId).get();
     final minutes = (snap.data()?['balanceMinutes'] as int?) ?? 0;
