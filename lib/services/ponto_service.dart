@@ -216,7 +216,19 @@ class PontoService {
     final eventos = eventosSnap.docs.map((d) => d.data()).toList();
 
     final workedMinutes = _computeWorkedMinutesFromEventosFechado(eventos);
-    final deltaMinutes = workedMinutes - _targetMinutesPerDay;
+
+    final String? ultimoTipoEvento = eventos.isNotEmpty ? (eventos.last['tipo'] ?? '').toString() : null;
+    
+    final bool diaFechado = ultimoTipoEvento == 'saida';
+
+    final hojeId = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    final bool ehHoje = diaId == hojeId;
+
+    final bool falta = !ehHoje && eventos.isEmpty;
+
+    final bool emAberto = !diaFechado && eventos.isNotEmpty;
+
+    final int deltaMinutes = falta ? -_targetMinutesPerDay : (diaFechado ? (workedMinutes - _targetMinutesPerDay) : 0);
 
     await FirebaseFirestore.instance.runTransaction((tx) async {
       final diaSnap = await tx.get(refDia);
@@ -225,11 +237,15 @@ class PontoService {
       final oldDelta = (diaSnap.data()?['deltaMinutes'] as int?) ?? 0;
       final oldBalance = (mesSnap.data()?['balanceMinutes'] as int?) ?? 0;
 
-      final newBalance = oldBalance + (deltaMinutes - oldDelta);
+      final diff = deltaMinutes - oldDelta;
+      final newBalance = oldBalance + diff;
 
       tx.set(refDia, {
        'workedMinutes': workedMinutes,
        'deltaMinutes': deltaMinutes,
+       'isClosed': diaFechado,
+       'isToday': emAberto,
+       'isAbsent': falta,
        'updatedAt': Timestamp.now(),
       }, SetOptions(merge: true));
 
