@@ -67,7 +67,7 @@ class _HomePageState extends State<HomePage> {
         : (minutesNow / _targetMinutesPerDay).clamp(0.0, 1.0);
 
     final prefs = await SharedPreferences.getInstance();
-    monthBalance = prefs.getDouble('month_balance') ?? 0.0;
+    monthBalance = await PontoService.getSaldoMesAtualHoras();
 
     if (employeeName.isEmpty) {
       employeeName = prefs.getString('employee_name') ?? '';
