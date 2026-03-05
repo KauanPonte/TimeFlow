@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'employee_list_page.dart';
 import '../home_page.dart';
+import 'admin_clock_page.dart';
 
 class AdminDashboardPage extends StatefulWidget {
   const AdminDashboardPage({super.key});
@@ -103,6 +104,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               );
             }),
             const SizedBox(height: 40),
+            // ... dentro da Column do seu body
             const Text("Ajustes pendentes",
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 16),
@@ -110,16 +112,15 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               children: [
                 Expanded(
                   child: _buildNavigationTile(
-                      context,
-                      "Registrar Meu Ponto",
-                      Icons.fingerprint,
-                      const HomePage(
-                          employeeName: "Admin",
-                          profileImageUrl: "",
-                          employeeRole: "Admin")),
+                    context,
+                    "Registrar Meu Ponto",
+                    Icons.fingerprint,
+                    const AdminPunchClockPage(), // <--- Aqui você chama a nova tela que criamos
+                  ),
                 ),
                 const SizedBox(width: 16),
-                const Expanded(child: SizedBox()),
+                const Expanded(
+                    child: SizedBox()), // Mantém o alinhamento à esquerda
               ],
             ),
           ],

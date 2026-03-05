@@ -92,8 +92,8 @@ class _PontoPageState extends State<PontoPage> {
     return Scaffold(
       bottomNavigationBar: BottomNav(
         index: 0,
-        args: ModalRoute.of(context)!.settings.arguments
-            as Map<String, dynamic>?,
+        args:
+            ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>?,
       ),
       body: SingleChildScrollView(
         child: Padding(
