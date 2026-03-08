@@ -1,8 +1,11 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'create_user_event.dart';
 import 'create_user_state.dart';
+import '../../repositories/create_user_repository.dart';
 
 class CreateUserBloc extends Bloc<CreateUserEvent, CreateUserState> {
+  final CreateUserRepository _repository = CreateUserRepository();
+
   CreateUserBloc() : super(const CreateUserFormState()) {
     on<ValidateFieldEvent>(_onValidateField);
     on<ValidateConfirmPasswordEvent>(_onValidateConfirmPassword);
@@ -108,14 +111,16 @@ class CreateUserBloc extends Bloc<CreateUserEvent, CreateUserState> {
     emit(const CreateUserLoading());
 
     try {
-      // Simula cadastro no repositório
-      await Future.delayed(const Duration(seconds: 1));
-
-      // Em produção, chamaria: await userRepository.createUser(...)
+      await _repository.createUser(
+        name: event.name,
+        email: event.email,
+        password: event.password,
+        role: event.role,
+      );
 
       emit(CreateUserSuccess(event.name));
     } catch (e) {
-      emit(CreateUserError('Erro ao cadastrar usuário: ${e.toString()}'));
+      emit(CreateUserError(e.toString().replaceAll('Exception: ', '')));
       // Volta para o estado do formulário
       emit(formState);
     }
