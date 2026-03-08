@@ -9,11 +9,11 @@ import 'pages/auth/welcome/welcome_page.dart';
 import 'pages/auth/login/login_page.dart';
 import 'pages/auth/register/register_page.dart';
 import 'pages/auth/forgot_password/forgot_password_page.dart';
-import 'pages/home_page.dart';
+import 'pages/home_page/home_page.dart';
 import 'pages/admin/home/home_admin_page.dart';
 import 'pages/admin/users_management/users_management_page.dart';
 import 'pages/ponto_page.dart';
-import 'pages/profile_page.dart';
+import 'pages/profile_page/profile_page.dart';
 import 'pages/history_page.dart';
 // import 'pages/admin/admin_dashboard_page.dart';
 // import 'package:flutter_application_appdeponto/blocs/admin/admin_bloc.dart';
@@ -62,6 +62,18 @@ class TimeFlow extends StatelessWidget {
               );
             }
 
+            return MaterialPageRoute(
+              builder: (context) => HomePage(
+                employeeName: args["employeeName"] ?? "",
+                profileImageUrl: args["profileImageUrl"] ?? "",
+                employeeRole: args["employeeRole"] ?? "",
+              ),
+            );
+          }
+
+          // Rota exclusiva para admin acessar a home de funcionário (aba Meu Ponto)
+          if (settings.name == "/home/employee") {
+            final args = (settings.arguments as Map<String, dynamic>?) ?? {};
             return MaterialPageRoute(
               builder: (context) => HomePage(
                 employeeName: args["employeeName"] ?? "",

@@ -5,7 +5,8 @@ import 'package:flutter_application_appdeponto/blocs/admin_home/admin_home_event
 import 'package:flutter_application_appdeponto/blocs/admin_home/admin_home_state.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
-import 'widgets/admin_app_bar.dart';
+import 'package:flutter_application_appdeponto/widgets/bottom_nav.dart';
+import 'package:flutter_application_appdeponto/widgets/main_app_bar.dart';
 import 'widgets/admin_welcome_card.dart';
 import 'widgets/admin_stat_card.dart';
 import 'widgets/admin_menu_item.dart';
@@ -49,91 +50,19 @@ class HomeAdminView extends StatelessWidget {
     required this.employeeRole,
   });
 
-  void _showSettingsDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Configurações', style: AppTextStyles.h3),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.notifications_outlined,
-                  color: AppColors.primary),
-              title: Text('Notificações', style: AppTextStyles.bodyMedium),
-              trailing: Switch(
-                value: true,
-                onChanged: (value) {},
-                activeColor: AppColors.primary,
-              ),
-              contentPadding: EdgeInsets.zero,
-            ),
-            ListTile(
-              leading: const Icon(Icons.dark_mode_outlined,
-                  color: AppColors.primary),
-              title: Text('Tema escuro', style: AppTextStyles.bodyMedium),
-              trailing: Switch(
-                value: false,
-                onChanged: (value) {},
-                activeColor: AppColors.primary,
-              ),
-              contentPadding: EdgeInsets.zero,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Fechar'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showLogoutDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Sair', style: AppTextStyles.h3),
-        content: Text(
-          'Deseja realmente sair do app?',
-          style: AppTextStyles.bodyMedium,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              Navigator.pushNamedAndRemoveUntil(
-                context,
-                '/welcome',
-                (route) => false,
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.error,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Sair'),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bgLight,
-      appBar: AdminAppBar(
-        onProfileTap: () => Navigator.pushNamed(context, '/profile'),
-        onSettingsTap: () => _showSettingsDialog(context),
-        onLogoutTap: () => _showLogoutDialog(context),
+      appBar: const MainAppBar(subtitle: 'Painel Admin'),
+      bottomNavigationBar: BottomNav(
+        index: 0,
+        isAdmin: true,
+        args: {
+          'employeeName': employeeName,
+          'profileImageUrl': profileImageUrl,
+          'employeeRole': employeeRole,
+        },
       ),
       body: BlocBuilder<AdminHomeBloc, AdminHomeState>(
         builder: (context, state) {
