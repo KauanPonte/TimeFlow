@@ -5,10 +5,10 @@ class AdminRepository {
 
   /// Buscar todos os usuários (exceto admins)
   Future<List<Map<String, dynamic>>> getEmployees() async {
-    // Busca na coleção 'users' onde o campo 'role' não é 'admin'
+    // Busca na coleção 'users' onde o campo 'role' não é 'ADM'
     final snapshot = await _firestore
         .collection('users')
-        .where('role', isNotEqualTo: 'admin')
+        .where('role', isNotEqualTo: 'ADM')
         .get();
 
     return snapshot.docs.map((doc) {

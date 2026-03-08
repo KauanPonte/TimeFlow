@@ -12,7 +12,6 @@ class AuthRepository {
     required email,
     required password,
     required name,
-    required role,
     File? profileImage,
   }) async {
     try {
@@ -25,16 +24,21 @@ class AuthRepository {
         'uid': uid,
         'email': email.trim(),
         'name': name.trim(),
-        'role': role.trim(),
+        'role': '',
+        'status': 'pending',
         'profileImage': '',
         'createdAt': FieldValue.serverTimestamp(),
       });
+
+      // Sign out — user must wait for admin approval
+      await _auth.signOut();
 
       return {
         'uid': uid,
         'email': email.trim(),
         'name': name.trim(),
-        'role': role.trim(),
+        'role': '',
+        'status': 'pending',
         'profileImage': '',
       };
     } on FirebaseAuthException catch (e) {
@@ -69,7 +73,19 @@ class AuthRepository {
       final data = doc.data();
 
       if (data == null) {
+        await _auth.signOut();
         throw Exception('Perfil do usuário não encontrado');
+      }
+
+      // Check user status
+      final status = data['status'] ?? '';
+      if (status == 'pending') {
+        await _auth.signOut();
+        throw Exception('Sua conta está aguardando aprovação do administrador');
+      }
+      if (status != 'active') {
+        await _auth.signOut();
+        throw Exception('Sua conta não está ativa. Contate o administrador');
       }
 
       return {

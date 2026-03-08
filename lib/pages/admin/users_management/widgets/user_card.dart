@@ -15,7 +15,7 @@ class UserCard extends StatelessWidget {
   });
 
   bool _isAdmin(String role) {
-    return role.toUpperCase().contains('ADMIN');
+    return role.toUpperCase().contains('ADM');
   }
 
   Color _getRoleColor(String role) {

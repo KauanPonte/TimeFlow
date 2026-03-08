@@ -22,7 +22,6 @@ class _RegisterPageState extends State<RegisterPage> {
   final nameController = TextEditingController();
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
-  final roleController = TextEditingController();
   File? selectedImage;
   bool _obscurePassword = true;
   late AuthBloc _authBloc;
@@ -39,7 +38,6 @@ class _RegisterPageState extends State<RegisterPage> {
     nameController.dispose();
     emailController.dispose();
     passwordController.dispose();
-    roleController.dispose();
     super.dispose();
   }
 
@@ -48,24 +46,35 @@ class _RegisterPageState extends State<RegisterPage> {
     return Scaffold(
       body: BlocConsumer<AuthBloc, AuthState>(
         listenWhen: (previous, current) {
-          // Just listens for changes to RegisterSuccess or AuthError
+          // Listen for RegisterSuccess, RegistrationPendingApproval, or AuthError
           return (current is RegisterSuccess && previous is! RegisterSuccess) ||
+              (current is RegistrationPendingApproval &&
+                  previous is! RegistrationPendingApproval) ||
               (current is AuthError && previous is! AuthError);
         },
         listener: (context, state) {
-          if (state is RegisterSuccess) {
-            WidgetsBinding.instance.addPostFrameCallback((_){
-            Navigator.pushNamedAndRemoveUntil(
-              context,
-              "/home",
-              (route) => false,
-              arguments: {
-                "employeeName": state.userData['name'],
-                "profileImageUrl": state.userData['profileImage'] ?? "",
-                "employeeRole": state.userData['role'],
-              },
-            );
-          });
+          if (state is RegistrationPendingApproval) {
+            // Show success message and navigate back to login
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              CustomSnackbar.showSuccess(
+                context,
+                'Solicitação enviada! Aguarde a aprovação do administrador.',
+              );
+              Navigator.pushReplacementNamed(context, '/login');
+            });
+          } else if (state is RegisterSuccess) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              Navigator.pushNamedAndRemoveUntil(
+                context,
+                "/home",
+                (route) => false,
+                arguments: {
+                  "employeeName": state.userData['name'],
+                  "profileImageUrl": state.userData['profileImage'] ?? "",
+                  "employeeRole": state.userData['role'],
+                },
+              );
+            });
           } else if (state is AuthError) {
             CustomSnackbar.showError(context, state.message);
           }
@@ -168,25 +177,6 @@ class _RegisterPageState extends State<RegisterPage> {
                           ),
                           const SizedBox(height: 16),
 
-                          // Role Field
-                          CustomTextField(
-                            controller: roleController,
-                            labelText: AuthFields.role.displayName,
-                            prefixIcon: Icons.work_outline,
-                            errorText: fieldsState.fieldErrors[AuthFields.role],
-                            isValid: fieldsState.fieldValid[AuthFields.role] ??
-                                false,
-                            onChanged: (value) {
-                              if (value.trim().isEmpty) {
-                                context.read<AuthBloc>().add(
-                                      const ClearFieldError(
-                                          field: AuthFields.role),
-                                    );
-                              }
-                            },
-                          ),
-                          const SizedBox(height: 16),
-
                           // Password Field
                           CustomTextField(
                             controller: passwordController,
@@ -230,7 +220,9 @@ class _RegisterPageState extends State<RegisterPage> {
 
                           // Register Button
                           PrimaryButton(
-                            text: isLoading ? "Criando..." : "Criar Conta",
+                            text: isLoading
+                                ? "Enviando..."
+                                : "Solicitar Cadastro",
                             onPressed: isLoading
                                 ? () {}
                                 : () {
@@ -239,7 +231,6 @@ class _RegisterPageState extends State<RegisterPage> {
                                             email: emailController.text.trim(),
                                             password: passwordController.text,
                                             name: nameController.text.trim(),
-                                            role: roleController.text.trim(),
                                             profileImage: selectedImage,
                                           ),
                                         );

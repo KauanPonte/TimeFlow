@@ -12,7 +12,7 @@ class AuthInitial extends AuthState {
   const AuthInitial();
 }
 
-/// 🔐 Login sucesso (apenas feedback imediato)
+/// Login sucesso (apenas feedback imediato)
 class LoginSuccess extends AuthState {
   final Map<String, dynamic> userData;
 
@@ -22,7 +22,7 @@ class LoginSuccess extends AuthState {
   List<Object> get props => [userData];
 }
 
-/// 📝 Registro sucesso
+/// Registro sucesso
 class RegisterSuccess extends AuthState {
   final Map<String, dynamic> userData;
 
@@ -32,7 +32,12 @@ class RegisterSuccess extends AuthState {
   List<Object> get props => [userData];
 }
 
-/// 📩 Reset senha enviado
+/// Registro enviado, aguardando aprovação do administrador
+class RegistrationPendingApproval extends AuthState {
+  const RegistrationPendingApproval();
+}
+
+/// Reset senha enviado
 class PasswordResetEmailSent extends AuthState {
   final String email;
 
@@ -42,7 +47,7 @@ class PasswordResetEmailSent extends AuthState {
   List<Object> get props => [email];
 }
 
-/// ❌ Erro geral
+/// Erro geral
 class AuthError extends AuthState {
   final String message;
   final AuthField? field;
@@ -56,7 +61,7 @@ class AuthError extends AuthState {
   List<Object?> get props => [message, field];
 }
 
-/// 🧠 Estado dos campos (validação e loading)
+/// Estado dos campos (validação e loading)
 class AuthFieldsState extends AuthState {
   final Map<AuthField, String?> fieldErrors;
   final Map<AuthField, bool> fieldValid;
@@ -84,7 +89,7 @@ class AuthFieldsState extends AuthState {
   List<Object?> get props => [fieldErrors, fieldValid, isLoading];
 }
 
-/// 👑 ADMIN autenticado
+/// ADMIN autenticado
 class AdminAuthenticated extends AuthState {
   final Map<String, dynamic> userData;
 
@@ -94,7 +99,7 @@ class AdminAuthenticated extends AuthState {
   List<Object> get props => [userData];
 }
 
-/// 👤 Usuário normal autenticado
+/// Usuário normal autenticado
 class UserAuthenticated extends AuthState {
   final Map<String, dynamic> userData;
 
@@ -104,7 +109,7 @@ class UserAuthenticated extends AuthState {
   List<Object> get props => [userData];
 }
 
-/// 🚪 Não autenticado
+/// Não autenticado
 class Unauthenticated extends AuthState {
   const Unauthenticated();
 }
