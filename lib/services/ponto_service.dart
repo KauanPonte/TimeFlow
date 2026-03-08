@@ -1,68 +1,299 @@
-// lib/services/ponto_service.dart
-import 'dart:convert';
-
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_application_appdeponto/widgets/custom_snackbar.dart';
 
 class PontoService {
-  static const _kRegistrosKey = 'registros';
+  static const String _root = 'pontos'; 
+  static const int _targetMinutesPerDay = 8 * 60;
+  static String _mesIdFromDiaId(String diaId) => diaId.substring(0,7);
 
-  /// Registra um ponto com a chave [status] (ex: 'entrada','pausa','retorno','saida').
-  /// Precisa do [context] apenas para mostrar SnackBar.
-  static Future<void> registrarPonto(
-      BuildContext context, String status) async {
-    final prefs = await SharedPreferences.getInstance();
-    final hoje = DateFormat('yyyy-MM-dd').format(DateTime.now());
-    final horaAtual = DateFormat('HH:mm').format(DateTime.now());
+  static String _hojeId() =>  DateFormat('yyyy-MM-dd').format(DateTime.now());
 
-    Map<String, dynamic> registros = {};
+  static DocumentReference<Map<String, dynamic>> _refDia(String uid, String diaId){
+    return FirebaseFirestore.instance
+    .collection(_root)
+    .doc(uid)
+    .collection('dias')
+    .doc(diaId);
+  }
+  
+  static CollectionReference<Map<String, dynamic>> _refEventos(String uid, String diaId){
+    return _refDia(uid, diaId).collection('eventos');
+  }
 
-    final registrosJson = prefs.getString(_kRegistrosKey);
-    if (registrosJson != null && registrosJson.isNotEmpty) {
-      try {
-        final decoded = jsonDecode(registrosJson);
-        if (decoded is Map<String, dynamic>) registros = decoded;
-      } catch (_) {
-        // se JSON estiver inválido, reiniciamos registros
-        registros = {};
+  static bool _podeRegistrar({required String? ultimoTipo, required String novoTipo}){
+    if(ultimoTipo == null) return novoTipo == 'entrada';
+
+    switch(ultimoTipo){
+      case 'entrada':
+        return novoTipo == 'pausa' || novoTipo == 'saida';
+      case 'pausa':
+        return novoTipo == 'retorno' || novoTipo == 'saida';
+      case 'retorno':
+        return novoTipo == 'pausa' || novoTipo == 'saida';
+      case 'saida':
+        return novoTipo == 'entrada';
+      default:
+        return false;  
+    }
+  }
+
+  static String _mensagemErroTransicao(String? ultimo, String novo ){
+    if(ultimo == null) return 'O primeiro ponto do dia precisa ser "entrada".';
+    return 'Não pode registrar "$novo" agora. Último ponto foi "$ultimo".';
+  }
+
+  static Future<void> registrarPonto(BuildContext context, String tipo) async {
+    try{
+      final user = FirebaseAuth.instance.currentUser;
+      if(user == null){
+        CustomSnackbar.showError(context, 'Você precisa estar logado.');
+        return;
+      }
+
+      if(!['entrada', 'pausa', 'retorno', 'saida'].contains(tipo)){
+        CustomSnackbar.showError(context, 'Tipo inválido: $tipo.');
+        return;
+      }
+
+      final uid = user.uid;
+      final diaId = _hojeId();
+      final refDia = _refDia(uid, diaId);
+      final refEventos = _refEventos(uid, diaId);
+      final now = Timestamp.now();
+
+      await FirebaseFirestore.instance.runTransaction((tx) async{
+        final diaSnap = await tx.get(refDia);
+
+        if(!diaSnap.exists){
+          if(tipo != 'entrada'){
+            throw Exception('O primeiro ponto do dia precisa ser "entrada".');
+          }
+
+          tx.set(refDia, {
+            'uid': uid,
+            'date': diaId,
+            'createdAt': now,
+            'updatedAt': now,
+            'lastTipo': 'entrada',
+            'lastAt': now,
+          });
+
+          final newDoc = refEventos.doc();
+          tx.set(newDoc, {'tipo': 'entrada', 'at': now});
+          return;
+        }
+
+        final diaData = diaSnap.data() as Map<String, dynamic>;
+        final String? ultimoTipo = diaData['lastTipo']?.toString();
+
+        if(!_podeRegistrar(ultimoTipo: ultimoTipo, novoTipo: tipo)){
+          throw Exception(_mensagemErroTransicao(ultimoTipo, tipo));
+        }
+
+        final newDoc = refEventos.doc();
+        tx.set(newDoc, {'tipo': tipo , 'at': now});
+
+        tx.update(refDia, {
+          'updatedAt': now,
+          'lastTipo': tipo,
+          'lastAt': now,
+        });
+      });
+
+      await recalcularBancoDeHorasDoDia(uid: uid, diaId: diaId);
+
+      final horas = DateFormat('HH:mm').format(DateTime.now());
+      CustomSnackbar.showSuccess(context, 'Ponto "$tipo" registrado ás $horas.');
+    }catch (e){
+      CustomSnackbar.showError(context, e.toString().replaceAll('Exception: ', ''));
+    }
+  }
+
+  static Future<String?> getUltimoTipoHoje() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if(user == null) return null;
+
+    final uid = user.uid;
+    final diaId = _hojeId();
+
+    final doc = await _refDia(uid, diaId).get();
+    final data = doc.data();
+    return data?['lastTipo']?.toString();
+  }
+  
+  static Future<List<Map<String, dynamic>>> loadEventosHoje() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return [];
+
+    final uid = user.uid;
+    final diaId = _hojeId();
+
+    final snap = await _refEventos(uid, diaId).orderBy('at', descending: false).get();
+
+    return snap.docs.map((d){
+      final m = d.data();
+      return {
+        'tipo': (m['tipo'] ?? '').toString(),
+        'at': m['at'],
+      };
+    }).toList();
+  }
+  
+  static Future<Map<String, Map<String, String>>> loadRegistros() async{
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return {};
+
+    final uid = user.uid;
+
+    final diasSnap = await FirebaseFirestore.instance
+    .collection(_root)
+    .doc(uid)
+    .collection('dias')
+    .orderBy('date', descending: true)
+    .get();
+
+    String ftm(dynamic ts) {
+      if (ts is Timestamp) {
+        return DateFormat('HH:mm').format(ts.toDate());
+      }
+      return '';
+    }
+
+    final result = <String, Map<String,String>>{};
+
+    for (final diaDoc in diasSnap.docs){
+      final diaId = diaDoc.id;
+
+      final eventosSnap = await _refEventos(uid, diaId)
+       .orderBy('at', descending: false)
+       .get();
+
+      final map = <String, String>{};
+
+      for (final ev in eventosSnap.docs){
+        final data = ev.data();
+        final tipo = (data['tipo'] ?? '').toString();
+        final at = data['at'];
+
+        if (tipo.isEmpty) continue;
+
+        final hora = ftm(at);
+        if (hora.isEmpty) continue;
+
+        map[tipo] = hora;
+      }
+
+      if(map.isNotEmpty){
+        result[diaId] = map;
       }
     }
 
-    // assegura que existe mapa para a data
-    final hojeMap = (registros[hoje] is Map)
-        ? Map<String, dynamic>.from(registros[hoje])
-        : <String, dynamic>{};
-    hojeMap[status] = horaAtual;
-    registros[hoje] = hojeMap;
+    return result;
 
-    await prefs.setString(_kRegistrosKey, jsonEncode(registros));
-
-    CustomSnackbar.showSuccess(
-      context,
-      'Ponto "$status" registrado às $horaAtual',
-    );
   }
 
-  /// Carrega todos os registros em forma de Map<yyyy-MM-dd, Map<status, hora>>
-  static Future<Map<String, Map<String, String>>> loadRegistros() async {
-    final prefs = await SharedPreferences.getInstance();
-    final registrosJson = prefs.getString(_kRegistrosKey);
-    if (registrosJson == null || registrosJson.isEmpty) return {};
+  static DocumentReference<Map<String, dynamic>> _refMes(String uid, String mesId){
+    return FirebaseFirestore.instance
+    .collection(_root)
+    .doc(uid)
+    .collection('meses')
+    .doc(mesId);
+  }
 
-    try {
-      final decoded = jsonDecode(registrosJson) as Map<String, dynamic>;
-      final Map<String, Map<String, String>> result = {};
-      decoded.forEach((date, map) {
-        if (map is Map) {
-          result[date] = Map<String, String>.from(
-              map.map((k, v) => MapEntry(k.toString(), v.toString())));
-        }
-      });
-      return result;
-    } catch (_) {
-      return {};
+  static Future<void> recalcularBancoDeHorasDoDia({
+    required String uid,
+    required String diaId,
+  }) async {
+    final refDia = _refDia(uid, diaId);
+    final refEventos = _refEventos(uid, diaId);
+    final mesId = _mesIdFromDiaId(diaId);
+    final refMes = _refMes(uid, mesId);
+
+    final eventosSnap = await refEventos.orderBy('at', descending: false).get();
+    final eventos = eventosSnap.docs.map((d) => d.data()).toList();
+
+    final workedMinutes = _computeWorkedMinutesFromEventosFechado(eventos);
+
+    final String? ultimoTipoEvento = eventos.isNotEmpty ? (eventos.last['tipo'] ?? '').toString() : null;
+    
+    final bool diaFechado = ultimoTipoEvento == 'saida';
+
+    final hojeId = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    final bool ehHoje = diaId == hojeId;
+
+    final bool falta = !ehHoje && eventos.isEmpty;
+
+    final bool emAberto = !diaFechado && eventos.isNotEmpty;
+
+    final int deltaMinutes = falta ? -_targetMinutesPerDay : (diaFechado ? (workedMinutes - _targetMinutesPerDay) : 0);
+
+    await FirebaseFirestore.instance.runTransaction((tx) async {
+      final diaSnap = await tx.get(refDia);
+      final mesSnap = await tx.get(refMes);
+      
+      final oldDelta = (diaSnap.data()?['deltaMinutes'] as int?) ?? 0;
+      final oldBalance = (mesSnap.data()?['balanceMinutes'] as int?) ?? 0;
+
+      final diff = deltaMinutes - oldDelta;
+      final newBalance = oldBalance + diff;
+
+      tx.set(refDia, {
+       'workedMinutes': workedMinutes,
+       'deltaMinutes': deltaMinutes,
+       'isClosed': diaFechado,
+       'isToday': emAberto,
+       'isAbsent': falta,
+       'updatedAt': Timestamp.now(),
+      }, SetOptions(merge: true));
+
+      tx.set(refMes, {
+        'balanceMinutes': newBalance,
+        'updatedAt': Timestamp.now(), 
+      }, SetOptions(merge: true));
+    });
+  }
+
+  static int _computeWorkedMinutesFromEventosFechado(List<Map<String, dynamic>> eventos){
+    DateTime? openWork;
+    Duration total = Duration.zero;
+
+    DateTime? tsToDate(dynamic ts){
+      if(ts is Timestamp) return ts.toDate();
+      return null;
     }
+
+    for (final ev in eventos ){
+      final tipo = (ev['tipo'] ?? '').toString();
+      final at = tsToDate(ev['at']);
+      if (at == null) continue;
+
+      if(tipo == 'entrada' || tipo == 'retorno'){
+        openWork ??= at;
+      }else if (tipo == 'pausa' || tipo == 'saida'){
+        if (openWork != null && at.isAfter(openWork)){
+          total += at.difference(openWork);
+        }
+        openWork = null;
+      }
+    }
+    return total.inMinutes;
   }
+
+  static Future<double> getSaldoMesAtualHoras() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return 0.0;
+
+    final uid = user.uid;
+    final mesId = DateFormat('yyyy-MM').format(DateTime.now());
+
+    final snap = await _refMes(uid,mesId).get();
+    final minutes = (snap.data()?['balanceMinutes'] as int?) ?? 0;
+
+    return minutes / 60.0 ;
+
+  }
+
 }

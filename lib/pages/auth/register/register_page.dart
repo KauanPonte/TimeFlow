@@ -54,6 +54,7 @@ class _RegisterPageState extends State<RegisterPage> {
         },
         listener: (context, state) {
           if (state is RegisterSuccess) {
+            WidgetsBinding.instance.addPostFrameCallback((_){
             Navigator.pushNamedAndRemoveUntil(
               context,
               "/home",
@@ -64,6 +65,7 @@ class _RegisterPageState extends State<RegisterPage> {
                 "employeeRole": state.userData['role'],
               },
             );
+          });
           } else if (state is AuthError) {
             CustomSnackbar.showError(context, state.message);
           }
