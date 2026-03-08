@@ -1,28 +1,28 @@
-import 'package:equatable/equatable.dart';
+// import 'package:equatable/equatable.dart';
 
-abstract class AdminEvent extends Equatable {
-  const AdminEvent();
+// abstract class AdminEvent extends Equatable {
+//   const AdminEvent();
 
-  @override
-  List<Object?> get props => [];
-}
+//   @override
+//   List<Object?> get props => [];
+// }
 
-class LoadEmployees extends AdminEvent {}
+// class LoadEmployees extends AdminEvent {}
 
-class SearchEmployee extends AdminEvent {
-  final String query;
+// class SearchEmployee extends AdminEvent {
+//   final String query;
 
-  const SearchEmployee(this.query);
+//   const SearchEmployee(this.query);
 
-  @override
-  List<Object?> get props => [query];
-}
+//   @override
+//   List<Object?> get props => [query];
+// }
 
-class LoadEmployeeDetails extends AdminEvent {
-  final String employeeId;
+// class LoadEmployeeDetails extends AdminEvent {
+//   final String employeeId;
 
-  const LoadEmployeeDetails(this.employeeId);
+//   const LoadEmployeeDetails(this.employeeId);
 
-  @override
-  List<Object?> get props => [employeeId];
-}
+//   @override
+//   List<Object?> get props => [employeeId];
+// }
