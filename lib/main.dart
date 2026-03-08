@@ -82,7 +82,7 @@ class TimeFlow extends StatelessWidget {
         routes: {
           "/": (context) => const SplashPage(),
           "/welcome": (context) => const WelcomePage(),
-          "/login": (context) => const LoginPage(),""
+          "/login": (context) => const LoginPage(),
           "/register": (context) => const RegisterPage(),
           "/forgot-password": (context) => const ForgotPasswordPage(),
           "/ponto": (context) => const PontoPage(),
