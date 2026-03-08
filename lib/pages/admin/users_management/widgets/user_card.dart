@@ -6,12 +6,14 @@ class UserCard extends StatelessWidget {
   final Map<String, dynamic> user;
   final VoidCallback onEditRole;
   final VoidCallback onDelete;
+  final VoidCallback? onTap;
 
   const UserCard({
     super.key,
     required this.user,
     required this.onEditRole,
     required this.onDelete,
+    this.onTap,
   });
 
   bool _isAdmin(String role) {
@@ -59,7 +61,7 @@ class UserCard extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
-          onTap: () {},
+          onTap: onTap ?? () {},
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Row(

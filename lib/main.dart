@@ -1,6 +1,7 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_appdeponto/firebase_options.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/auth/auth_bloc.dart';
 import 'package:flutter_application_appdeponto/repositories/auth_repository.dart';
@@ -14,7 +15,7 @@ import 'pages/admin/home/home_admin_page.dart';
 import 'pages/admin/users_management/users_management_page.dart';
 import 'pages/ponto_page.dart';
 import 'pages/profile_page/profile_page.dart';
-import 'pages/history_page.dart';
+import 'pages/history_page/history_page.dart';
 // import 'pages/admin/admin_dashboard_page.dart';
 // import 'package:flutter_application_appdeponto/blocs/admin/admin_bloc.dart';
 // import 'package:flutter_application_appdeponto/repositories/admin_repository.dart';
@@ -22,6 +23,7 @@ import 'pages/history_page.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await initializeDateFormatting('pt_BR');
   runApp(const TimeFlow());
 }
 

@@ -4,6 +4,7 @@ import 'package:flutter_application_appdeponto/blocs/user_management/user_manage
 import 'package:flutter_application_appdeponto/blocs/user_management/user_management_event.dart';
 import 'package:flutter_application_appdeponto/blocs/user_management/user_management_state.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
+import 'package:flutter_application_appdeponto/pages/history_page/history_page.dart';
 import '../user_card.dart';
 import '../empty_users_state.dart';
 import '../error_loading_state.dart';
@@ -191,6 +192,17 @@ class _RegisteredUsersTabState extends State<RegisteredUsersTab>
                               final user = filteredUsers[index];
                               return UserCard(
                                 user: user,
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => HistoryPage(
+                                        targetUid: user['id'],
+                                        targetName: user['name'],
+                                      ),
+                                    ),
+                                  );
+                                },
                                 onEditRole: () => _showEditRoleDialog(
                                   user['id'],
                                   user['name'],

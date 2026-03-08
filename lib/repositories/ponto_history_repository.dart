@@ -1,0 +1,286 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:intl/intl.dart';
+
+class PontoHistoryRepository {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  static const String _root = 'pontos';
+
+  /// Carrega todos os dias com eventos para o uid informado (ou o logado).
+  /// Retorna lista ordenada por data decrescente.
+  /// Cada item: { diaId, eventos: [ { id, tipo, at (DateTime) } ] }
+  Future<List<Map<String, dynamic>>> loadAllDays({String? uid}) async {
+    uid ??= FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return [];
+
+    final diasSnap = await _firestore
+        .collection(_root)
+        .doc(uid)
+        .collection('dias')
+        .orderBy('date', descending: true)
+        .get();
+
+    final result = <Map<String, dynamic>>[];
+
+    for (final diaDoc in diasSnap.docs) {
+      final diaId = diaDoc.id;
+
+      final eventosSnap = await _firestore
+          .collection(_root)
+          .doc(uid)
+          .collection('dias')
+          .doc(diaId)
+          .collection('eventos')
+          .orderBy('at', descending: false)
+          .get();
+
+      final eventos = eventosSnap.docs.map((e) {
+        final data = e.data();
+        final ts = data['at'] as Timestamp?;
+        return {
+          'id': e.id,
+          'tipo': (data['tipo'] ?? '').toString(),
+          'at': ts?.toDate(),
+        };
+      }).toList();
+
+      if (eventos.isNotEmpty) {
+        result.add({'diaId': diaId, 'eventos': eventos});
+      }
+    }
+
+    return result;
+  }
+
+  /// Carrega apenas os dias de um mês específico.
+  /// Retorna mapa de diaId → eventos para merge na UI.
+  Future<Map<String, List<Map<String, dynamic>>>> loadDaysByMonth({
+    String? uid,
+    required int year,
+    required int month,
+  }) async {
+    uid ??= FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return {};
+
+    final prefix =
+        '${year.toString().padLeft(4, '0')}-${month.toString().padLeft(2, '0')}';
+    final startId = '$prefix-01';
+    final endId = '$prefix-32'; // 32 garante pegar todos os dias do mês
+
+    final diasSnap = await _firestore
+        .collection(_root)
+        .doc(uid)
+        .collection('dias')
+        .where('date', isGreaterThanOrEqualTo: startId)
+        .where('date', isLessThan: endId)
+        .orderBy('date', descending: true)
+        .get();
+
+    final result = <String, List<Map<String, dynamic>>>{};
+
+    for (final diaDoc in diasSnap.docs) {
+      final diaId = diaDoc.id;
+
+      final eventosSnap = await _firestore
+          .collection(_root)
+          .doc(uid)
+          .collection('dias')
+          .doc(diaId)
+          .collection('eventos')
+          .orderBy('at', descending: false)
+          .get();
+
+      final eventos = eventosSnap.docs.map((e) {
+        final data = e.data();
+        final ts = data['at'] as Timestamp?;
+        return {
+          'id': e.id,
+          'tipo': (data['tipo'] ?? '').toString(),
+          'at': ts?.toDate(),
+        };
+      }).toList();
+
+      if (eventos.isNotEmpty) {
+        result[diaId] = eventos;
+      }
+    }
+
+    return result;
+  }
+
+  /// Adiciona um evento de ponto para um usuário específico.
+  Future<void> addEvento({
+    required String uid,
+    required String diaId,
+    required String tipo,
+    required DateTime horario,
+  }) async {
+    final refDia =
+        _firestore.collection(_root).doc(uid).collection('dias').doc(diaId);
+
+    final refEventos = refDia.collection('eventos');
+    final ts = Timestamp.fromDate(horario);
+
+    final diaSnap = await refDia.get();
+    if (!diaSnap.exists) {
+      await refDia.set({
+        'uid': uid,
+        'date': diaId,
+        'createdAt': ts,
+        'updatedAt': ts,
+        'lastTipo': tipo,
+        'lastAt': ts,
+      });
+    }
+
+    await refEventos.add({'tipo': tipo, 'at': ts});
+    await _updateDayMeta(uid: uid, diaId: diaId);
+  }
+
+  /// Edita um evento existente.
+  Future<void> updateEvento({
+    required String uid,
+    required String diaId,
+    required String eventoId,
+    required String tipo,
+    required DateTime horario,
+  }) async {
+    final ts = Timestamp.fromDate(horario);
+
+    await _firestore
+        .collection(_root)
+        .doc(uid)
+        .collection('dias')
+        .doc(diaId)
+        .collection('eventos')
+        .doc(eventoId)
+        .update({'tipo': tipo, 'at': ts});
+
+    await _updateDayMeta(uid: uid, diaId: diaId);
+  }
+
+  /// Remove um evento.
+  Future<void> deleteEvento({
+    required String uid,
+    required String diaId,
+    required String eventoId,
+  }) async {
+    await _firestore
+        .collection(_root)
+        .doc(uid)
+        .collection('dias')
+        .doc(diaId)
+        .collection('eventos')
+        .doc(eventoId)
+        .delete();
+
+    // Verifica se ainda há eventos no dia
+    final remaining = await _firestore
+        .collection(_root)
+        .doc(uid)
+        .collection('dias')
+        .doc(diaId)
+        .collection('eventos')
+        .get();
+
+    if (remaining.docs.isEmpty) {
+      // Remove o documento do dia se não há mais eventos
+      await _firestore
+          .collection(_root)
+          .doc(uid)
+          .collection('dias')
+          .doc(diaId)
+          .delete();
+    } else {
+      await _updateDayMeta(uid: uid, diaId: diaId);
+    }
+  }
+
+  /// Atualiza metadados do dia (lastTipo, lastAt, etc.) e recalcula banco de horas.
+  Future<void> _updateDayMeta({
+    required String uid,
+    required String diaId,
+  }) async {
+    final refDia =
+        _firestore.collection(_root).doc(uid).collection('dias').doc(diaId);
+
+    final refEventos = refDia.collection('eventos');
+    const targetMinutesPerDay = 8 * 60;
+
+    final eventosSnap = await refEventos.orderBy('at', descending: false).get();
+    final eventos = eventosSnap.docs.map((d) => d.data()).toList();
+
+    if (eventos.isEmpty) return;
+
+    final lastEvento = eventos.last;
+    final lastTipo = (lastEvento['tipo'] ?? '').toString();
+    final lastAt = lastEvento['at'] as Timestamp?;
+
+    // Calcula minutos trabalhados (só intervalos fechados)
+    final workedMinutes = _computeWorkedMinutes(eventos);
+    final diaFechado = lastTipo == 'saida';
+    final hojeId = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    final ehHoje = diaId == hojeId;
+    final falta = !ehHoje && eventos.isEmpty;
+    final deltaMinutes = falta
+        ? -targetMinutesPerDay
+        : (diaFechado ? (workedMinutes - targetMinutesPerDay) : 0);
+
+    final mesId = diaId.substring(0, 7);
+    final refMes =
+        _firestore.collection(_root).doc(uid).collection('meses').doc(mesId);
+
+    await _firestore.runTransaction((tx) async {
+      final diaSnap = await tx.get(refDia);
+      final mesSnap = await tx.get(refMes);
+
+      final oldDelta = (diaSnap.data()?['deltaMinutes'] as int?) ?? 0;
+      final oldBalance = (mesSnap.data()?['balanceMinutes'] as int?) ?? 0;
+
+      final diff = deltaMinutes - oldDelta;
+      final newBalance = oldBalance + diff;
+
+      tx.set(
+          refDia,
+          {
+            'updatedAt': Timestamp.now(),
+            'lastTipo': lastTipo,
+            'lastAt': lastAt,
+            'workedMinutes': workedMinutes,
+            'deltaMinutes': deltaMinutes,
+            'isClosed': diaFechado,
+          },
+          SetOptions(merge: true));
+
+      tx.set(
+          refMes,
+          {
+            'balanceMinutes': newBalance,
+            'updatedAt': Timestamp.now(),
+          },
+          SetOptions(merge: true));
+    });
+  }
+
+  int _computeWorkedMinutes(List<Map<String, dynamic>> eventos) {
+    DateTime? openWork;
+    Duration total = Duration.zero;
+
+    for (final ev in eventos) {
+      final tipo = (ev['tipo'] ?? '').toString();
+      final ts = ev['at'];
+      final at = ts is Timestamp ? ts.toDate() : null;
+      if (at == null) continue;
+
+      if (tipo == 'entrada' || tipo == 'retorno') {
+        openWork ??= at;
+      } else if (tipo == 'pausa' || tipo == 'saida') {
+        if (openWork != null && at.isAfter(openWork)) {
+          total += at.difference(openWork);
+        }
+        openWork = null;
+      }
+    }
+    return total.inMinutes;
+  }
+}
