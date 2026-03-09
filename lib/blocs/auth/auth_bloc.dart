@@ -69,11 +69,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       await _authRepository.saveUserSession(userData);
 
       _fieldsState = const AuthFieldsState();
-     if (userData['role'] == 'admin') {
-  emit(AdminAuthenticated(userData: userData));
-} else {
-  emit(UserAuthenticated(userData: userData));
-}
+      emit(UserAuthenticated(userData: userData));
     } catch (e) {
       _fieldsState = _fieldsState.copyWith(isLoading: false);
       emit(AuthError(message: e.toString().replaceAll('Exception: ', '')));
@@ -107,10 +103,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         errors[AuthFields.name] = nameError;
       }
 
-      if (event.role.trim().isEmpty) {
-        errors[AuthFields.role] = 'Cargo não pode estar vazio';
-      }
-
       // If there are validation errors, emit error state
       if (errors.isNotEmpty) {
         _fieldsState = _fieldsState.copyWith(
@@ -121,20 +113,17 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         return;
       }
 
-      // Try to register
-      final userData = await _authRepository.register(
+      // Try to register (creates account with 'pending' status, role assigned by admin)
+      await _authRepository.register(
         email: event.email,
         password: event.password,
         name: event.name,
-        role: event.role,
         profileImage: event.profileImage,
       );
 
-      // Save user session
-      await _authRepository.saveUserSession(userData);
-
+      // Don't save session — user must wait for admin approval
       _fieldsState = const AuthFieldsState();
-      emit(RegisterSuccess(userData: userData));
+      emit(const RegistrationPendingApproval());
     } catch (e) {
       _fieldsState = _fieldsState.copyWith(isLoading: false);
       emit(AuthError(message: e.toString().replaceAll('Exception: ', '')));
@@ -347,11 +336,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         final userExists = await _authRepository.validateEmail(email);
         if (userExists) {
           // User is authenticated and exists
-          if (userData['role'] == 'admin') {
-          emit(AdminAuthenticated(userData: userData));
-              } else {
           emit(UserAuthenticated(userData: userData));
-             }
           return;
         }
         // User was deleted, clear session

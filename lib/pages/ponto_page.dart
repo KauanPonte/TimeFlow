@@ -88,12 +88,16 @@ class _PontoPageState extends State<PontoPage> {
   @override
   Widget build(BuildContext context) {
     final dates = registros.keys.toList()..sort((a, b) => b.compareTo(a));
+    final args =
+        ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>?;
+    final isAdmin =
+        (args?['employeeRole'] ?? '').toString().toUpperCase().contains('ADM');
 
     return Scaffold(
       bottomNavigationBar: BottomNav(
-        index: 0,
-        args: ModalRoute.of(context)!.settings.arguments
-            as Map<String, dynamic>?,
+        index: isAdmin ? 1 : 1,
+        isAdmin: isAdmin,
+        args: args,
       ),
       body: SingleChildScrollView(
         child: Padding(
@@ -158,7 +162,7 @@ class _PontoPageState extends State<PontoPage> {
                       : SingleChildScrollView(
                           scrollDirection: Axis.horizontal,
                           child: DataTable(
-                            headingRowColor: MaterialStateProperty.all(
+                            headingRowColor: WidgetStateProperty.all(
                               Colors.grey.shade200,
                             ),
                             columns: const [

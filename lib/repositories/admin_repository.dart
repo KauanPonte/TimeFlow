@@ -3,9 +3,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class AdminRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  /// Buscar todos os usuários
+  /// Buscar todos os usuários (exceto admins)
   Future<List<Map<String, dynamic>>> getEmployees() async {
-    final snapshot = await _firestore.collection('users').get();
+    // Busca na coleção 'users' onde o campo 'role' não é 'ADM'
+    final snapshot = await _firestore
+        .collection('users')
+        .where('role', isNotEqualTo: 'ADM')
+        .get();
 
     return snapshot.docs.map((doc) {
       return {
