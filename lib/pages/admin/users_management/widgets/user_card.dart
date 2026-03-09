@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
@@ -31,6 +33,16 @@ class UserCard extends StatelessWidget {
     return [AppColors.primaryLight20, AppColors.primaryLight10];
   }
 
+  Uint8List? _decodeProfileImage(String data) {
+    if (data.isEmpty) return null;
+    try {
+      final cleaned = data.contains(',') ? data.split(',').last : data;
+      return base64Decode(cleaned);
+    } catch (_) {
+      return null;
+    }
+  }
+
   Color _getRoleBadgeColor(String role) {
     return _isAdmin(role) ? AppColors.errorLight10 : AppColors.primaryLight10;
   }
@@ -42,6 +54,8 @@ class UserCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final roleColor = _getRoleColor(user['role']);
+    final Uint8List? profileBytes =
+        _decodeProfileImage(user['profileImage'] ?? '');
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -71,22 +85,34 @@ class UserCard extends StatelessWidget {
                   width: 56,
                   height: 56,
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: _getRoleGradientColors(user['role']),
-                    ),
+                    gradient: profileBytes == null
+                        ? LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: _getRoleGradientColors(user['role']),
+                          )
+                        : null,
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  child: Center(
-                    child: Text(
-                      user['name'][0].toUpperCase(),
-                      style: AppTextStyles.h2.copyWith(
-                        color: roleColor,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
+                  child: profileBytes != null
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(16),
+                          child: Image.memory(
+                            profileBytes,
+                            width: 56,
+                            height: 56,
+                            fit: BoxFit.cover,
+                          ),
+                        )
+                      : Center(
+                          child: Text(
+                            user['name'][0].toUpperCase(),
+                            style: AppTextStyles.h2.copyWith(
+                              color: roleColor,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
                 ),
                 const SizedBox(width: 16),
 

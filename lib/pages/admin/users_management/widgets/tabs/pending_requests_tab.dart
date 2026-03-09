@@ -22,6 +22,7 @@ class _PendingRequestsTabState extends State<PendingRequestsTab>
   final _searchController = TextEditingController();
   List<Map<String, dynamic>>? _cachedRequests;
   String _cachedSearchQuery = '';
+  TabController? _tabController;
 
   @override
   bool get wantKeepAlive => true;
@@ -29,19 +30,44 @@ class _PendingRequestsTabState extends State<PendingRequestsTab>
   @override
   void initState() {
     super.initState();
-    // Carrega as solicitações apenas se ainda não foram carregadas
+    // Tenta usar dados do estado atual para evitar recarregar se já estivermos com os dados carregados
     final currentState = BlocProvider.of<UserManagementBloc>(context).state;
-    if (currentState is! PendingRequestsLoaded) {
-      BlocProvider.of<UserManagementBloc>(context)
-          .add(const LoadPendingRequestsEvent());
-    } else {
+    if (currentState is PendingRequestsLoaded) {
       _cachedRequests = currentState.requests;
       _cachedSearchQuery = currentState.searchQuery;
+    }
+    // Escuta mudanças de aba para carregar dados quando o usuário chegar aqui
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _tabController = DefaultTabController.of(context);
+      _tabController?.addListener(_onTabChanged);
+      // Carrega imediatamente se já estiver na aba 1 (navegação direta)
+      if (_tabController?.index == 1) {
+        _loadIfNeeded();
+      }
+    });
+  }
+
+  void _loadIfNeeded() {
+    final currentState = BlocProvider.of<UserManagementBloc>(context).state;
+    if (currentState is! PendingRequestsLoaded &&
+        currentState is! UserManagementLoading) {
+      BlocProvider.of<UserManagementBloc>(context)
+          .add(const LoadPendingRequestsEvent());
+    }
+  }
+
+  void _onTabChanged() {
+    if (!mounted) return;
+    // Só carrega quando o usuário realmente chega na aba (animação concluída)
+    if (_tabController?.index == 1 &&
+        !(_tabController?.indexIsChanging ?? true)) {
+      _loadIfNeeded();
     }
   }
 
   @override
   void dispose() {
+    _tabController?.removeListener(_onTabChanged);
     _searchController.dispose();
     super.dispose();
   }
@@ -80,7 +106,10 @@ class _PendingRequestsTabState extends State<PendingRequestsTab>
             : _cachedSearchQuery;
 
         if (requests == null) {
-          return const Center(child: Text('Carregando...'));
+          return const Center(
+              child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+          ));
         }
 
         final requestsNonNull = requests;

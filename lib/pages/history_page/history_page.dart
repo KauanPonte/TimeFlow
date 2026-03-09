@@ -252,6 +252,8 @@ class _HistoryViewState extends State<_HistoryView> {
               listener: (context, state) {
                 if (state is PontoHistoryActionSuccess) {
                   CustomSnackbar.showSuccess(context, state.message);
+                } else if (state is PontoHistoryActionError) {
+                  CustomSnackbar.showError(context, state.message);
                 } else if (state is PontoHistoryError) {
                   CustomSnackbar.showError(context, state.message);
                 }
@@ -270,6 +272,8 @@ class _HistoryViewState extends State<_HistoryView> {
                 if (state is PontoHistoryLoaded) {
                   daysMap = state.daysMap;
                 } else if (state is PontoHistoryActionSuccess) {
+                  daysMap = state.daysMap;
+                } else if (state is PontoHistoryActionError) {
                   daysMap = state.daysMap;
                 }
 

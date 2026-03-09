@@ -106,7 +106,7 @@ class _EventoDialogState extends State<EventoDialog> {
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppColors.borderLight),
+                borderSide: const BorderSide(color: AppColors.textSecondary),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -135,10 +135,10 @@ class _EventoDialogState extends State<EventoDialog> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               decoration: BoxDecoration(
-                border: Border.all(color: AppColors.borderLight),
+                border: Border.all(color: AppColors.textSecondary),
                 borderRadius: BorderRadius.circular(12),
                 color: widget.fixedDate != null
-                    ? AppColors.bgLight
+                    ? AppColors.textSecondary.withValues(alpha: 0.2)
                     : Colors.transparent,
               ),
               child: Row(
@@ -163,7 +163,7 @@ class _EventoDialogState extends State<EventoDialog> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               decoration: BoxDecoration(
-                border: Border.all(color: AppColors.borderLight),
+                border: Border.all(color: AppColors.textSecondary),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(

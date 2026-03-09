@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter_application_appdeponto/services/ponto_validator.dart';
 
 class PontoHistoryRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -121,6 +122,25 @@ class PontoHistoryRepository {
     final refEventos = refDia.collection('eventos');
     final ts = Timestamp.fromDate(horario);
 
+    // Carrega eventos existentes para validar a sequência
+    final eventosSnap = await refEventos.orderBy('at', descending: false).get();
+    final eventosExistentes = eventosSnap.docs.map((e) {
+      final data = e.data();
+      final evTs = data['at'] as Timestamp?;
+      return {
+        'id': e.id,
+        'tipo': (data['tipo'] ?? '').toString(),
+        'at': evTs?.toDate(),
+      };
+    }).toList();
+
+    final erro = PontoValidator.validarNovoEvento(
+      eventosExistentes: eventosExistentes,
+      novoTipo: tipo,
+      novoHorario: horario,
+    );
+    if (erro != null) throw Exception(erro);
+
     final diaSnap = await refDia.get();
     if (!diaSnap.exists) {
       await refDia.set({
@@ -145,16 +165,36 @@ class PontoHistoryRepository {
     required String tipo,
     required DateTime horario,
   }) async {
-    final ts = Timestamp.fromDate(horario);
-
-    await _firestore
+    final refEventos = _firestore
         .collection(_root)
         .doc(uid)
         .collection('dias')
         .doc(diaId)
-        .collection('eventos')
-        .doc(eventoId)
-        .update({'tipo': tipo, 'at': ts});
+        .collection('eventos');
+
+    // Carrega eventos existentes para validar a sequência após edição
+    final eventosSnap = await refEventos.orderBy('at', descending: false).get();
+    final eventosExistentes = eventosSnap.docs.map((e) {
+      final data = e.data();
+      final evTs = data['at'] as Timestamp?;
+      return {
+        'id': e.id,
+        'tipo': (data['tipo'] ?? '').toString(),
+        'at': evTs?.toDate(),
+      };
+    }).toList();
+
+    final erro = PontoValidator.validarEdicaoEvento(
+      eventosExistentes: eventosExistentes,
+      eventoId: eventoId,
+      novoTipo: tipo,
+      novoHorario: horario,
+    );
+    if (erro != null) throw Exception(erro);
+
+    final ts = Timestamp.fromDate(horario);
+
+    await refEventos.doc(eventoId).update({'tipo': tipo, 'at': ts});
 
     await _updateDayMeta(uid: uid, diaId: diaId);
   }
@@ -165,23 +205,35 @@ class PontoHistoryRepository {
     required String diaId,
     required String eventoId,
   }) async {
-    await _firestore
+    final refEventos = _firestore
         .collection(_root)
         .doc(uid)
         .collection('dias')
         .doc(diaId)
-        .collection('eventos')
-        .doc(eventoId)
-        .delete();
+        .collection('eventos');
+
+    // Carrega eventos existentes para validar a sequência após remoção
+    final eventosSnap = await refEventos.orderBy('at', descending: false).get();
+    final eventosExistentes = eventosSnap.docs.map((e) {
+      final data = e.data();
+      final evTs = data['at'] as Timestamp?;
+      return {
+        'id': e.id,
+        'tipo': (data['tipo'] ?? '').toString(),
+        'at': evTs?.toDate(),
+      };
+    }).toList();
+
+    final erro = PontoValidator.validarExclusaoEvento(
+      eventosExistentes: eventosExistentes,
+      eventoId: eventoId,
+    );
+    if (erro != null) throw Exception(erro);
+
+    await refEventos.doc(eventoId).delete();
 
     // Verifica se ainda há eventos no dia
-    final remaining = await _firestore
-        .collection(_root)
-        .doc(uid)
-        .collection('dias')
-        .doc(diaId)
-        .collection('eventos')
-        .get();
+    final remaining = await refEventos.get();
 
     if (remaining.docs.isEmpty) {
       // Remove o documento do dia se não há mais eventos

@@ -29,13 +29,9 @@ class CreateUserHeader extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: AppColors.surface30,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(
+          const Padding(
+            padding: EdgeInsets.only(right: 12),
+            child: Icon(
               Icons.badge,
               color: Colors.white,
               size: 28,

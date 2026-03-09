@@ -5,55 +5,60 @@ import 'package:intl/intl.dart';
 import 'package:flutter_application_appdeponto/widgets/custom_snackbar.dart';
 
 class PontoService {
-  static const String _root = 'pontos'; 
+  static const String _root = 'pontos';
   static const int _targetMinutesPerDay = 8 * 60;
-  static String _mesIdFromDiaId(String diaId) => diaId.substring(0,7);
+  static String _mesIdFromDiaId(String diaId) => diaId.substring(0, 7);
 
-  static String _hojeId() =>  DateFormat('yyyy-MM-dd').format(DateTime.now());
+  static String _hojeId() => DateFormat('yyyy-MM-dd').format(DateTime.now());
 
-  static DocumentReference<Map<String, dynamic>> _refDia(String uid, String diaId){
+  static DocumentReference<Map<String, dynamic>> _refDia(
+      String uid, String diaId) {
     return FirebaseFirestore.instance
-    .collection(_root)
-    .doc(uid)
-    .collection('dias')
-    .doc(diaId);
+        .collection(_root)
+        .doc(uid)
+        .collection('dias')
+        .doc(diaId);
   }
-  
-  static CollectionReference<Map<String, dynamic>> _refEventos(String uid, String diaId){
+
+  static CollectionReference<Map<String, dynamic>> _refEventos(
+      String uid, String diaId) {
     return _refDia(uid, diaId).collection('eventos');
   }
 
-  static bool _podeRegistrar({required String? ultimoTipo, required String novoTipo}){
-    if(ultimoTipo == null) return novoTipo == 'entrada';
+  static bool _podeRegistrar(
+      {required String? ultimoTipo, required String novoTipo}) {
+    if (ultimoTipo == null) return novoTipo == 'entrada';
 
-    switch(ultimoTipo){
+    switch (ultimoTipo) {
       case 'entrada':
         return novoTipo == 'pausa' || novoTipo == 'saida';
       case 'pausa':
-        return novoTipo == 'retorno' || novoTipo == 'saida';
+        return novoTipo == 'retorno'; // obrigatório retornar antes de sair
       case 'retorno':
         return novoTipo == 'pausa' || novoTipo == 'saida';
       case 'saida':
         return novoTipo == 'entrada';
       default:
-        return false;  
+        return false;
     }
   }
 
-  static String _mensagemErroTransicao(String? ultimo, String novo ){
-    if(ultimo == null) return 'O primeiro ponto do dia precisa ser "entrada".';
-    return 'Não pode registrar "$novo" agora. Último ponto foi "$ultimo".';
+  static String _mensagemErroTransicao(String? ultimo, String novo) {
+    if (ultimo == null) return 'O primeiro ponto do dia precisa ser "entrada".';
+    if (ultimo == 'pausa')
+      return 'Após "pausa", é obrigatório registrar "retorno" antes de qualquer outro ponto.';
+    return 'Não é possível registrar "$novo" agora. Último ponto foi "$ultimo".';
   }
 
   static Future<void> registrarPonto(BuildContext context, String tipo) async {
-    try{
+    try {
       final user = FirebaseAuth.instance.currentUser;
-      if(user == null){
+      if (user == null) {
         CustomSnackbar.showError(context, 'Você precisa estar logado.');
         return;
       }
 
-      if(!['entrada', 'pausa', 'retorno', 'saida'].contains(tipo)){
+      if (!['entrada', 'pausa', 'retorno', 'saida'].contains(tipo)) {
         CustomSnackbar.showError(context, 'Tipo inválido: $tipo.');
         return;
       }
@@ -64,11 +69,11 @@ class PontoService {
       final refEventos = _refEventos(uid, diaId);
       final now = Timestamp.now();
 
-      await FirebaseFirestore.instance.runTransaction((tx) async{
+      await FirebaseFirestore.instance.runTransaction((tx) async {
         final diaSnap = await tx.get(refDia);
 
-        if(!diaSnap.exists){
-          if(tipo != 'entrada'){
+        if (!diaSnap.exists) {
+          if (tipo != 'entrada') {
             throw Exception('O primeiro ponto do dia precisa ser "entrada".');
           }
 
@@ -89,12 +94,22 @@ class PontoService {
         final diaData = diaSnap.data() as Map<String, dynamic>;
         final String? ultimoTipo = diaData['lastTipo']?.toString();
 
-        if(!_podeRegistrar(ultimoTipo: ultimoTipo, novoTipo: tipo)){
+        if (!_podeRegistrar(ultimoTipo: ultimoTipo, novoTipo: tipo)) {
           throw Exception(_mensagemErroTransicao(ultimoTipo, tipo));
         }
 
+        // Intervalo mínimo de 1 minuto entre registros
+        final Timestamp? lastAt = diaData['lastAt'] as Timestamp?;
+        if (lastAt != null) {
+          final diffSeconds = now.seconds - lastAt.seconds;
+          if (diffSeconds < 60) {
+            throw Exception(
+                'Aguarde pelo menos 1 minuto entre cada registro de ponto.');
+          }
+        }
+
         final newDoc = refEventos.doc();
-        tx.set(newDoc, {'tipo': tipo , 'at': now});
+        tx.set(newDoc, {'tipo': tipo, 'at': now});
 
         tx.update(refDia, {
           'updatedAt': now,
@@ -106,15 +121,17 @@ class PontoService {
       await recalcularBancoDeHorasDoDia(uid: uid, diaId: diaId);
 
       final horas = DateFormat('HH:mm').format(DateTime.now());
-      CustomSnackbar.showSuccess(context, 'Ponto "$tipo" registrado ás $horas.');
-    }catch (e){
-      CustomSnackbar.showError(context, e.toString().replaceAll('Exception: ', ''));
+      CustomSnackbar.showSuccess(
+          context, 'Ponto "$tipo" registrado ás $horas.');
+    } catch (e) {
+      CustomSnackbar.showError(
+          context, e.toString().replaceAll('Exception: ', ''));
     }
   }
 
   static Future<String?> getUltimoTipoHoje() async {
     final user = FirebaseAuth.instance.currentUser;
-    if(user == null) return null;
+    if (user == null) return null;
 
     final uid = user.uid;
     final diaId = _hojeId();
@@ -123,7 +140,7 @@ class PontoService {
     final data = doc.data();
     return data?['lastTipo']?.toString();
   }
-  
+
   static Future<List<Map<String, dynamic>>> loadEventosHoje() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return [];
@@ -131,9 +148,10 @@ class PontoService {
     final uid = user.uid;
     final diaId = _hojeId();
 
-    final snap = await _refEventos(uid, diaId).orderBy('at', descending: false).get();
+    final snap =
+        await _refEventos(uid, diaId).orderBy('at', descending: false).get();
 
-    return snap.docs.map((d){
+    return snap.docs.map((d) {
       final m = d.data();
       return {
         'tipo': (m['tipo'] ?? '').toString(),
@@ -141,19 +159,19 @@ class PontoService {
       };
     }).toList();
   }
-  
-  static Future<Map<String, Map<String, String>>> loadRegistros() async{
+
+  static Future<Map<String, Map<String, String>>> loadRegistros() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return {};
 
     final uid = user.uid;
 
     final diasSnap = await FirebaseFirestore.instance
-    .collection(_root)
-    .doc(uid)
-    .collection('dias')
-    .orderBy('date', descending: true)
-    .get();
+        .collection(_root)
+        .doc(uid)
+        .collection('dias')
+        .orderBy('date', descending: true)
+        .get();
 
     String ftm(dynamic ts) {
       if (ts is Timestamp) {
@@ -162,18 +180,17 @@ class PontoService {
       return '';
     }
 
-    final result = <String, Map<String,String>>{};
+    final result = <String, Map<String, String>>{};
 
-    for (final diaDoc in diasSnap.docs){
+    for (final diaDoc in diasSnap.docs) {
       final diaId = diaDoc.id;
 
-      final eventosSnap = await _refEventos(uid, diaId)
-       .orderBy('at', descending: false)
-       .get();
+      final eventosSnap =
+          await _refEventos(uid, diaId).orderBy('at', descending: false).get();
 
       final map = <String, String>{};
 
-      for (final ev in eventosSnap.docs){
+      for (final ev in eventosSnap.docs) {
         final data = ev.data();
         final tipo = (data['tipo'] ?? '').toString();
         final at = data['at'];
@@ -186,21 +203,21 @@ class PontoService {
         map[tipo] = hora;
       }
 
-      if(map.isNotEmpty){
+      if (map.isNotEmpty) {
         result[diaId] = map;
       }
     }
 
     return result;
-
   }
 
-  static DocumentReference<Map<String, dynamic>> _refMes(String uid, String mesId){
+  static DocumentReference<Map<String, dynamic>> _refMes(
+      String uid, String mesId) {
     return FirebaseFirestore.instance
-    .collection(_root)
-    .doc(uid)
-    .collection('meses')
-    .doc(mesId);
+        .collection(_root)
+        .doc(uid)
+        .collection('meses')
+        .doc(mesId);
   }
 
   static Future<void> recalcularBancoDeHorasDoDia({
@@ -217,8 +234,9 @@ class PontoService {
 
     final workedMinutes = _computeWorkedMinutesFromEventosFechado(eventos);
 
-    final String? ultimoTipoEvento = eventos.isNotEmpty ? (eventos.last['tipo'] ?? '').toString() : null;
-    
+    final String? ultimoTipoEvento =
+        eventos.isNotEmpty ? (eventos.last['tipo'] ?? '').toString() : null;
+
     final bool diaFechado = ultimoTipoEvento == 'saida';
 
     final hojeId = DateFormat('yyyy-MM-dd').format(DateTime.now());
@@ -228,52 +246,61 @@ class PontoService {
 
     final bool emAberto = !diaFechado && eventos.isNotEmpty;
 
-    final int deltaMinutes = falta ? -_targetMinutesPerDay : (diaFechado ? (workedMinutes - _targetMinutesPerDay) : 0);
+    final int deltaMinutes = falta
+        ? -_targetMinutesPerDay
+        : (diaFechado ? (workedMinutes - _targetMinutesPerDay) : 0);
 
     await FirebaseFirestore.instance.runTransaction((tx) async {
       final diaSnap = await tx.get(refDia);
       final mesSnap = await tx.get(refMes);
-      
+
       final oldDelta = (diaSnap.data()?['deltaMinutes'] as int?) ?? 0;
       final oldBalance = (mesSnap.data()?['balanceMinutes'] as int?) ?? 0;
 
       final diff = deltaMinutes - oldDelta;
       final newBalance = oldBalance + diff;
 
-      tx.set(refDia, {
-       'workedMinutes': workedMinutes,
-       'deltaMinutes': deltaMinutes,
-       'isClosed': diaFechado,
-       'isToday': emAberto,
-       'isAbsent': falta,
-       'updatedAt': Timestamp.now(),
-      }, SetOptions(merge: true));
+      tx.set(
+          refDia,
+          {
+            'workedMinutes': workedMinutes,
+            'deltaMinutes': deltaMinutes,
+            'isClosed': diaFechado,
+            'isToday': emAberto,
+            'isAbsent': falta,
+            'updatedAt': Timestamp.now(),
+          },
+          SetOptions(merge: true));
 
-      tx.set(refMes, {
-        'balanceMinutes': newBalance,
-        'updatedAt': Timestamp.now(), 
-      }, SetOptions(merge: true));
+      tx.set(
+          refMes,
+          {
+            'balanceMinutes': newBalance,
+            'updatedAt': Timestamp.now(),
+          },
+          SetOptions(merge: true));
     });
   }
 
-  static int _computeWorkedMinutesFromEventosFechado(List<Map<String, dynamic>> eventos){
+  static int _computeWorkedMinutesFromEventosFechado(
+      List<Map<String, dynamic>> eventos) {
     DateTime? openWork;
     Duration total = Duration.zero;
 
-    DateTime? tsToDate(dynamic ts){
-      if(ts is Timestamp) return ts.toDate();
+    DateTime? tsToDate(dynamic ts) {
+      if (ts is Timestamp) return ts.toDate();
       return null;
     }
 
-    for (final ev in eventos ){
+    for (final ev in eventos) {
       final tipo = (ev['tipo'] ?? '').toString();
       final at = tsToDate(ev['at']);
       if (at == null) continue;
 
-      if(tipo == 'entrada' || tipo == 'retorno'){
+      if (tipo == 'entrada' || tipo == 'retorno') {
         openWork ??= at;
-      }else if (tipo == 'pausa' || tipo == 'saida'){
-        if (openWork != null && at.isAfter(openWork)){
+      } else if (tipo == 'pausa' || tipo == 'saida') {
+        if (openWork != null && at.isAfter(openWork)) {
           total += at.difference(openWork);
         }
         openWork = null;
@@ -289,11 +316,9 @@ class PontoService {
     final uid = user.uid;
     final mesId = DateFormat('yyyy-MM').format(DateTime.now());
 
-    final snap = await _refMes(uid,mesId).get();
+    final snap = await _refMes(uid, mesId).get();
     final minutes = (snap.data()?['balanceMinutes'] as int?) ?? 0;
 
-    return minutes / 60.0 ;
-
+    return minutes / 60.0;
   }
-
 }

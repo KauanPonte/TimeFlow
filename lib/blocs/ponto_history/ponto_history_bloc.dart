@@ -7,6 +7,7 @@ class PontoHistoryBloc extends Bloc<PontoHistoryEvent, PontoHistoryState> {
   final PontoHistoryRepository repository;
   String? _currentUid;
   DateTime _currentMonth = DateTime.now();
+  Map<String, List<Map<String, dynamic>>> _lastDaysMap = {};
 
   PontoHistoryBloc({required this.repository})
       : super(const PontoHistoryInitial()) {
@@ -30,6 +31,7 @@ class PontoHistoryBloc extends Bloc<PontoHistoryEvent, PontoHistoryState> {
         month: _currentMonth.month,
       );
       emit(PontoHistoryLoaded(daysMap: daysMap));
+      _lastDaysMap = daysMap;
     } catch (e) {
       emit(PontoHistoryError(
           message: e.toString().replaceAll('Exception: ', '')));
@@ -56,13 +58,16 @@ class PontoHistoryBloc extends Bloc<PontoHistoryEvent, PontoHistoryState> {
         horario: event.horario,
       );
       final daysMap = await _reloadMonth(_currentUid ?? event.uid);
+      _lastDaysMap = daysMap;
       emit(PontoHistoryActionSuccess(
         message: 'Ponto adicionado com sucesso',
         daysMap: daysMap,
       ));
     } catch (e) {
-      emit(PontoHistoryError(
-          message: e.toString().replaceAll('Exception: ', '')));
+      emit(PontoHistoryActionError(
+        message: e.toString().replaceAll('Exception: ', ''),
+        daysMap: _lastDaysMap,
+      ));
     }
   }
 
@@ -79,13 +84,16 @@ class PontoHistoryBloc extends Bloc<PontoHistoryEvent, PontoHistoryState> {
         horario: event.horario,
       );
       final daysMap = await _reloadMonth(_currentUid ?? event.uid);
+      _lastDaysMap = daysMap;
       emit(PontoHistoryActionSuccess(
         message: 'Ponto atualizado com sucesso',
         daysMap: daysMap,
       ));
     } catch (e) {
-      emit(PontoHistoryError(
-          message: e.toString().replaceAll('Exception: ', '')));
+      emit(PontoHistoryActionError(
+        message: e.toString().replaceAll('Exception: ', ''),
+        daysMap: _lastDaysMap,
+      ));
     }
   }
 
@@ -100,13 +108,16 @@ class PontoHistoryBloc extends Bloc<PontoHistoryEvent, PontoHistoryState> {
         eventoId: event.eventoId,
       );
       final daysMap = await _reloadMonth(_currentUid ?? event.uid);
+      _lastDaysMap = daysMap;
       emit(PontoHistoryActionSuccess(
         message: 'Ponto removido com sucesso',
         daysMap: daysMap,
       ));
     } catch (e) {
-      emit(PontoHistoryError(
-          message: e.toString().replaceAll('Exception: ', '')));
+      emit(PontoHistoryActionError(
+        message: e.toString().replaceAll('Exception: ', ''),
+        daysMap: _lastDaysMap,
+      ));
     }
   }
 }

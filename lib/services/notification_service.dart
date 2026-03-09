@@ -81,21 +81,37 @@ class NotificationService {
       scheduledDate = scheduledDate.add(const Duration(days: 1));
     }
 
-    await _plugin.zonedSchedule(
-      999,
-      title,
-      body,
-      scheduledDate,
-      const NotificationDetails(
-        android: AndroidNotificationDetails(
-          'daily_channel',
-          'Notificações Diárias',
-          importance: Importance.max,
-          priority: Priority.high,
-        ),
+    const details = NotificationDetails(
+      android: AndroidNotificationDetails(
+        'daily_channel',
+        'Notificações Diárias',
+        importance: Importance.max,
+        priority: Priority.high,
       ),
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      matchDateTimeComponents: DateTimeComponents.time,
     );
+
+    try {
+      await _plugin.zonedSchedule(
+        999,
+        title,
+        body,
+        scheduledDate,
+        details,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        matchDateTimeComponents: DateTimeComponents.time,
+      );
+    } catch (_) {
+      // Fallback: agendamento inexato quando a permissão de alarme exato
+      // não foi concedida pelo usuário (Android 12+).
+      await _plugin.zonedSchedule(
+        999,
+        title,
+        body,
+        scheduledDate,
+        details,
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        matchDateTimeComponents: DateTimeComponents.time,
+      );
+    }
   }
 }

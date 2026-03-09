@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/auth/auth_bloc.dart';
 import 'package:flutter_application_appdeponto/repositories/auth_repository.dart';
 import 'pages/splash/splash_page.dart';
+import 'services/notification_service.dart';
 import 'pages/auth/welcome/welcome_page.dart';
 import 'pages/auth/login/login_page.dart';
 import 'pages/auth/register/register_page.dart';
@@ -13,7 +14,7 @@ import 'pages/auth/forgot_password/forgot_password_page.dart';
 import 'pages/home_page/home_page.dart';
 import 'pages/admin/home/home_admin_page.dart';
 import 'pages/admin/users_management/users_management_page.dart';
-import 'pages/ponto_page.dart';
+import 'pages/ponto_page/ponto_page.dart';
 import 'pages/profile_page/profile_page.dart';
 import 'pages/history_page/history_page.dart';
 // import 'pages/admin/admin_dashboard_page.dart';
@@ -24,6 +25,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await initializeDateFormatting('pt_BR');
+  await NotificationService.init();
   runApp(const TimeFlow());
 }
 
