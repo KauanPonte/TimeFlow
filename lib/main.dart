@@ -13,7 +13,7 @@ import 'pages/auth/forgot_password/forgot_password_page.dart';
 import 'pages/home_page/home_page.dart';
 import 'pages/admin/home/home_admin_page.dart';
 import 'pages/admin/users_management/users_management_page.dart';
-import 'pages/ponto_page.dart';
+import 'pages/ponto_page/ponto_page.dart';
 import 'pages/profile_page/profile_page.dart';
 import 'pages/history_page/history_page.dart';
 // import 'pages/admin/admin_dashboard_page.dart';

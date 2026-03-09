@@ -84,6 +84,34 @@ class DayCard extends StatelessWidget {
     }
   }
 
+  bool get _isToday {
+    final now = DateTime.now();
+    final today =
+        '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+    return diaId == today;
+  }
+
+  /// Retorna true se o dia (não sendo hoje) tiver entrada sem saída
+  /// ou pausa sem retorno.
+  bool get _isIncomplete {
+    if (_isToday) return false;
+    if (isFuture) return false;
+    if (eventos.isEmpty) return false;
+    final tipos = eventos.map((e) => (e['tipo'] ?? '').toString()).toSet();
+    if (tipos.contains('entrada') && !tipos.contains('saida')) return true;
+    if (tipos.contains('pausa') && !tipos.contains('retorno')) return true;
+    return false;
+  }
+
+  String get _motivoIncompleto {
+    final tipos = eventos.map((e) => (e['tipo'] ?? '').toString()).toSet();
+    final semSaida = tipos.contains('entrada') && !tipos.contains('saida');
+    final semRetorno = tipos.contains('pausa') && !tipos.contains('retorno');
+    if (semSaida && semRetorno) return 'Sem saída e sem retorno';
+    if (semSaida) return 'Sem saída';
+    return 'Sem retorno da pausa';
+  }
+
   String _computeWorked() {
     DateTime? openWork;
     Duration total = Duration.zero;
@@ -183,9 +211,12 @@ class DayCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: _isIncomplete ? AppColors.warningLight8 : AppColors.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.borderLight),
+        border: Border.all(
+          color:
+              _isIncomplete ? AppColors.warningLight30 : AppColors.borderLight,
+        ),
         boxShadow: const [
           BoxShadow(
             color: AppColors.shadow,
@@ -203,12 +234,16 @@ class DayCard extends StatelessWidget {
           leading: Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: AppColors.primaryLight10,
+              color: _isIncomplete
+                  ? AppColors.warningLight20
+                  : AppColors.primaryLight10,
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(
-              Icons.calendar_today,
-              color: AppColors.primary,
+            child: Icon(
+              _isIncomplete
+                  ? Icons.warning_amber_rounded
+                  : Icons.calendar_today,
+              color: _isIncomplete ? AppColors.warning : AppColors.primary,
               size: 20,
             ),
           ),
@@ -229,7 +264,7 @@ class DayCard extends StatelessWidget {
                 style: AppTextStyles.bodySmall
                     .copyWith(color: AppColors.textSecondary),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
@@ -245,6 +280,35 @@ class DayCard extends StatelessWidget {
                   ),
                 ),
               ),
+              if (_isIncomplete) ...[
+                const SizedBox(width: 6),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: AppColors.warningLight20,
+                    borderRadius: BorderRadius.circular(8),
+                    border:
+                        Border.all(color: AppColors.warningLight30, width: 0.5),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.warning_amber_rounded,
+                          size: 11, color: AppColors.warning),
+                      const SizedBox(width: 3),
+                      Text(
+                        'Incompleto',
+                        style: AppTextStyles.bodySmall.copyWith(
+                          color: AppColors.warning,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ],
           ),
           children: [
@@ -313,6 +377,37 @@ class DayCard extends StatelessWidget {
                 ),
               );
             }),
+            if (_isIncomplete) ...[
+              const SizedBox(height: 4),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: AppColors.warningLight10,
+                  borderRadius: BorderRadius.circular(8),
+                  border:
+                      Border.all(color: AppColors.warningLight30, width: 0.5),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.warning_amber_rounded,
+                        size: 14, color: AppColors.warning),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _motivoIncompleto,
+                        style: AppTextStyles.bodySmall.copyWith(
+                          color: AppColors.warning,
+                          fontWeight: FontWeight.w500,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 4),
+            ],
             if (isAdmin) ...[
               const SizedBox(height: 4),
               InkWell(
