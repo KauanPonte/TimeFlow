@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../widgets/bottom_nav.dart';
 import '../../services/ponto_service.dart';
 import '../../services/notification_service.dart';
+import '../../services/ponto_validator.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_text_styles.dart';
 import 'widgets/clock_card.dart';
@@ -107,16 +108,13 @@ class _PontoPageState extends State<PontoPage> {
 
   Map<String, String> get _hojeMap => registros[_hojeKey] ?? {};
 
-  /// Próximas ações possíveis:
-  /// - Pausa é opcional — não é necessária para sair
-  /// - Se houver pausa, retorno é obrigatório antes de sair
+  /// Próximas ações possíveis com base no último tipo registrado:
+  /// - Após entrada: pausa ou saída
+  /// - Após pausa: somente retorno (obrigatório antes de sair)
+  /// - Após retorno: pausa ou saída
+  /// - Após saída: expediente encerrado
   Set<String> get _proximasAcoes {
-    final m = _hojeMap;
-    if (m['entrada'] == null) return {'entrada'};
-    if (m['saida'] != null) return {}; // expediente encerrado
-    if (m['pausa'] != null && m['retorno'] == null) return {'retorno'};
-    // entrada feita, sem pausa pendente: pode pausar OU sair diretamente
-    return {'pausa', 'saida'};
+    return PontoValidator.proximosPermitidos(_ultimoTipo);
   }
 
   /// Dias passados com sequência incompleta (entrada sem saída ou pausa sem retorno)

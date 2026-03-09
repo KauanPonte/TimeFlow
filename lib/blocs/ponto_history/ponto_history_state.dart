@@ -28,14 +28,15 @@ class PontoHistoryLoaded extends PontoHistoryState {
 class PontoHistoryActionSuccess extends PontoHistoryState {
   final String message;
   final Map<String, List<Map<String, dynamic>>> daysMap;
+  final DateTime timestamp;
 
-  const PontoHistoryActionSuccess({
+  PontoHistoryActionSuccess({
     required this.message,
     required this.daysMap,
-  });
+  }) : timestamp = DateTime.now();
 
   @override
-  List<Object?> get props => [message, daysMap];
+  List<Object?> get props => [message, daysMap, timestamp];
 }
 
 class PontoHistoryError extends PontoHistoryState {
@@ -45,4 +46,18 @@ class PontoHistoryError extends PontoHistoryState {
 
   @override
   List<Object?> get props => [message];
+}
+
+class PontoHistoryActionError extends PontoHistoryState {
+  final String message;
+  final Map<String, List<Map<String, dynamic>>> daysMap;
+  final DateTime timestamp;
+
+  PontoHistoryActionError({
+    required this.message,
+    required this.daysMap,
+  }) : timestamp = DateTime.now();
+
+  @override
+  List<Object?> get props => [message, daysMap, timestamp];
 }
