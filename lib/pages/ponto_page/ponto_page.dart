@@ -21,6 +21,7 @@ class PontoPage extends StatefulWidget {
 
 class _PontoPageState extends State<PontoPage> {
   Map<String, Map<String, String>> registros = {};
+  List<Map<String, String>> _eventosHojeList = [];
   String? _ultimoTipo;
   bool loading = true;
   bool registering = false;
@@ -54,6 +55,7 @@ class _PontoPageState extends State<PontoPage> {
   Future<void> _loadRegistros() async {
     setState(() => loading = true);
     registros = await PontoService.loadRegistros();
+    _eventosHojeList = await PontoService.loadEventosHojeFormatados();
     _ultimoTipo = await PontoService.getUltimoTipoHoje();
     setState(() => loading = false);
   }
@@ -101,23 +103,32 @@ class _PontoPageState extends State<PontoPage> {
     }
   }
 
-  String get _hojeKey {
-    final h = DateTime.now();
-    return '${h.year}-${h.month.toString().padLeft(2, '0')}-${h.day.toString().padLeft(2, '0')}';
+  /// Mapa com o último horário registrado de cada tipo hoje.
+  /// Usado nos ActionRows para exibir "done" e a hora.
+  Map<String, String> get _hojeMapComputed {
+    final map = <String, String>{};
+    for (final ev in _eventosHojeList) {
+      final tipo = ev['tipo'] ?? '';
+      final hora = ev['hora'] ?? '';
+      if (tipo.isNotEmpty && hora.isNotEmpty) map[tipo] = hora;
+    }
+    return map;
   }
 
-  Map<String, String> get _hojeMap => registros[_hojeKey] ?? {};
+  /// Chave do dia de hoje no mapa de registros (formato yyyy-MM-dd).
+  String get _hojeKey {
+    final y = _now.year.toString().padLeft(4, '0');
+    final m = _now.month.toString().padLeft(2, '0');
+    final d = _now.day.toString().padLeft(2, '0');
+    return '$y-$m-$d';
+  }
 
-  /// Próximas ações possíveis com base no último tipo registrado:
-  /// - Após entrada: pausa ou saída
-  /// - Após pausa: somente retorno (obrigatório antes de sair)
-  /// - Após retorno: pausa ou saída
-  /// - Após saída: expediente encerrado
+  /// Próximas ações possíveis com base no último tipo registrado.
   Set<String> get _proximasAcoes {
     return PontoValidator.proximosPermitidos(_ultimoTipo);
   }
 
-  /// Dias passados com sequência incompleta (entrada sem saída ou pausa sem retorno)
+  /// Dias passados com sequência incompleta (entrada sem saída ou pausa sem retorno).
   List<MapEntry<String, Map<String, String>>> get _incompletos {
     final hoje = _hojeKey;
     return registros.entries.where((e) {
@@ -140,7 +151,7 @@ class _PontoPageState extends State<PontoPage> {
         ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>?;
     final isAdmin =
         (args?['employeeRole'] ?? '').toString().toUpperCase().contains('ADM');
-    final hoje = _hojeMap;
+    final hoje = _hojeMapComputed;
     final proximas = _proximasAcoes;
     final incompletos = _incompletos;
 
@@ -284,7 +295,7 @@ class _PontoPageState extends State<PontoPage> {
                     const SizedBox(height: 28),
 
                     // ── Timeline de hoje ─────────────────────────────
-                    if (hoje.isNotEmpty) ...[
+                    if (_eventosHojeList.isNotEmpty) ...[
                       Text(
                         'Registros de hoje',
                         style: AppTextStyles.bodyLarge.copyWith(
@@ -293,7 +304,7 @@ class _PontoPageState extends State<PontoPage> {
                         ),
                       ),
                       const SizedBox(height: 12),
-                      TodayTimeline(registros: hoje),
+                      TodayTimeline(eventos: _eventosHojeList),
                       const SizedBox(height: 8),
                     ],
                   ],

@@ -69,37 +69,25 @@ class PontoService {
       final refEventos = _refEventos(uid, diaId);
       final now = Timestamp.now();
 
-      await FirebaseFirestore.instance.runTransaction((tx) async {
-        final diaSnap = await tx.get(refDia);
+      // ── Validação antes da transação ────────────────────────────────────
+      // Lemos o documento do dia fora da transação para evitar o erro
+      // "Bad state: Future already completed" que ocorre ao lançar exceções
+      // dentro do callback de runTransaction no cloud_firestore.
+      final diaSnapPre = await refDia.get();
 
-        if (!diaSnap.exists) {
-          if (tipo != 'entrada') {
-            throw Exception('O primeiro ponto do dia precisa ser "entrada".');
-          }
-
-          tx.set(refDia, {
-            'uid': uid,
-            'date': diaId,
-            'createdAt': now,
-            'updatedAt': now,
-            'lastTipo': 'entrada',
-            'lastAt': now,
-          });
-
-          final newDoc = refEventos.doc();
-          tx.set(newDoc, {'tipo': 'entrada', 'at': now});
-          return;
+      if (!diaSnapPre.exists) {
+        if (tipo != 'entrada') {
+          throw Exception('O primeiro ponto do dia precisa ser "entrada".');
         }
-
-        final diaData = diaSnap.data() as Map<String, dynamic>;
-        final String? ultimoTipo = diaData['lastTipo']?.toString();
+      } else {
+        final diaDataPre = diaSnapPre.data() as Map<String, dynamic>;
+        final String? ultimoTipo = diaDataPre['lastTipo']?.toString();
 
         if (!_podeRegistrar(ultimoTipo: ultimoTipo, novoTipo: tipo)) {
           throw Exception(_mensagemErroTransicao(ultimoTipo, tipo));
         }
 
-        // Intervalo mínimo de 1 minuto entre registros
-        final Timestamp? lastAt = diaData['lastAt'] as Timestamp?;
+        final Timestamp? lastAt = diaDataPre['lastAt'] as Timestamp?;
         if (lastAt != null) {
           final diffSeconds = now.seconds - lastAt.seconds;
           if (diffSeconds < 60) {
@@ -107,15 +95,29 @@ class PontoService {
                 'Aguarde pelo menos 1 minuto entre cada registro de ponto.');
           }
         }
+      }
 
+      // ── Escrita atômica (sem throws dentro da transação) ────────────────
+      await FirebaseFirestore.instance.runTransaction((tx) async {
         final newDoc = refEventos.doc();
         tx.set(newDoc, {'tipo': tipo, 'at': now});
 
-        tx.update(refDia, {
-          'updatedAt': now,
-          'lastTipo': tipo,
-          'lastAt': now,
-        });
+        if (!diaSnapPre.exists) {
+          tx.set(refDia, {
+            'uid': uid,
+            'date': diaId,
+            'createdAt': now,
+            'updatedAt': now,
+            'lastTipo': tipo,
+            'lastAt': now,
+          });
+        } else {
+          tx.update(refDia, {
+            'updatedAt': now,
+            'lastTipo': tipo,
+            'lastAt': now,
+          });
+        }
       });
 
       await recalcularBancoDeHorasDoDia(uid: uid, diaId: diaId);
@@ -157,6 +159,28 @@ class PontoService {
         'tipo': (m['tipo'] ?? '').toString(),
         'at': m['at'],
       };
+    }).toList();
+  }
+
+  /// Retorna todos os eventos de hoje como lista ordenada com horário formatado.
+  /// Cada item: { 'tipo': String, 'hora': String }
+  static Future<List<Map<String, String>>> loadEventosHojeFormatados() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return [];
+
+    final uid = user.uid;
+    final diaId = _hojeId();
+
+    final snap =
+        await _refEventos(uid, diaId).orderBy('at', descending: false).get();
+
+    return snap.docs.map((d) {
+      final m = d.data();
+      final tipo = (m['tipo'] ?? '').toString();
+      final at = m['at'];
+      final hora =
+          at is Timestamp ? DateFormat('HH:mm').format(at.toDate()) : '';
+      return {'tipo': tipo, 'hora': hora};
     }).toList();
   }
 

@@ -52,6 +52,7 @@ class _HomePageState extends State<HomePage> {
   double workProgress = 0.0;
 
   late DateTime _currentMonth;
+  late PontoHistoryBloc _historyBloc;
 
   bool get _isAdmin => widget.employeeRole.toUpperCase().contains('ADM');
 
@@ -62,6 +63,8 @@ class _HomePageState extends State<HomePage> {
     profileImageUrl = widget.profileImageUrl;
     final now = DateTime.now();
     _currentMonth = DateTime(now.year, now.month);
+    _historyBloc = PontoHistoryBloc(repository: PontoHistoryRepository())
+      ..add(LoadHistoryEvent(month: _currentMonth));
     _loadAll();
   }
 
@@ -69,9 +72,7 @@ class _HomePageState extends State<HomePage> {
     setState(() {
       _currentMonth = DateTime(_currentMonth.year, _currentMonth.month - 1);
     });
-    context.read<PontoHistoryBloc>().add(
-          LoadHistoryEvent(month: _currentMonth),
-        );
+    _historyBloc.add(LoadHistoryEvent(month: _currentMonth));
   }
 
   void _goToNextMonth() {
@@ -84,9 +85,7 @@ class _HomePageState extends State<HomePage> {
     setState(() {
       _currentMonth = nextMonth;
     });
-    context.read<PontoHistoryBloc>().add(
-          LoadHistoryEvent(month: _currentMonth),
-        );
+    _historyBloc.add(LoadHistoryEvent(month: _currentMonth));
   }
 
   List<String> _generateMonthDays() {
@@ -147,6 +146,9 @@ class _HomePageState extends State<HomePage> {
     });
 
     setState(() => loading = false);
+
+    // Recarrega o histórico embutido após atualizar os dados do dia.
+    _historyBloc.add(LoadHistoryEvent(month: _currentMonth));
   }
 
   String _labelFromUltimoTipo(String? ultimo) {
@@ -205,6 +207,7 @@ class _HomePageState extends State<HomePage> {
   @override
   void dispose() {
     _tickTimer?.cancel();
+    _historyBloc.close();
     super.dispose();
   }
 
@@ -310,9 +313,8 @@ class _HomePageState extends State<HomePage> {
             ),
     );
 
-    return BlocProvider(
-      create: (_) => PontoHistoryBloc(repository: PontoHistoryRepository())
-        ..add(LoadHistoryEvent(month: _currentMonth)),
+    return BlocProvider.value(
+      value: _historyBloc,
       child: scaffold,
     );
   }

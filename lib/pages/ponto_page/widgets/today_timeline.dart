@@ -3,10 +3,10 @@ import '../../../theme/app_colors.dart';
 import '../../../theme/app_text_styles.dart';
 
 class TodayTimeline extends StatelessWidget {
-  final Map<String, String> registros;
-  const TodayTimeline({super.key, required this.registros});
+  /// Lista ordenada de eventos do dia: cada item é {'tipo': String, 'hora': String}.
+  final List<Map<String, String>> eventos;
+  const TodayTimeline({super.key, required this.eventos});
 
-  static const _order = ['entrada', 'pausa', 'retorno', 'saida'];
   static const _labels = {
     'entrada': 'Entrada',
     'pausa': 'Pausa',
@@ -28,8 +28,7 @@ class TodayTimeline extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final events = _order.where((k) => registros[k] != null).toList();
-    if (events.isEmpty) return const SizedBox.shrink();
+    if (eventos.isEmpty) return const SizedBox.shrink();
 
     return Container(
       decoration: BoxDecoration(
@@ -42,10 +41,14 @@ class TodayTimeline extends StatelessWidget {
         ],
       ),
       child: Column(
-        children: List.generate(events.length, (i) {
-          final key = events[i];
-          final color = _colors[key]!;
-          final isLast = i == events.length - 1;
+        children: List.generate(eventos.length, (i) {
+          final ev = eventos[i];
+          final tipo = ev['tipo'] ?? '';
+          final hora = ev['hora'] ?? '--:--';
+          final color = _colors[tipo] ?? AppColors.textSecondary;
+          final icon = _icons[tipo] ?? Icons.access_time;
+          final label = _labels[tipo] ?? tipo;
+          final isLast = i == eventos.length - 1;
           return IntrinsicHeight(
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -66,7 +69,7 @@ class TodayTimeline extends StatelessWidget {
                           border:
                               Border.all(color: color.withValues(alpha: 0.4)),
                         ),
-                        child: Icon(_icons[key]!, color: color, size: 18),
+                        child: Icon(icon, color: color, size: 18),
                       ),
                       if (!isLast)
                         Expanded(
@@ -92,7 +95,7 @@ class TodayTimeline extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          _labels[key]!,
+                          label,
                           style: AppTextStyles.bodyLarge.copyWith(
                             fontWeight: FontWeight.w600,
                             color: AppColors.textPrimary,
@@ -106,7 +109,7 @@ class TodayTimeline extends StatelessWidget {
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
-                            registros[key]!,
+                            hora,
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w700,
