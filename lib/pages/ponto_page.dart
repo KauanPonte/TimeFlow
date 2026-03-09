@@ -95,7 +95,7 @@ class _PontoPageState extends State<PontoPage> {
 
     return Scaffold(
       bottomNavigationBar: BottomNav(
-        index: isAdmin ? 1 : 1,
+        index: isAdmin ? 1 : 0,
         isAdmin: isAdmin,
         args: args,
       ),

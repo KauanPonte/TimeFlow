@@ -27,6 +27,21 @@ void main() async {
   runApp(const TimeFlow());
 }
 
+/// Transição nula — sem animação entre telas.
+class _NoTransitionBuilder extends PageTransitionsBuilder {
+  const _NoTransitionBuilder();
+
+  @override
+  Widget buildTransitions<T>(
+    PageRoute<T> route,
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) =>
+      child;
+}
+
 class TimeFlow extends StatelessWidget {
   const TimeFlow({super.key});
 
@@ -47,6 +62,17 @@ class TimeFlow extends StatelessWidget {
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          pageTransitionsTheme: const PageTransitionsTheme(
+            builders: {
+              TargetPlatform.android: _NoTransitionBuilder(),
+              TargetPlatform.iOS: _NoTransitionBuilder(),
+              TargetPlatform.windows: _NoTransitionBuilder(),
+              TargetPlatform.linux: _NoTransitionBuilder(),
+              TargetPlatform.macOS: _NoTransitionBuilder(),
+            },
+          ),
+        ),
         initialRoute: "/",
         onGenerateRoute: (settings) {
           if (settings.name == "/home") {

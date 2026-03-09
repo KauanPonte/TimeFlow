@@ -352,7 +352,12 @@ class _ProfilePageViewState extends State<_ProfilePageView> {
         },
       ),
       bottomNavigationBar: BottomNav(
-        index: 2,
+        index: (args?['employeeRole'] ?? '')
+                .toString()
+                .toUpperCase()
+                .contains('ADM')
+            ? 2
+            : 1,
         isAdmin: (args?['employeeRole'] ?? '')
             .toString()
             .toUpperCase()

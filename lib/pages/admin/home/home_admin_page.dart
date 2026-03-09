@@ -188,14 +188,6 @@ class HomeAdminView extends StatelessWidget {
                     }
                   },
                 ),
-                const SizedBox(height: 8),
-                AdminMenuItem(
-                  icon: Icons.schedule,
-                  title: 'Registros de Ponto',
-                  onTap: () {
-                    Navigator.pushNamed(context, '/history');
-                  },
-                ),
               ],
             ),
           );
