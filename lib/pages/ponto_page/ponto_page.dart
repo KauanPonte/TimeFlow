@@ -27,6 +27,7 @@ class _PontoPageState extends State<PontoPage> {
   bool registering = false;
   late DateTime _now;
   Timer? _clockTimer;
+  String? _workMode;
 
   @override
   void initState() {
@@ -64,6 +65,11 @@ class _PontoPageState extends State<PontoPage> {
     setState(() => registering = true);
     await PontoService.registrarPonto(context, status);
     await _loadRegistros();
+
+    if (status == 'saida') {
+      _workMode = null;
+    }
+
     setState(() => registering = false);
 
     String title;
@@ -103,8 +109,6 @@ class _PontoPageState extends State<PontoPage> {
     }
   }
 
-  /// Mapa com o último horário registrado de cada tipo hoje.
-  /// Usado nos ActionRows para exibir "done" e a hora.
   Map<String, String> get _hojeMapComputed {
     final map = <String, String>{};
     for (final ev in _eventosHojeList) {
@@ -115,7 +119,6 @@ class _PontoPageState extends State<PontoPage> {
     return map;
   }
 
-  /// Chave do dia de hoje no mapa de registros (formato yyyy-MM-dd).
   String get _hojeKey {
     final y = _now.year.toString().padLeft(4, '0');
     final m = _now.month.toString().padLeft(2, '0');
@@ -123,16 +126,18 @@ class _PontoPageState extends State<PontoPage> {
     return '$y-$m-$d';
   }
 
-  /// Próximas ações possíveis com base no último tipo registrado.
   Set<String> get _proximasAcoes {
-    return PontoValidator.proximosPermitidos(_ultimoTipo);
+    Set<String> permitidos = PontoValidator.proximosPermitidos(_ultimoTipo);
+    if (_ultimoTipo == 'saida') {
+      permitidos.add('entrada');
+    }
+    return permitidos;
   }
 
-  /// Dias passados com sequência incompleta (entrada sem saída ou pausa sem retorno).
   List<MapEntry<String, Map<String, String>>> get _incompletos {
     final hoje = _hojeKey;
     return registros.entries.where((e) {
-      if (e.key == hoje) return false; // hoje não conta como incompleto
+      if (e.key == hoje) return false;
       final m = e.value;
       final temEntrada = m['entrada'] != null;
       final temSaida = m['saida'] != null;
@@ -145,6 +150,33 @@ class _PontoPageState extends State<PontoPage> {
       ..sort((a, b) => b.key.compareTo(a.key));
   }
 
+  Widget _buildWorkModeButton(String mode) {
+    final isSelected = _workMode == mode;
+    return Expanded(
+      child: InkWell(
+        onTap: () => setState(() => _workMode = mode),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: isSelected ? AppColors.primary : Colors.white,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: isSelected ? AppColors.primary : AppColors.borderLight,
+            ),
+          ),
+          child: Text(
+            mode,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: isSelected ? Colors.white : AppColors.textPrimary,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final args =
@@ -154,6 +186,7 @@ class _PontoPageState extends State<PontoPage> {
     final hoje = _hojeMapComputed;
     final proximas = _proximasAcoes;
     final incompletos = _incompletos;
+    final bool isPanelAccessible = _workMode != null;
 
     return Scaffold(
       backgroundColor: AppColors.bgLight,
@@ -180,10 +213,6 @@ class _PontoPageState extends State<PontoPage> {
                 style: AppTextStyles.h3.copyWith(color: AppColors.textPrimary)),
           ],
         ),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1),
-          child: Container(height: 1, color: AppColors.borderLight),
-        ),
       ),
       bottomNavigationBar: BottomNav(
         index: isAdmin ? 1 : 0,
@@ -191,117 +220,126 @@ class _PontoPageState extends State<PontoPage> {
         args: args,
       ),
       body: loading
-          ? const Center(
-              child: CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
-              ),
-            )
+          ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
               onRefresh: _loadRegistros,
-              color: AppColors.primary,
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.all(20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // ── Relógio ──────────────────────────────────────
                     ClockCard(now: _now),
                     const SizedBox(height: 16),
 
-                    // ── Status do dia ────────────────────────────────
+                    // ── SELEÇÃO DE MODO DE TRABALHO ──────────────────────
+                    Text('Selecione o modo de trabalho',
+                        style: AppTextStyles.bodyMedium
+                            .copyWith(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        _buildWorkModeButton('Presencial'),
+                        const SizedBox(width: 12),
+                        _buildWorkModeButton('Home Office'),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+
                     StatusBadge(statusLabel: _statusLabel),
                     const SizedBox(height: 24),
 
-                    // ── Registros incompletos de dias anteriores ───────
                     if (incompletos.isNotEmpty) ...[
                       IncompletosCard(incompletos: incompletos),
                       const SizedBox(height: 16),
                     ],
 
-                    // ── Botões de ação ───────────────────────────────
                     Text(
                       'Registrar ponto',
                       style: AppTextStyles.bodyLarge.copyWith(
                         fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
+                        color: isPanelAccessible
+                            ? AppColors.textPrimary
+                            : Colors.grey,
                       ),
                     ),
                     const SizedBox(height: 12),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: AppColors.surface,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: AppColors.borderLight),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: AppColors.shadow,
-                            blurRadius: 8,
-                            offset: Offset(0, 2),
+
+                    Opacity(
+                      opacity: isPanelAccessible ? 1.0 : 0.5,
+                      child: AbsorbPointer(
+                        absorbing: !isPanelAccessible,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: AppColors.surface,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: AppColors.borderLight),
+                            boxShadow: const [
+                              BoxShadow(
+                                  color: AppColors.shadow,
+                                  blurRadius: 8,
+                                  offset: Offset(0, 2)),
+                            ],
                           ),
-                        ],
-                      ),
-                      child: Column(
-                        children: [
-                          ActionRow(
-                            label: 'Entrada',
-                            icon: Icons.login_rounded,
-                            accentColor: const Color(0xFF18A999),
-                            done: hoje['entrada'] != null,
-                            isNext: proximas.contains('entrada'),
-                            time: hoje['entrada'],
-                            isRegistering: registering,
-                            isLast: false,
-                            onTap: () => _registrar('entrada'),
+                          child: Column(
+                            children: [
+                              ActionRow(
+                                label: 'Entrada',
+                                icon: Icons.login_rounded,
+                                accentColor: const Color(0xFF18A999),
+                                done: hoje['entrada'] != null,
+                                isNext: proximas.contains('entrada'),
+                                time: hoje['entrada'],
+                                isRegistering: registering,
+                                isLast: false,
+                                onTap: () => _registrar('entrada'),
+                              ),
+                              ActionRow(
+                                label: 'Pausa',
+                                icon: Icons.coffee_rounded,
+                                accentColor: const Color(0xFF3DB2FF),
+                                done: hoje['pausa'] != null,
+                                isNext: proximas.contains('pausa'),
+                                optional: true,
+                                time: hoje['pausa'],
+                                isRegistering: registering,
+                                isLast: false,
+                                onTap: () => _registrar('pausa'),
+                              ),
+                              ActionRow(
+                                label: 'Retorno',
+                                icon: Icons.replay_rounded,
+                                accentColor: const Color(0xFFF7A500),
+                                done: hoje['retorno'] != null,
+                                isNext: proximas.contains('retorno'),
+                                time: hoje['retorno'],
+                                isRegistering: registering,
+                                isLast: false,
+                                onTap: () => _registrar('retorno'),
+                              ),
+                              ActionRow(
+                                label: 'Saída',
+                                icon: Icons.logout_rounded,
+                                accentColor: const Color(0xFFE53935),
+                                done: hoje['saida'] != null,
+                                isNext: proximas.contains('saida'),
+                                time: hoje['saida'],
+                                isRegistering: registering,
+                                isLast: true,
+                                onTap: () => _registrar('saida'),
+                              ),
+                            ],
                           ),
-                          ActionRow(
-                            label: 'Pausa',
-                            icon: Icons.coffee_rounded,
-                            accentColor: const Color(0xFF3DB2FF),
-                            done: hoje['pausa'] != null,
-                            isNext: proximas.contains('pausa'),
-                            optional: true,
-                            time: hoje['pausa'],
-                            isRegistering: registering,
-                            isLast: false,
-                            onTap: () => _registrar('pausa'),
-                          ),
-                          ActionRow(
-                            label: 'Retorno',
-                            icon: Icons.replay_rounded,
-                            accentColor: const Color(0xFFF7A500),
-                            done: hoje['retorno'] != null,
-                            isNext: proximas.contains('retorno'),
-                            time: hoje['retorno'],
-                            isRegistering: registering,
-                            isLast: false,
-                            onTap: () => _registrar('retorno'),
-                          ),
-                          ActionRow(
-                            label: 'Saída',
-                            icon: Icons.logout_rounded,
-                            accentColor: const Color(0xFFE53935),
-                            done: hoje['saida'] != null,
-                            isNext: proximas.contains('saida'),
-                            time: hoje['saida'],
-                            isRegistering: registering,
-                            isLast: true,
-                            onTap: () => _registrar('saida'),
-                          ),
-                        ],
+                        ),
                       ),
                     ),
-
                     const SizedBox(height: 28),
-
-                    // ── Timeline de hoje ─────────────────────────────
                     if (_eventosHojeList.isNotEmpty) ...[
                       Text(
                         'Registros de hoje',
                         style: AppTextStyles.bodyLarge.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
-                        ),
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary),
                       ),
                       const SizedBox(height: 12),
                       TodayTimeline(eventos: _eventosHojeList),
