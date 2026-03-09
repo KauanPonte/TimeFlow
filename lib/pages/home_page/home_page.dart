@@ -1,12 +1,20 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_application_appdeponto/blocs/ponto_history/ponto_history_bloc.dart';
+import 'package:flutter_application_appdeponto/blocs/ponto_history/ponto_history_event.dart';
+import 'package:flutter_application_appdeponto/blocs/ponto_history/ponto_history_state.dart';
+import 'package:flutter_application_appdeponto/repositories/ponto_history_repository.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
 import 'package:flutter_application_appdeponto/widgets/main_app_bar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
 import '../../services/ponto_service.dart';
 import '../../widgets/bottom_nav.dart';
+import '../history_page/widgets/day_card.dart';
+import '../history_page/widgets/month_selector.dart';
 import 'widgets/status_card.dart';
 import 'widgets/balance_card.dart';
 import 'widgets/punch_button.dart';
@@ -43,12 +51,57 @@ class _HomePageState extends State<HomePage> {
   static const int _targetMinutesPerDay = 8 * 60; // 8 horas por dia
   double workProgress = 0.0;
 
+  late DateTime _currentMonth;
+
+  bool get _isAdmin => widget.employeeRole.toUpperCase().contains('ADM');
+
   @override
   void initState() {
     super.initState();
     employeeName = widget.employeeName;
     profileImageUrl = widget.profileImageUrl;
+    final now = DateTime.now();
+    _currentMonth = DateTime(now.year, now.month);
     _loadAll();
+  }
+
+  void _goToPreviousMonth() {
+    setState(() {
+      _currentMonth = DateTime(_currentMonth.year, _currentMonth.month - 1);
+    });
+    context.read<PontoHistoryBloc>().add(
+          LoadHistoryEvent(month: _currentMonth),
+        );
+  }
+
+  void _goToNextMonth() {
+    final now = DateTime.now();
+    final nextMonth = DateTime(_currentMonth.year, _currentMonth.month + 1);
+    if (nextMonth.year > now.year ||
+        (nextMonth.year == now.year && nextMonth.month > now.month)) {
+      return;
+    }
+    setState(() {
+      _currentMonth = nextMonth;
+    });
+    context.read<PontoHistoryBloc>().add(
+          LoadHistoryEvent(month: _currentMonth),
+        );
+  }
+
+  List<String> _generateMonthDays() {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final lastDay =
+        DateTime(_currentMonth.year, _currentMonth.month + 1, 0).day;
+
+    final days = <String>[];
+    for (int d = lastDay; d >= 1; d--) {
+      final date = DateTime(_currentMonth.year, _currentMonth.month, d);
+      if (date.isAfter(today)) continue;
+      days.add(DateFormat('yyyy-MM-dd').format(date));
+    }
+    return days;
   }
 
   Future<void> _loadAll() async {
@@ -157,13 +210,13 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    final isAdmin = widget.employeeRole.toUpperCase().contains('ADM');
+    final isAdmin = _isAdmin;
 
-    return Scaffold(
+    final scaffold = Scaffold(
       backgroundColor: AppColors.bgLight,
       appBar: const MainAppBar(subtitle: 'Meu Ponto'),
       bottomNavigationBar: BottomNav(
-        index: isAdmin ? 1 : 1,
+        index: isAdmin ? 1 : 0,
         isAdmin: isAdmin,
         args: {
           'employeeName': employeeName,
@@ -220,9 +273,97 @@ class _HomePageState extends State<HomePage> {
                       },
                     ).then((_) => _loadAll()),
                   ),
+
+                  // Histórico embutido
+                  ...[
+                    const SizedBox(height: 32),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryLight10,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(Icons.history,
+                              color: AppColors.primary, size: 20),
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          'Meu Histórico',
+                          style: AppTextStyles.h3
+                              .copyWith(color: AppColors.textPrimary),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    MonthSelector(
+                      currentMonth: _currentMonth,
+                      onPrevious: _goToPreviousMonth,
+                      onNext: _goToNextMonth,
+                    ),
+                    const SizedBox(height: 8),
+                    _buildHistoryList(),
+                  ],
                 ],
               ),
             ),
+    );
+
+    return BlocProvider(
+      create: (_) => PontoHistoryBloc(repository: PontoHistoryRepository())
+        ..add(LoadHistoryEvent(month: _currentMonth)),
+      child: scaffold,
+    );
+  }
+
+  Widget _buildHistoryList() {
+    return BlocBuilder<PontoHistoryBloc, PontoHistoryState>(
+      builder: (context, state) {
+        if (state is PontoHistoryLoading) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(vertical: 32),
+            child: Center(
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+              ),
+            ),
+          );
+        }
+
+        Map<String, List<Map<String, dynamic>>> daysMap = {};
+        if (state is PontoHistoryLoaded) {
+          daysMap = state.daysMap;
+        } else if (state is PontoHistoryActionSuccess) {
+          daysMap = state.daysMap;
+        }
+
+        final allDays = _generateMonthDays();
+
+        if (allDays.isEmpty) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 24),
+            child: Center(
+              child: Text(
+                'Nenhum dia para exibir',
+                style: AppTextStyles.bodyMedium
+                    .copyWith(color: AppColors.textSecondary),
+              ),
+            ),
+          );
+        }
+
+        return Column(
+          children: allDays.map((diaId) {
+            final eventos = daysMap[diaId] ?? [];
+            return DayCard(
+              diaId: diaId,
+              eventos: eventos,
+              isAdmin: false,
+            );
+          }).toList(),
+        );
+      },
     );
   }
 }

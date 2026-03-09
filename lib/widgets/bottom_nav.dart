@@ -65,23 +65,20 @@ class BottomNav extends StatelessWidget {
       );
     }
 
-    // Nav padrão para usuários normais
+    // Nav padrão para usuários normais (2 abas)
     return BottomNavigationBar(
       currentIndex: index,
       selectedItemColor: AppColors.primary,
       unselectedItemColor: AppColors.textSecondary,
       backgroundColor: AppColors.surface,
+      type: BottomNavigationBarType.fixed,
       onTap: (i) {
         if (i == index) return;
         switch (i) {
           case 0:
-            Navigator.pushReplacementNamed(context, "/history",
-                arguments: data);
-            break;
-          case 1:
             Navigator.pushReplacementNamed(context, "/home", arguments: data);
             break;
-          case 2:
+          case 1:
             Navigator.pushReplacementNamed(context, "/profile",
                 arguments: data);
             break;
@@ -89,17 +86,15 @@ class BottomNav extends StatelessWidget {
       },
       items: const [
         BottomNavigationBarItem(
-            icon: Icon(Icons.menu),
-            activeIcon: Icon(Icons.menu_open),
-            label: ""),
+          icon: Icon(Icons.home_outlined),
+          activeIcon: Icon(Icons.home),
+          label: "Home",
+        ),
         BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
-            activeIcon: Icon(Icons.home),
-            label: ""),
-        BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
-            activeIcon: Icon(Icons.person),
-            label: ""),
+          icon: Icon(Icons.person_outline),
+          activeIcon: Icon(Icons.person),
+          label: "Perfil",
+        ),
       ],
     );
   }
