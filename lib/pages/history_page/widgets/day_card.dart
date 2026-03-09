@@ -130,7 +130,7 @@ class DayCard extends StatelessWidget {
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         leading: Container(
-          padding: const EdgeInsets.all(8),
+          padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
             color: disabled
                 ? AppColors.borderLight.withValues(alpha: 0.3)
@@ -140,7 +140,7 @@ class DayCard extends StatelessWidget {
           child: Icon(
             Icons.calendar_today,
             color: disabled ? AppColors.borderLight : AppColors.textSecondary,
-            size: 18,
+            size: 20,
           ),
         ),
         title: Text(
@@ -160,9 +160,18 @@ class DayCard extends StatelessWidget {
               ),
         trailing: (!disabled && isAdmin)
             ? IconButton(
+                constraints: const BoxConstraints(),
+                style: IconButton.styleFrom(
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  minimumSize: Size.zero,
+                  padding: EdgeInsets.zero,
+                ),
+                padding: EdgeInsets.zero,
                 onPressed: onAddEvento,
-                icon: const Icon(Icons.add_circle_outline,
-                    color: AppColors.primary, size: 22),
+                icon: const Icon(
+                  Icons.add_circle_outline,
+                  color: AppColors.primary,
+                ),
                 tooltip: 'Adicionar ponto',
               )
             : null,
