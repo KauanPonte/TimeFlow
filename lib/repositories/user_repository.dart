@@ -28,6 +28,7 @@ class UserRepository {
         'role': data['role'] ?? '',
         'status': data['status'] ?? '',
         'registeredAt': _formatTimestamp(data['createdAt']),
+        'profileImage': data['profileImage'] ?? '',
       };
     }).toList();
 
