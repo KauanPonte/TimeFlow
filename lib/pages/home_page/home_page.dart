@@ -361,7 +361,7 @@ class _HomePageState extends State<HomePage> {
             return DayCard(
               diaId: diaId,
               eventos: eventos,
-              isAdmin: false,
+              isAdmin: _isAdmin,
             );
           }).toList(),
         );
