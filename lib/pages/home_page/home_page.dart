@@ -1,23 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
 import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/ponto_history/ponto_history_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/ponto_history/ponto_history_event.dart';
-import 'package:flutter_application_appdeponto/blocs/ponto_history/ponto_history_state.dart';
 import 'package:flutter_application_appdeponto/repositories/ponto_history_repository.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
-import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
 import 'package:flutter_application_appdeponto/widgets/main_app_bar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import '../../services/ponto_service.dart';
 import '../../widgets/bottom_nav.dart';
-import '../history_page/widgets/day_card.dart';
-import '../history_page/widgets/month_selector.dart';
+import '../history_page/widgets/evento_dialog.dart';
 import 'widgets/status_card.dart';
 import 'widgets/balance_card.dart';
 import 'widgets/punch_button.dart';
+import 'widgets/home_greeting.dart';
+import 'widgets/home_history_section.dart';
 
 class HomePage extends StatefulWidget {
   final String employeeName;
@@ -47,6 +48,7 @@ class _HomePageState extends State<HomePage> {
   String profileImageUrl = '';
   String todayWorkedDisplay = '0h 0m';
   bool loading = true;
+  String? _uid;
   Timer? _tickTimer;
   static const int _targetMinutesPerDay = 8 * 60; // 8 horas por dia
   double workProgress = 0.0;
@@ -129,6 +131,11 @@ class _HomePageState extends State<HomePage> {
       profileImageUrl = prefs.getString('profile_image_path') ?? '';
     }
 
+    // Resolve UID: prefer FirebaseAuth, fallback to SharedPreferences
+    _uid = FirebaseAuth.instance.currentUser?.uid;
+    _uid ??= prefs.getString('userUid');
+    if ((_uid ?? '').isEmpty) _uid = null;
+
     _tickTimer?.cancel();
     _tickTimer = Timer.periodic(const Duration(seconds: 30), (_) {
       if (!mounted) return;
@@ -204,6 +211,102 @@ class _HomePageState extends State<HomePage> {
     return total.inMinutes;
   }
 
+  void _showAddDialogForDay(String diaId) async {
+    final uid = _uid;
+    if (uid == null || !mounted) return;
+
+    final date = DateTime.parse(diaId);
+    final result = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (_) => EventoDialog(
+        title: 'Adicionar Ponto',
+        fixedDate: date,
+      ),
+    );
+
+    if (result != null && mounted) {
+      _historyBloc.add(AddEventoEvent(
+        uid: uid,
+        diaId: result['diaId'],
+        tipo: result['tipo'],
+        horario: result['horario'],
+      ));
+    }
+  }
+
+  void _showEditDialog(String diaId, Map<String, dynamic> evento) async {
+    final uid = _uid;
+    if (uid == null || !mounted) return;
+
+    final result = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (_) => EventoDialog(
+        title: 'Editar Ponto',
+        initialTipo: evento['tipo'],
+        initialHorario: evento['at'],
+      ),
+    );
+
+    if (result != null && mounted) {
+      _historyBloc.add(UpdateEventoEvent(
+        uid: uid,
+        diaId: result['diaId'],
+        eventoId: evento['id'],
+        tipo: result['tipo'],
+        horario: result['horario'],
+      ));
+    }
+  }
+
+  void _showDeleteConfirm(String diaId, Map<String, dynamic> evento) {
+    final uid = _uid;
+    if (uid == null || !mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded,
+                color: AppColors.warning, size: 20),
+            SizedBox(width: 12),
+            Text('Remover Ponto', style: AppTextStyles.h3),
+          ],
+        ),
+        content: Text(
+          'Tem certeza que deseja remover este registro de ponto?',
+          style: AppTextStyles.bodyMedium,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Cancelar',
+                style: AppTextStyles.bodyMedium
+                    .copyWith(color: AppColors.textSecondary)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _historyBloc.add(DeleteEventoEvent(
+                uid: uid,
+                diaId: diaId,
+                eventoId: evento['id'],
+              ));
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text('Remover'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   void dispose() {
     _tickTimer?.cancel();
@@ -239,32 +342,16 @@ class _HomePageState extends State<HomePage> {
               child: ListView(
                 padding: const EdgeInsets.all(20),
                 children: [
-                  // Saudação
-                  Text(
-                    'Olá, ${employeeName.isNotEmpty ? employeeName : 'Colaborador'}!',
-                    style:
-                        AppTextStyles.h2.copyWith(color: AppColors.textPrimary),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Aqui está seu resumo de hoje',
-                    style: AppTextStyles.bodyMedium
-                        .copyWith(color: AppColors.textSecondary),
-                  ),
+                  HomeGreeting(employeeName: employeeName),
                   const SizedBox(height: 24),
-
                   StatusCard(
                     statusLabel: statusLabel,
                     todayWorkedDisplay: todayWorkedDisplay,
                     workProgress: workProgress,
                   ),
-
                   const SizedBox(height: 16),
-
                   BalanceCard(monthBalance: monthBalance),
-
                   const SizedBox(height: 24),
-
                   PunchButton(
                     onPressed: () => Navigator.pushNamed(
                       context,
@@ -276,38 +363,17 @@ class _HomePageState extends State<HomePage> {
                       },
                     ).then((_) => _loadAll()),
                   ),
-
-                  // Histórico embutido
-                  ...[
-                    const SizedBox(height: 32),
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: AppColors.primaryLight10,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: const Icon(Icons.history,
-                              color: AppColors.primary, size: 20),
-                        ),
-                        const SizedBox(width: 12),
-                        Text(
-                          'Meu Histórico',
-                          style: AppTextStyles.h3
-                              .copyWith(color: AppColors.textPrimary),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    MonthSelector(
-                      currentMonth: _currentMonth,
-                      onPrevious: _goToPreviousMonth,
-                      onNext: _goToNextMonth,
-                    ),
-                    const SizedBox(height: 8),
-                    _buildHistoryList(),
-                  ],
+                  HomeHistorySection(
+                    currentMonth: _currentMonth,
+                    onPrevious: _goToPreviousMonth,
+                    onNext: _goToNextMonth,
+                    isAdmin: isAdmin,
+                    generateMonthDays: _generateMonthDays,
+                    onActionSuccess: _loadAll,
+                    onAdd: _showAddDialogForDay,
+                    onEdit: _showEditDialog,
+                    onDelete: _showDeleteConfirm,
+                  ),
                 ],
               ),
             ),
@@ -316,56 +382,6 @@ class _HomePageState extends State<HomePage> {
     return BlocProvider.value(
       value: _historyBloc,
       child: scaffold,
-    );
-  }
-
-  Widget _buildHistoryList() {
-    return BlocBuilder<PontoHistoryBloc, PontoHistoryState>(
-      builder: (context, state) {
-        if (state is PontoHistoryLoading) {
-          return const Padding(
-            padding: EdgeInsets.symmetric(vertical: 32),
-            child: Center(
-              child: CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
-              ),
-            ),
-          );
-        }
-
-        Map<String, List<Map<String, dynamic>>> daysMap = {};
-        if (state is PontoHistoryLoaded) {
-          daysMap = state.daysMap;
-        } else if (state is PontoHistoryActionSuccess) {
-          daysMap = state.daysMap;
-        }
-
-        final allDays = _generateMonthDays();
-
-        if (allDays.isEmpty) {
-          return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 24),
-            child: Center(
-              child: Text(
-                'Nenhum dia para exibir',
-                style: AppTextStyles.bodyMedium
-                    .copyWith(color: AppColors.textSecondary),
-              ),
-            ),
-          );
-        }
-
-        return Column(
-          children: allDays.map((diaId) {
-            final eventos = daysMap[diaId] ?? [];
-            return DayCard(
-              diaId: diaId,
-              eventos: eventos,
-              isAdmin: _isAdmin,
-            );
-          }).toList(),
-        );
-      },
     );
   }
 }
