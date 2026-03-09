@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:image_cropper/image_cropper.dart';
 import 'package:flutter_application_appdeponto/blocs/profile/profile_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/profile/profile_event.dart';
 import 'package:flutter_application_appdeponto/blocs/profile/profile_state.dart';
@@ -103,18 +104,40 @@ class _ProfilePageViewState extends State<_ProfilePageView> {
     );
   }
 
-  /// Selecionar imagem e mostrar preview/confirmação
+  /// Selecionar imagem, recortar 1:1 e mostrar preview/confirmação
   Future<void> _pickImage(ImageSource source) async {
     try {
       final picked = await _picker.pickImage(
         source: source,
         maxWidth: 800,
         maxHeight: 800,
-        imageQuality: 80,
+        imageQuality: 90,
       );
 
-      if (picked != null) {
-        setState(() => _pendingImage = File(picked.path));
+      if (picked == null) return;
+
+      final cropped = await ImageCropper().cropImage(
+        sourcePath: picked.path,
+        aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
+        uiSettings: [
+          AndroidUiSettings(
+            toolbarTitle: 'Recortar foto',
+            toolbarColor: AppColors.primary,
+            toolbarWidgetColor: Colors.white,
+            activeControlsWidgetColor: AppColors.primary,
+            lockAspectRatio: true,
+            hideBottomControls: false,
+          ),
+          IOSUiSettings(
+            title: 'Recortar foto',
+            aspectRatioLockEnabled: true,
+            resetAspectRatioEnabled: false,
+          ),
+        ],
+      );
+
+      if (cropped != null) {
+        setState(() => _pendingImage = File(cropped.path));
         if (mounted) {
           _showPreviewDialog();
         }
