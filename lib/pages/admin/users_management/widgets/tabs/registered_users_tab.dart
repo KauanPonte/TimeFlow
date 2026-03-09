@@ -23,6 +23,7 @@ class _RegisteredUsersTabState extends State<RegisteredUsersTab>
   final _searchController = TextEditingController();
   List<Map<String, dynamic>>? _cachedUsers;
   String _cachedSearchQuery = '';
+  TabController? _tabController;
 
   @override
   bool get wantKeepAlive => true;
@@ -38,10 +39,28 @@ class _RegisteredUsersTabState extends State<RegisteredUsersTab>
       _cachedUsers = currentState.users;
       _cachedSearchQuery = currentState.searchQuery;
     }
+    // Escuta mudanças de aba para recarregar dados quando necessário
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _tabController = DefaultTabController.of(context);
+      _tabController?.addListener(_onTabChanged);
+    });
+  }
+
+  void _onTabChanged() {
+    if (!mounted) return;
+    // Verifica sempre que o index é 0, inclusive durante arrastos parciais
+    if (_tabController?.index == 0) {
+      final currentState = context.read<UserManagementBloc>().state;
+      if (currentState is! UsersLoaded &&
+          currentState is! UserManagementLoading) {
+        context.read<UserManagementBloc>().add(const LoadUsersEvent());
+      }
+    }
   }
 
   @override
   void dispose() {
+    _tabController?.removeListener(_onTabChanged);
     _searchController.dispose();
     super.dispose();
   }
