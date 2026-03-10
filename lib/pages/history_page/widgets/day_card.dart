@@ -92,24 +92,45 @@ class DayCard extends StatelessWidget {
   }
 
   /// Retorna true se o dia (não sendo hoje) tiver entrada sem saída
-  /// ou pausa sem retorno.
+  /// ou pausa sem retorno — detecta corretamente múltiplos ciclos.
   bool get _isIncomplete {
     if (_isToday) return false;
     if (isFuture) return false;
     if (eventos.isEmpty) return false;
-    final tipos = eventos.map((e) => (e['tipo'] ?? '').toString()).toSet();
-    if (tipos.contains('entrada') && !tipos.contains('saida')) return true;
-    if (tipos.contains('pausa') && !tipos.contains('retorno')) return true;
-    return false;
+
+    // Ordena por horário e verifica o último estado da sequência
+    final sorted = List<Map<String, dynamic>>.from(eventos)
+      ..sort((a, b) {
+        final atA = a['at'] as DateTime?;
+        final atB = b['at'] as DateTime?;
+        if (atA == null || atB == null) return 0;
+        return atA.compareTo(atB);
+      });
+
+    final lastTipo = (sorted.last['tipo'] ?? '').toString();
+    // Completo apenas se o último evento foi 'saida'
+    return lastTipo != 'saida';
   }
 
   String get _motivoIncompleto {
-    final tipos = eventos.map((e) => (e['tipo'] ?? '').toString()).toSet();
-    final semSaida = tipos.contains('entrada') && !tipos.contains('saida');
-    final semRetorno = tipos.contains('pausa') && !tipos.contains('retorno');
-    if (semSaida && semRetorno) return 'Sem saída e sem retorno';
-    if (semSaida) return 'Sem saída';
-    return 'Sem retorno da pausa';
+    final sorted = List<Map<String, dynamic>>.from(eventos)
+      ..sort((a, b) {
+        final atA = a['at'] as DateTime?;
+        final atB = b['at'] as DateTime?;
+        if (atA == null || atB == null) return 0;
+        return atA.compareTo(atB);
+      });
+
+    final lastTipo = (sorted.last['tipo'] ?? '').toString();
+    switch (lastTipo) {
+      case 'pausa':
+        return 'Sem retorno da pausa';
+      case 'entrada':
+      case 'retorno':
+        return 'Sem saída';
+      default:
+        return 'Registro incompleto';
+    }
   }
 
   String _computeWorked() {
