@@ -24,12 +24,16 @@ class HomePage extends StatefulWidget {
   final String logoAsset;
   final String employeeRole;
 
+  /// Quando fornecido (ISO 8601), abre o histórico no mês dessa data.
+  final String? initialHistoryDate;
+
   const HomePage({
     super.key,
     required this.employeeName,
     required this.profileImageUrl,
     required this.employeeRole,
     this.logoAsset = 'assets/app_icon/timeflow_background.png',
+    this.initialHistoryDate,
   });
 
   @override
@@ -45,6 +49,15 @@ class _HomePageState extends State<HomePage> {
 
   late DateTime _currentMonth;
 
+  /// Controlador do ListView principal para scroll programático.
+  final ScrollController _scrollController = ScrollController();
+
+  /// GlobalKey do widget HomeHistorySection para calcular posição de scroll.
+  final GlobalKey _historySectionKey = GlobalKey();
+
+  /// Dia que deve receber destaque após scroll (ISO 'yyyy-MM-dd').
+  String? _highlightDayId;
+
   bool get _isAdmin => widget.employeeRole.toUpperCase().contains('ADM');
 
   @override
@@ -53,7 +66,17 @@ class _HomePageState extends State<HomePage> {
     employeeName = widget.employeeName;
     profileImageUrl = widget.profileImageUrl;
     final now = DateTime.now();
-    _currentMonth = DateTime(now.year, now.month);
+
+    // Se recebeu uma data inicial (navegação de outra tela), usa o mês dela.
+    final initDate = widget.initialHistoryDate != null
+        ? DateTime.tryParse(widget.initialHistoryDate!)
+        : null;
+    if (initDate != null) {
+      _currentMonth = DateTime(initDate.year, initDate.month);
+      _highlightDayId = DateFormat('yyyy-MM-dd').format(initDate);
+    } else {
+      _currentMonth = DateTime(now.year, now.month);
+    }
 
     // Timer que força rebuild a cada 30 s para atualizar tempo trabalhado.
     _tickTimer = Timer.periodic(const Duration(seconds: 30), (_) {
@@ -65,13 +88,16 @@ class _HomePageState extends State<HomePage> {
     // Dispara carregamento dos dados do dia (cubit persiste entre telas).
     context.read<PontoTodayCubit>().load();
 
-    // Garante que o histórico esteja carregado para o mês atual.
+    // Garante que o histórico esteja carregado para o mês selecionado.
     final historyBloc = context.read<PontoHistoryBloc>();
     if (historyBloc.state is PontoHistoryInitial ||
         historyBloc.currentMonth.year != _currentMonth.year ||
         historyBloc.currentMonth.month != _currentMonth.month) {
       historyBloc.add(LoadHistoryEvent(month: _currentMonth));
     }
+
+    // O scroll até o DayCard é gerenciado por HomeHistorySection
+    // (via BlocConsumer.listener quando o histórico terminar de carregar).
   }
 
   /// Resolve nome, foto e UID do SharedPreferences / FirebaseAuth.
@@ -184,7 +210,31 @@ class _HomePageState extends State<HomePage> {
   @override
   void dispose() {
     _tickTimer?.cancel();
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  // ── Navegação de notificação para dia específico ────────────────────
+
+  /// Chamado pelo botão de notificação na AppBar quando já estamos na home.
+  /// Troca o mês, carrega o histórico e scrolla até a seção.
+  void _goToDay(DateTime date) {
+    final targetMonth = DateTime(date.year, date.month);
+    final needsReload = _currentMonth.year != targetMonth.year ||
+        _currentMonth.month != targetMonth.month;
+
+    setState(() {
+      _currentMonth = targetMonth;
+      _highlightDayId = DateFormat('yyyy-MM-dd').format(date);
+    });
+
+    if (needsReload) {
+      context
+          .read<PontoHistoryBloc>()
+          .add(LoadHistoryEvent(month: targetMonth));
+    }
+    // O scroll até o DayCard é gerenciado por HomeHistorySection
+    // (via didUpdateWidget quando já carregado, ou via BlocConsumer.listener).
   }
 
   @override
@@ -204,7 +254,10 @@ class _HomePageState extends State<HomePage> {
 
     return Scaffold(
       backgroundColor: AppColors.bgLight,
-      appBar: const MainAppBar(subtitle: 'Meu Ponto'),
+      appBar: MainAppBar(
+        subtitle: 'Meu Ponto',
+        onNotificationDayTap: _goToDay,
+      ),
       bottomNavigationBar: BottomNav(
         index: isAdmin ? 1 : 0,
         isAdmin: isAdmin,
@@ -229,6 +282,7 @@ class _HomePageState extends State<HomePage> {
               },
               color: AppColors.primary,
               child: ListView(
+                controller: _scrollController,
                 padding: const EdgeInsets.all(20),
                 children: [
                   HomeGreeting(employeeName: employeeName),
@@ -257,7 +311,9 @@ class _HomePageState extends State<HomePage> {
                     },
                   ),
                   HomeHistorySection(
+                    key: _historySectionKey,
                     currentMonth: _currentMonth,
+                    highlightDayId: _highlightDayId,
                     onPrevious: _goToPreviousMonth,
                     onNext: _goToNextMonth,
                     isAdmin: isAdmin,

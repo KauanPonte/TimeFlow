@@ -156,6 +156,7 @@ class TimeFlow extends StatelessWidget {
                 employeeName: args["employeeName"] ?? "",
                 profileImageUrl: args["profileImageUrl"] ?? "",
                 employeeRole: args["employeeRole"] ?? "",
+                initialHistoryDate: args["initialHistoryDate"] as String?,
               ),
             );
           }
@@ -168,6 +169,7 @@ class TimeFlow extends StatelessWidget {
                 employeeName: args["employeeName"] ?? "",
                 profileImageUrl: args["profileImageUrl"] ?? "",
                 employeeRole: args["employeeRole"] ?? "",
+                initialHistoryDate: args["initialHistoryDate"] as String?,
               ),
             );
           }

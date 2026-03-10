@@ -19,23 +19,31 @@ class HistoryPage extends StatelessWidget {
   final String? targetUid;
   final String? targetName;
 
+  /// Quando fornecido, abre o histórico já no mês desta data.
+  final DateTime? initialDate;
+
   const HistoryPage({
     super.key,
     this.targetUid,
     this.targetName,
+    this.initialDate,
   });
 
   @override
   Widget build(BuildContext context) {
     final now = DateTime.now();
+    final startMonth = initialDate != null
+        ? DateTime(initialDate!.year, initialDate!.month)
+        : DateTime(now.year, now.month);
     return BlocProvider(
       create: (_) => PontoHistoryBloc(
         repository: PontoHistoryRepository(),
         globalLoading: context.read<GlobalLoadingCubit>(),
-      )..add(LoadHistoryEvent(uid: targetUid, month: now)),
+      )..add(LoadHistoryEvent(uid: targetUid, month: startMonth)),
       child: _HistoryView(
         targetUid: targetUid,
         targetName: targetName,
+        initialDate: initialDate,
       ),
     );
   }
@@ -44,8 +52,9 @@ class HistoryPage extends StatelessWidget {
 class _HistoryView extends StatefulWidget {
   final String? targetUid;
   final String? targetName;
+  final DateTime? initialDate;
 
-  const _HistoryView({this.targetUid, this.targetName});
+  const _HistoryView({this.targetUid, this.targetName, this.initialDate});
 
   @override
   State<_HistoryView> createState() => _HistoryViewState();
@@ -60,7 +69,9 @@ class _HistoryViewState extends State<_HistoryView> {
   void initState() {
     super.initState();
     final now = DateTime.now();
-    _currentMonth = DateTime(now.year, now.month);
+    _currentMonth = widget.initialDate != null
+        ? DateTime(widget.initialDate!.year, widget.initialDate!.month)
+        : DateTime(now.year, now.month);
   }
 
   void _goToPreviousMonth() {

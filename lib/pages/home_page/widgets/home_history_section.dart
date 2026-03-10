@@ -9,7 +9,7 @@ import 'package:flutter_application_appdeponto/services/ponto_edit_dialogs.dart'
 import '../../history_page/widgets/day_card.dart';
 import '../../history_page/widgets/month_selector.dart';
 
-class HomeHistorySection extends StatelessWidget {
+class HomeHistorySection extends StatefulWidget {
   final DateTime currentMonth;
   final VoidCallback onPrevious;
   final VoidCallback onNext;
@@ -17,6 +17,9 @@ class HomeHistorySection extends StatelessWidget {
   final String? uid;
   final List<String> Function() generateMonthDays;
   final VoidCallback onActionSuccess;
+
+  /// Dia que deve receber destaque visual e scroll (ISO 'yyyy-MM-dd').
+  final String? highlightDayId;
 
   const HomeHistorySection({
     super.key,
@@ -27,7 +30,59 @@ class HomeHistorySection extends StatelessWidget {
     required this.generateMonthDays,
     required this.onActionSuccess,
     this.uid,
+    this.highlightDayId,
   });
+
+  @override
+  State<HomeHistorySection> createState() => _HomeHistorySectionState();
+}
+
+class _HomeHistorySectionState extends State<HomeHistorySection> {
+  /// GlobalKeys por diaId para `Scrollable.ensureVisible`.
+  final Map<String, GlobalKey> _dayKeys = {};
+
+  GlobalKey _keyForDay(String diaId) =>
+      _dayKeys.putIfAbsent(diaId, () => GlobalKey());
+
+  void _scrollToHighlightedDay() {
+    final id = widget.highlightDayId;
+    if (id == null) return;
+    final ctx = _dayKeys[id]?.currentContext;
+    if (ctx == null) return;
+    Scrollable.ensureVisible(
+      ctx,
+      alignment: 0.15,
+      duration: const Duration(milliseconds: 500),
+      curve: Curves.easeInOut,
+    );
+  }
+
+  @override
+  void didUpdateWidget(HomeHistorySection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    // Mês mudou → limpa chaves velhas (evita acúmulo desnecessário).
+    if (widget.currentMonth != oldWidget.currentMonth) {
+      _dayKeys.clear();
+    }
+
+    // Highlight mudou → se o histórico já está carregado, scrolla imediatamente.
+    if (widget.highlightDayId != oldWidget.highlightDayId &&
+        widget.highlightDayId != null) {
+      final state = context.read<PontoHistoryBloc>().state;
+      final alreadyLoaded = state is PontoHistoryLoaded ||
+          state is PontoHistoryActionSuccess ||
+          state is PontoHistoryActionError ||
+          state is PontoHistoryActionProcessing;
+      if (alreadyLoaded) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _scrollToHighlightedDay();
+        });
+      }
+      // Se não está carregado, o BlocConsumer.listener cuidará do scroll
+      // quando o estado mudar para PontoHistoryLoaded.
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -55,20 +110,28 @@ class HomeHistorySection extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         MonthSelector(
-          currentMonth: currentMonth,
-          onPrevious: onPrevious,
-          onNext: onNext,
+          currentMonth: widget.currentMonth,
+          onPrevious: widget.onPrevious,
+          onNext: widget.onNext,
         ),
         const SizedBox(height: 8),
         BlocConsumer<PontoHistoryBloc, PontoHistoryState>(
           listener: (context, state) {
             if (state is PontoHistoryActionSuccess) {
               CustomSnackbar.showSuccess(context, state.message);
-              onActionSuccess();
+              widget.onActionSuccess();
             } else if (state is PontoHistoryActionError) {
               CustomSnackbar.showError(context, state.message);
             } else if (state is PontoHistoryError) {
               CustomSnackbar.showError(context, state.message);
+            }
+
+            // Scroll para o dia destacado assim que o histórico terminar
+            // de carregar (caso o mês tenha mudado).
+            if (state is PontoHistoryLoaded && widget.highlightDayId != null) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) _scrollToHighlightedDay();
+              });
             }
           },
           builder: (context, state) {
@@ -95,7 +158,7 @@ class HomeHistorySection extends StatelessWidget {
               daysMap = state.daysMap;
             }
 
-            final allDays = generateMonthDays();
+            final allDays = widget.generateMonthDays();
 
             if (allDays.isEmpty) {
               return Padding(
@@ -110,26 +173,28 @@ class HomeHistorySection extends StatelessWidget {
               );
             }
 
-            final canEdit = isAdmin && uid != null;
+            final canEdit = widget.isAdmin && widget.uid != null;
 
             return Column(
               children: allDays.map((diaId) {
                 final eventos = daysMap[diaId] ?? [];
+                final isHighlight = diaId == widget.highlightDayId;
                 return DayCard(
+                  key: isHighlight ? _keyForDay(diaId) : null,
                   diaId: diaId,
                   eventos: eventos,
-                  isAdmin: isAdmin,
+                  isAdmin: widget.isAdmin,
                   onAddEvento: canEdit
                       ? () => showPontoAddDialog(
                             context: context,
-                            uid: uid!,
+                            uid: widget.uid!,
                             diaId: diaId,
                           )
                       : null,
                   onEditEvento: canEdit
                       ? (ev) => showPontoEditDialog(
                             context: context,
-                            uid: uid!,
+                            uid: widget.uid!,
                             diaId: diaId,
                             evento: ev,
                           )
@@ -137,7 +202,7 @@ class HomeHistorySection extends StatelessWidget {
                   onDeleteEvento: canEdit
                       ? (ev) => showPontoDeleteConfirm(
                             context: context,
-                            uid: uid!,
+                            uid: widget.uid!,
                             diaId: diaId,
                             evento: ev,
                           )
