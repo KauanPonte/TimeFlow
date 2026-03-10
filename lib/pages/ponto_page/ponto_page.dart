@@ -2,7 +2,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../blocs/global_loading/global_loading_cubit.dart';
+import '../../blocs/ponto_data/ponto_data_changed_cubit.dart';
 import '../../widgets/bottom_nav.dart';
+import '../../widgets/custom_snackbar.dart';
 import '../../services/ponto_service.dart';
 import '../../services/notification_service.dart';
 import '../../services/ponto_validator.dart';
@@ -62,40 +64,62 @@ class _PontoPageState extends State<PontoPage> {
     setState(() => loading = false);
   }
 
+  /// Atualiza os dados sem exibir o loading da página inteira.
+  Future<void> _refreshRegistros() async {
+    registros = await PontoService.loadRegistros();
+    _eventosHojeList = await PontoService.loadEventosHojeFormatados();
+    _ultimoTipo = await PontoService.getUltimoTipoHoje();
+    if (mounted) setState(() {});
+  }
+
   Future<void> _registrar(String status) async {
     setState(() => registering = true);
-    context.read<GlobalLoadingCubit>().show('Registrando ponto...');
+    // Captura referências antes dos gaps assíncronos.
+    final globalLoading = context.read<GlobalLoadingCubit>();
+    final pontoDataChanged = context.read<PontoDataChangedCubit>();
+    globalLoading.show('Registrando ponto...');
+    var pontoResult = const PontoResult(success: false, message: '');
     try {
-      await PontoService.registrarPonto(context, status);
-      await _loadRegistros();
+      pontoResult = await PontoService.registrarPonto(status);
+      if (pontoResult.success) {
+        await _refreshRegistros();
+        // Notifica outras telas (ex: Meu Ponto) para atualizar silenciosamente.
+        pontoDataChanged.notifyChanged();
+      }
     } finally {
-      context.read<GlobalLoadingCubit>().hide();
-      setState(() => registering = false);
+      globalLoading.hide();
+      if (mounted) {
+        setState(() => registering = false);
+        if (pontoResult.success) {
+          CustomSnackbar.showSuccess(context, pontoResult.message);
+          String title;
+          String body;
+          switch (status) {
+            case 'entrada':
+              title = 'Ponto registrado';
+              body = 'Bom trabalho! Sua entrada foi registrada.';
+              break;
+            case 'pausa':
+              title = 'Pausa iniciada';
+              body = 'Lembre-se de registrar o retorno depois.';
+              break;
+            case 'retorno':
+              title = 'Retorno registrado';
+              body = 'Continue com foco no seu trabalho!';
+              break;
+            case 'saida':
+              title = 'Saída registrada';
+              body = 'Bom descanso! Até amanhã.';
+              break;
+            default:
+              return;
+          }
+          NotificationService.showInstantNotification(title: title, body: body);
+        } else if (pontoResult.message.isNotEmpty) {
+          CustomSnackbar.showError(context, pontoResult.message);
+        }
+      }
     }
-
-    String title;
-    String body;
-    switch (status) {
-      case 'entrada':
-        title = 'Ponto registrado';
-        body = 'Bom trabalho! Sua entrada foi registrada.';
-        break;
-      case 'pausa':
-        title = 'Pausa iniciada';
-        body = 'Lembre-se de registrar o retorno depois.';
-        break;
-      case 'retorno':
-        title = 'Retorno registrado';
-        body = 'Continue com foco no seu trabalho!';
-        break;
-      case 'saida':
-        title = 'Saída registrada';
-        body = 'Bom descanso! Até amanhã.';
-        break;
-      default:
-        return;
-    }
-    NotificationService.showInstantNotification(title: title, body: body);
   }
 
   String get _statusLabel {
@@ -204,7 +228,7 @@ class _PontoPageState extends State<PontoPage> {
               ),
             )
           : RefreshIndicator(
-              onRefresh: _loadRegistros,
+              onRefresh: _refreshRegistros,
               color: AppColors.primary,
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),

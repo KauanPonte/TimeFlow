@@ -14,6 +14,7 @@ class PontoHistoryBloc extends Bloc<PontoHistoryEvent, PontoHistoryState> {
   PontoHistoryBloc({required this.repository, this.globalLoading})
       : super(const PontoHistoryInitial()) {
     on<LoadHistoryEvent>(_onLoad);
+    on<SilentReloadHistoryEvent>(_onSilentReload);
     on<AddEventoEvent>(_onAdd);
     on<UpdateEventoEvent>(_onUpdate);
     on<DeleteEventoEvent>(_onDelete);
@@ -48,6 +49,25 @@ class PontoHistoryBloc extends Bloc<PontoHistoryEvent, PontoHistoryState> {
     );
   }
 
+  /// Recarrega sem emitir PontoHistoryLoading — mantém os dados atuais visíveis.
+  Future<void> _onSilentReload(
+    SilentReloadHistoryEvent event,
+    Emitter<PontoHistoryState> emit,
+  ) async {
+    try {
+      // _currentUid pode ser null → o repositório usa FirebaseAuth.currentUser.
+      final daysMap = await repository.loadDaysByMonth(
+        uid: _currentUid,
+        year: _currentMonth.year,
+        month: _currentMonth.month,
+      );
+      _lastDaysMap = daysMap;
+      emit(PontoHistoryLoaded(daysMap: daysMap));
+    } catch (_) {
+      // Silencia erros — mantém o estado atual sem exibir spinner.
+    }
+  }
+
   Future<void> _onAdd(
     AddEventoEvent event,
     Emitter<PontoHistoryState> emit,
@@ -66,17 +86,17 @@ class PontoHistoryBloc extends Bloc<PontoHistoryEvent, PontoHistoryState> {
       );
       final daysMap = await _reloadMonth(_currentUid ?? event.uid);
       _lastDaysMap = daysMap;
+      globalLoading?.hide();
       emit(PontoHistoryActionSuccess(
         message: 'Ponto adicionado com sucesso',
         daysMap: daysMap,
       ));
     } catch (e) {
+      globalLoading?.hide();
       emit(PontoHistoryActionError(
         message: e.toString().replaceAll('Exception: ', ''),
         daysMap: _lastDaysMap,
       ));
-    } finally {
-      globalLoading?.hide();
     }
   }
 
@@ -99,17 +119,17 @@ class PontoHistoryBloc extends Bloc<PontoHistoryEvent, PontoHistoryState> {
       );
       final daysMap = await _reloadMonth(_currentUid ?? event.uid);
       _lastDaysMap = daysMap;
+      globalLoading?.hide();
       emit(PontoHistoryActionSuccess(
         message: 'Ponto atualizado com sucesso',
         daysMap: daysMap,
       ));
     } catch (e) {
+      globalLoading?.hide();
       emit(PontoHistoryActionError(
         message: e.toString().replaceAll('Exception: ', ''),
         daysMap: _lastDaysMap,
       ));
-    } finally {
-      globalLoading?.hide();
     }
   }
 
@@ -130,17 +150,17 @@ class PontoHistoryBloc extends Bloc<PontoHistoryEvent, PontoHistoryState> {
       );
       final daysMap = await _reloadMonth(_currentUid ?? event.uid);
       _lastDaysMap = daysMap;
+      globalLoading?.hide();
       emit(PontoHistoryActionSuccess(
         message: 'Ponto removido com sucesso',
         daysMap: daysMap,
       ));
     } catch (e) {
+      globalLoading?.hide();
       emit(PontoHistoryActionError(
         message: e.toString().replaceAll('Exception: ', ''),
         daysMap: _lastDaysMap,
       ));
-    } finally {
-      globalLoading?.hide();
     }
   }
 }

@@ -121,13 +121,13 @@ class CreateUserBloc extends Bloc<CreateUserEvent, CreateUserState> {
         role: event.role,
       );
 
+      globalLoading?.hide();
       emit(CreateUserSuccess(event.name));
     } catch (e) {
+      globalLoading?.hide();
       emit(CreateUserError(e.toString().replaceAll('Exception: ', '')));
       // Volta para o estado do formulário
       emit(formState);
-    } finally {
-      globalLoading?.hide();
     }
   }
 

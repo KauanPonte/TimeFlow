@@ -69,6 +69,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
                 profileImageUrl: downloadUrl,
               );
 
+      globalLoading?.hide();
       emit(ProfileActionSuccess(
         message: 'Foto atualizada com sucesso!',
         updatedData: updatedData,
@@ -78,6 +79,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
       await Future.delayed(const Duration(milliseconds: 100));
       emit(updatedData);
     } catch (e) {
+      globalLoading?.hide();
       emit(ProfileError(
         message:
             'Erro ao enviar foto: ${e.toString().replaceAll('Exception: ', '')}',
@@ -89,8 +91,6 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
         await Future.delayed(const Duration(milliseconds: 100));
         emit(previousData);
       }
-    } finally {
-      globalLoading?.hide();
     }
   }
 
@@ -118,6 +118,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
             profileImageUrl: '',
           );
 
+      globalLoading?.hide();
       emit(ProfileActionSuccess(
         message: 'Foto removida com sucesso!',
         updatedData: updatedData,
@@ -126,6 +127,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
       await Future.delayed(const Duration(milliseconds: 100));
       emit(updatedData);
     } catch (e) {
+      globalLoading?.hide();
       emit(ProfileError(
         message:
             'Erro ao remover foto: ${e.toString().replaceAll('Exception: ', '')}',
@@ -136,8 +138,6 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
         await Future.delayed(const Duration(milliseconds: 100));
         emit(previousData);
       }
-    } finally {
-      globalLoading?.hide();
     }
   }
 
@@ -161,6 +161,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
             profileImageUrl: '',
           );
 
+      globalLoading?.hide();
       emit(ProfileActionSuccess(
         message: 'Nome atualizado com sucesso!',
         updatedData: updatedData,
@@ -169,6 +170,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
       await Future.delayed(const Duration(milliseconds: 100));
       emit(updatedData);
     } catch (e) {
+      globalLoading?.hide();
       emit(ProfileError(
         message:
             'Erro ao atualizar nome: ${e.toString().replaceAll('Exception: ', '')}',
@@ -179,8 +181,6 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
         await Future.delayed(const Duration(milliseconds: 100));
         emit(previousData);
       }
-    } finally {
-      globalLoading?.hide();
     }
   }
 }

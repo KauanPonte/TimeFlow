@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/auth/auth_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/global_loading/global_loading_cubit.dart';
 import 'package:flutter_application_appdeponto/blocs/global_loading/global_loading_state.dart';
+import 'package:flutter_application_appdeponto/blocs/ponto_data/ponto_data_changed_cubit.dart';
 import 'package:flutter_application_appdeponto/repositories/auth_repository.dart';
 import 'package:flutter_application_appdeponto/widgets/action_loading_overlay.dart';
 import 'pages/splash/splash_page.dart';
@@ -61,6 +62,9 @@ class TimeFlow extends StatelessWidget {
         ),
         BlocProvider<GlobalLoadingCubit>(
           create: (_) => GlobalLoadingCubit(),
+        ),
+        BlocProvider<PontoDataChangedCubit>(
+          create: (_) => PontoDataChangedCubit(),
         ),
         // BlocProvider<AdminBloc>(
         //   create: (context) => AdminBloc(

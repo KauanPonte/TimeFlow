@@ -88,6 +88,7 @@ class UserManagementBloc
       );
 
       // Emite sucesso apenas uma vez
+      globalLoading?.hide();
       emit(UserManagementActionSuccess(
         message: '${event.userName} aprovado com sucesso!',
         previousState: newState,
@@ -97,12 +98,11 @@ class UserManagementBloc
       await Future.delayed(const Duration(milliseconds: 100));
       emit(newState);
     } catch (e) {
+      globalLoading?.hide();
       emit(UserManagementError(
         message: 'Erro ao aprovar solicitação',
         details: e.toString(),
       ));
-    } finally {
-      globalLoading?.hide();
     }
   }
 
@@ -126,6 +126,7 @@ class UserManagementBloc
             : '',
       );
 
+      globalLoading?.hide();
       emit(UserManagementActionSuccess(
         message: 'Solicitação de ${event.userName} rejeitada',
         previousState: newState,
@@ -135,12 +136,11 @@ class UserManagementBloc
       await Future.delayed(const Duration(milliseconds: 100));
       emit(newState);
     } catch (e) {
+      globalLoading?.hide();
       emit(UserManagementError(
         message: 'Erro ao rejeitar solicitação',
         details: e.toString(),
       ));
-    } finally {
-      globalLoading?.hide();
     }
   }
 
@@ -165,6 +165,7 @@ class UserManagementBloc
             currentState is UsersLoaded ? currentState.searchQuery : '',
       );
 
+      globalLoading?.hide();
       emit(UserManagementActionSuccess(
         message: 'Cargo de ${event.userName} atualizado com sucesso!',
         previousState: newState,
@@ -172,12 +173,11 @@ class UserManagementBloc
 
       emit(newState);
     } catch (e) {
+      globalLoading?.hide();
       emit(UserManagementError(
         message: 'Erro ao atualizar cargo',
         details: e.toString(),
       ));
-    } finally {
-      globalLoading?.hide();
     }
   }
 
@@ -202,6 +202,7 @@ class UserManagementBloc
             currentState is UsersLoaded ? currentState.searchQuery : '',
       );
 
+      globalLoading?.hide();
       emit(UserManagementActionSuccess(
         message: '${event.userName} excluído com sucesso',
         previousState: newState,
@@ -209,12 +210,11 @@ class UserManagementBloc
 
       emit(newState);
     } catch (e) {
+      globalLoading?.hide();
       emit(UserManagementError(
         message: 'Erro ao excluir usuário',
         details: e.toString(),
       ));
-    } finally {
-      globalLoading?.hide();
     }
   }
 

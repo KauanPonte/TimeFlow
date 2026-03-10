@@ -58,6 +58,12 @@ class UpdateEventoEvent extends PontoHistoryEvent {
   List<Object?> get props => [uid, diaId, eventoId, tipo, horario];
 }
 
+/// Recarrega o histórico silenciosamente (sem emitir PontoHistoryLoading),
+/// mantendo os dados existentes visíveis durante o fetch.
+class SilentReloadHistoryEvent extends PontoHistoryEvent {
+  const SilentReloadHistoryEvent();
+}
+
 /// Admin remove um evento de ponto.
 class DeleteEventoEvent extends PontoHistoryEvent {
   final String uid;

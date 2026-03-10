@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/ponto_history/ponto_history_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/ponto_history/ponto_history_event.dart';
 import 'package:flutter_application_appdeponto/blocs/global_loading/global_loading_cubit.dart';
+import 'package:flutter_application_appdeponto/blocs/ponto_data/ponto_data_changed_cubit.dart';
 import 'package:flutter_application_appdeponto/repositories/ponto_history_repository.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/widgets/main_app_bar.dart';
@@ -159,6 +160,30 @@ class _HomePageState extends State<HomePage> {
     _historyBloc.add(LoadHistoryEvent(month: _currentMonth));
   }
 
+  /// Atualiza os dados da home sem exibir o loading da página inteira.
+  /// Usado após ações de edição/adição/remoção de ponto e ao
+  /// retornar da tela de bater ponto.
+  Future<void> _refreshData() async {
+    eventosHoje = await PontoService.loadEventosHoje();
+    ultimoTipoHoje = await PontoService.getUltimoTipoHoje();
+
+    final now = DateTime.now();
+    statusLabel = _labelFromUltimoTipo(ultimoTipoHoje);
+    todayWorkedDisplay = _computeWorkedFromEventos(eventosHoje, now: now);
+
+    final minutesNow = _computeWorkedMinutesFromEventos(eventosHoje, now: now);
+    workProgress = (_targetMinutesPerDay == 0)
+        ? 0.0
+        : (minutesNow / _targetMinutesPerDay).clamp(0.0, 1.0);
+
+    monthBalance = await PontoService.getSaldoMesAtualHoras();
+
+    if (mounted) setState(() {});
+
+    // Recarrega o histórico embutido silenciosamente (sem spinner).
+    _historyBloc.add(const SilentReloadHistoryEvent());
+  }
+
   String _labelFromUltimoTipo(String? ultimo) {
     switch (ultimo) {
       case 'entrada':
@@ -242,7 +267,7 @@ class _HomePageState extends State<HomePage> {
               ),
             )
           : RefreshIndicator(
-              onRefresh: _loadAll,
+              onRefresh: _refreshData,
               color: AppColors.primary,
               child: ListView(
                 padding: const EdgeInsets.all(20),
@@ -258,15 +283,19 @@ class _HomePageState extends State<HomePage> {
                   BalanceCard(monthBalance: monthBalance),
                   const SizedBox(height: 24),
                   PunchButton(
-                    onPressed: () => Navigator.pushNamed(
-                      context,
-                      '/ponto',
-                      arguments: {
-                        'employeeName': employeeName,
-                        'profileImageUrl': profileImageUrl,
-                        'employeeRole': widget.employeeRole,
-                      },
-                    ).then((_) => _loadAll()),
+                    onPressed: () async {
+                      await Navigator.pushNamed(
+                        context,
+                        '/ponto',
+                        arguments: {
+                          'employeeName': employeeName,
+                          'profileImageUrl': profileImageUrl,
+                          'employeeRole': widget.employeeRole,
+                        },
+                      );
+                      if (!mounted) return;
+                      _refreshData();
+                    },
                   ),
                   HomeHistorySection(
                     currentMonth: _currentMonth,
@@ -275,7 +304,7 @@ class _HomePageState extends State<HomePage> {
                     isAdmin: isAdmin,
                     uid: _uid,
                     generateMonthDays: _generateMonthDays,
-                    onActionSuccess: _loadAll,
+                    onActionSuccess: _refreshData,
                   ),
                 ],
               ),
@@ -284,7 +313,10 @@ class _HomePageState extends State<HomePage> {
 
     return BlocProvider.value(
       value: _historyBloc,
-      child: scaffold,
+      child: BlocListener<PontoDataChangedCubit, DateTime>(
+        listener: (_, __) => _refreshData(),
+        child: scaffold,
+      ),
     );
   }
 }

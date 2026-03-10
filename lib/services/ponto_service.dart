@@ -1,8 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:flutter_application_appdeponto/widgets/custom_snackbar.dart';
+
+class PontoResult {
+  final bool success;
+  final String message;
+  const PontoResult({required this.success, required this.message});
+}
 
 class PontoService {
   static const String _root = 'pontos';
@@ -45,22 +49,22 @@ class PontoService {
 
   static String _mensagemErroTransicao(String? ultimo, String novo) {
     if (ultimo == null) return 'O primeiro ponto do dia precisa ser "entrada".';
-    if (ultimo == 'pausa')
+    if (ultimo == 'pausa') {
       return 'Após "pausa", é obrigatório registrar "retorno" antes de qualquer outro ponto.';
+    }
     return 'Não é possível registrar "$novo" agora. Último ponto foi "$ultimo".';
   }
 
-  static Future<void> registrarPonto(BuildContext context, String tipo) async {
+  static Future<PontoResult> registrarPonto(String tipo) async {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
-        CustomSnackbar.showError(context, 'Você precisa estar logado.');
-        return;
+        return const PontoResult(
+            success: false, message: 'Você precisa estar logado.');
       }
 
       if (!['entrada', 'pausa', 'retorno', 'saida'].contains(tipo)) {
-        CustomSnackbar.showError(context, 'Tipo inválido: $tipo.');
-        return;
+        return PontoResult(success: false, message: 'Tipo inválido: $tipo.');
       }
 
       final uid = user.uid;
@@ -123,11 +127,13 @@ class PontoService {
       await recalcularBancoDeHorasDoDia(uid: uid, diaId: diaId);
 
       final horas = DateFormat('HH:mm').format(DateTime.now());
-      CustomSnackbar.showSuccess(
-          context, 'Ponto "$tipo" registrado ás $horas.');
+      return PontoResult(
+          success: true, message: 'Ponto "$tipo" registrado às $horas.');
     } catch (e) {
-      CustomSnackbar.showError(
-          context, e.toString().replaceAll('Exception: ', ''));
+      return PontoResult(
+        success: false,
+        message: e.toString().replaceAll('Exception: ', ''),
+      );
     }
   }
 
