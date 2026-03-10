@@ -27,18 +27,15 @@ class HomeAdminPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => AdminHomeBloc()..add(const LoadAdminStatsEvent()),
-      child: HomeAdminView(
-        employeeName: employeeName,
-        profileImageUrl: profileImageUrl,
-        employeeRole: employeeRole,
-      ),
+    return HomeAdminView(
+      employeeName: employeeName,
+      profileImageUrl: profileImageUrl,
+      employeeRole: employeeRole,
     );
   }
 }
 
-class HomeAdminView extends StatelessWidget {
+class HomeAdminView extends StatefulWidget {
   final String employeeName;
   final String profileImageUrl;
   final String employeeRole;
@@ -51,6 +48,20 @@ class HomeAdminView extends StatelessWidget {
   });
 
   @override
+  State<HomeAdminView> createState() => _HomeAdminViewState();
+}
+
+class _HomeAdminViewState extends State<HomeAdminView> {
+  @override
+  void initState() {
+    super.initState();
+    final bloc = context.read<AdminHomeBloc>();
+    if (bloc.state is AdminHomeInitial) {
+      bloc.add(const LoadAdminStatsEvent());
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bgLight,
@@ -59,9 +70,9 @@ class HomeAdminView extends StatelessWidget {
         index: 0,
         isAdmin: true,
         args: {
-          'employeeName': employeeName,
-          'profileImageUrl': profileImageUrl,
-          'employeeRole': employeeRole,
+          'employeeName': widget.employeeName,
+          'profileImageUrl': widget.profileImageUrl,
+          'employeeRole': widget.employeeRole,
         },
       ),
       body: BlocBuilder<AdminHomeBloc, AdminHomeState>(
@@ -114,7 +125,7 @@ class HomeAdminView extends StatelessWidget {
               padding: const EdgeInsets.all(20),
               children: [
                 // Welcome Section
-                AdminWelcomeCard(employeeName: employeeName),
+                AdminWelcomeCard(employeeName: widget.employeeName),
                 const SizedBox(height: 24),
 
                 // Stats Cards

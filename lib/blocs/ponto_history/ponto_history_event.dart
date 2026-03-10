@@ -20,6 +20,11 @@ class LoadHistoryEvent extends PontoHistoryEvent {
   List<Object?> get props => [uid, month.year, month.month];
 }
 
+/// Reseta o histórico para o estado inicial (logout).
+class ResetHistoryEvent extends PontoHistoryEvent {
+  const ResetHistoryEvent();
+}
+
 /// Admin adiciona um evento de ponto.
 class AddEventoEvent extends PontoHistoryEvent {
   final String uid;
@@ -56,6 +61,12 @@ class UpdateEventoEvent extends PontoHistoryEvent {
 
   @override
   List<Object?> get props => [uid, diaId, eventoId, tipo, horario];
+}
+
+/// Recarrega o histórico silenciosamente (sem emitir PontoHistoryLoading),
+/// mantendo os dados existentes visíveis durante o fetch.
+class SilentReloadHistoryEvent extends PontoHistoryEvent {
+  const SilentReloadHistoryEvent();
 }
 
 /// Admin remove um evento de ponto.

@@ -1,7 +1,11 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../blocs/global_loading/global_loading_cubit.dart';
+import '../../blocs/ponto_today/ponto_today_cubit.dart';
+import '../../blocs/ponto_today/ponto_today_state.dart';
 import '../../widgets/bottom_nav.dart';
-import '../../services/ponto_service.dart';
+import '../../widgets/custom_snackbar.dart';
 import '../../services/notification_service.dart';
 import '../../services/ponto_validator.dart';
 import '../../theme/app_colors.dart';
@@ -20,10 +24,6 @@ class PontoPage extends StatefulWidget {
 }
 
 class _PontoPageState extends State<PontoPage> {
-  Map<String, Map<String, String>> registros = {};
-  List<Map<String, String>> _eventosHojeList = [];
-  String? _ultimoTipo;
-  bool loading = true;
   bool registering = false;
   late DateTime _now;
   Timer? _clockTimer;
@@ -44,7 +44,8 @@ class _PontoPageState extends State<PontoPage> {
       minute: 0,
     );
 
-    _loadRegistros();
+    // Garante que o cubit tenha dados carregados.
+    context.read<PontoTodayCubit>().load();
   }
 
   @override
@@ -53,52 +54,59 @@ class _PontoPageState extends State<PontoPage> {
     super.dispose();
   }
 
-  Future<void> _loadRegistros() async {
-    setState(() => loading = true);
-    registros = await PontoService.loadRegistros();
-    _eventosHojeList = await PontoService.loadEventosHojeFormatados();
-    _ultimoTipo = await PontoService.getUltimoTipoHoje();
-    setState(() => loading = false);
-  }
-
   Future<void> _registrar(String status) async {
     setState(() => registering = true);
-    await PontoService.registrarPonto(context, status);
-    await _loadRegistros();
-
+    final globalLoading = context.read<GlobalLoadingCubit>();
+    final cubit = context.read<PontoTodayCubit>();
+    globalLoading.show('Registrando ponto...');
+    try {
+      final pontoResult = await cubit.registrar(status);
+      globalLoading.hide();
+      if (mounted) {
+    
     if (status == 'saida') {
       _workMode = null;
     }
 
     setState(() => registering = false);
-
-    String title;
-    String body;
-    switch (status) {
-      case 'entrada':
-        title = 'Ponto registrado';
-        body = 'Bom trabalho! Sua entrada foi registrada.';
-        break;
-      case 'pausa':
-        title = 'Pausa iniciada';
-        body = 'Lembre-se de registrar o retorno depois.';
-        break;
-      case 'retorno':
-        title = 'Retorno registrado';
-        body = 'Continue com foco no seu trabalho!';
-        break;
-      case 'saida':
-        title = 'Saída registrada';
-        body = 'Bom descanso! Até amanhã.';
-        break;
-      default:
-        return;
+        if (pontoResult.success) {
+          CustomSnackbar.showSuccess(context, pontoResult.message);
+          String title;
+          String body;
+          switch (status) {
+            case 'entrada':
+              title = 'Ponto registrado';
+              body = 'Bom trabalho! Sua entrada foi registrada.';
+              break;
+            case 'pausa':
+              title = 'Pausa iniciada';
+              body = 'Lembre-se de registrar o retorno depois.';
+              break;
+            case 'retorno':
+              title = 'Retorno registrado';
+              body = 'Continue com foco no seu trabalho!';
+              break;
+            case 'saida':
+              title = 'Saída registrada';
+              body = 'Bom descanso! Até amanhã.';
+              break;
+            default:
+              return;
+          }
+          NotificationService.showInstantNotification(title: title, body: body);
+        } else if (pontoResult.message.isNotEmpty) {
+          CustomSnackbar.showError(context, pontoResult.message);
+        }
+      }
+    } catch (_) {
+      globalLoading.hide();
+      if (mounted) setState(() => registering = false);
     }
-    NotificationService.showInstantNotification(title: title, body: body);
   }
 
   String get _statusLabel {
-    switch (_ultimoTipo) {
+    final ultimoTipo = context.read<PontoTodayCubit>().state.ultimoTipo;
+    switch (ultimoTipo) {
       case 'entrada':
       case 'retorno':
         return 'Trabalhando...';
@@ -109,9 +117,10 @@ class _PontoPageState extends State<PontoPage> {
     }
   }
 
-  Map<String, String> get _hojeMapComputed {
+  /// Mapa com o último horário registrado de cada tipo hoje.
+  Map<String, String> _hojeMapComputed(PontoTodayState state) {
     final map = <String, String>{};
-    for (final ev in _eventosHojeList) {
+    for (final ev in state.eventosHojeFormatados) {
       final tipo = ev['tipo'] ?? '';
       final hora = ev['hora'] ?? '';
       if (tipo.isNotEmpty && hora.isNotEmpty) map[tipo] = hora;
@@ -126,17 +135,16 @@ class _PontoPageState extends State<PontoPage> {
     return '$y-$m-$d';
   }
 
-  Set<String> get _proximasAcoes {
-    Set<String> permitidos = PontoValidator.proximosPermitidos(_ultimoTipo);
-    if (_ultimoTipo == 'saida') {
-      permitidos.add('entrada');
-    }
-    return permitidos;
+  /// Próximas ações possíveis com base no último tipo registrado.
+  Set<String> _proximasAcoes(PontoTodayState state) {
+    return PontoValidator.proximosPermitidos(state.ultimoTipo);
   }
 
-  List<MapEntry<String, Map<String, String>>> get _incompletos {
+  /// Dias passados com sequência incompleta.
+  List<MapEntry<String, Map<String, String>>> _incompletos(
+      PontoTodayState state) {
     final hoje = _hojeKey;
-    return registros.entries.where((e) {
+    return state.registros.entries.where((e) {
       if (e.key == hoje) return false;
       final m = e.value;
       final temEntrada = m['entrada'] != null;
@@ -183,9 +191,11 @@ class _PontoPageState extends State<PontoPage> {
         ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>?;
     final isAdmin =
         (args?['employeeRole'] ?? '').toString().toUpperCase().contains('ADM');
-    final hoje = _hojeMapComputed;
-    final proximas = _proximasAcoes;
-    final incompletos = _incompletos;
+
+    final pontoState = context.watch<PontoTodayCubit>().state;
+    final hoje = _hojeMapComputed(pontoState);
+    final proximas = _proximasAcoes(pontoState);
+    final incompletos = _incompletos(pontoState);
     final bool isPanelAccessible = _workMode != null;
 
     return Scaffold(
@@ -219,10 +229,12 @@ class _PontoPageState extends State<PontoPage> {
         isAdmin: isAdmin,
         args: args,
       ),
-      body: loading
+      body: pontoState.loading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
-              onRefresh: _loadRegistros,
+              onRefresh: () async {
+                context.read<PontoTodayCubit>().refresh();
+              },
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.all(20),
@@ -334,7 +346,7 @@ class _PontoPageState extends State<PontoPage> {
                       ),
                     ),
                     const SizedBox(height: 28),
-                    if (_eventosHojeList.isNotEmpty) ...[
+                    if (pontoState.eventosHojeFormatados.isNotEmpty) ...[
                       Text(
                         'Registros de hoje',
                         style: AppTextStyles.bodyLarge.copyWith(
@@ -342,7 +354,7 @@ class _PontoPageState extends State<PontoPage> {
                             color: AppColors.textPrimary),
                       ),
                       const SizedBox(height: 12),
-                      TodayTimeline(eventos: _eventosHojeList),
+                      TodayTimeline(eventos: pontoState.eventosHojeFormatados),
                       const SizedBox(height: 8),
                     ],
                   ],

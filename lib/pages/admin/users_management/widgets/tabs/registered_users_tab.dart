@@ -247,38 +247,38 @@ class _RegisteredUsersTabState extends State<RegisteredUsersTab>
     String userName,
     String currentRole,
   ) async {
+    final bloc = context.read<UserManagementBloc>();
     await showDialog(
       context: context,
-      builder: (context) => EditRoleDialog(
+      builder: (_) => EditRoleDialog(
         userName: userName,
         currentRole: currentRole,
         onSave: (newRole) {
-          context.read<UserManagementBloc>().add(
-                UpdateUserRoleEvent(
-                  userId: userId,
-                  userName: userName,
-                  newRole: newRole,
-                ),
-              );
-          Navigator.pop(context);
+          bloc.add(
+            UpdateUserRoleEvent(
+              userId: userId,
+              userName: userName,
+              newRole: newRole,
+            ),
+          );
         },
       ),
     );
   }
 
   Future<void> _showDeleteUserDialog(String userId, String userName) async {
+    final bloc = context.read<UserManagementBloc>();
     await showDialog(
       context: context,
-      builder: (context) => DeleteUserDialog(
+      builder: (_) => DeleteUserDialog(
         userName: userName,
         onConfirm: () {
-          context.read<UserManagementBloc>().add(
-                DeleteUserEvent(
-                  userId: userId,
-                  userName: userName,
-                ),
-              );
-          Navigator.pop(context);
+          bloc.add(
+            DeleteUserEvent(
+              userId: userId,
+              userName: userName,
+            ),
+          );
         },
       ),
     );

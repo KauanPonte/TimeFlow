@@ -16,3 +16,8 @@ class LoadAdminStatsEvent extends AdminHomeEvent {
 class RefreshAdminStatsEvent extends AdminHomeEvent {
   const RefreshAdminStatsEvent();
 }
+
+/// Reseta o painel para o estado inicial (logout).
+class ResetAdminHomeEvent extends AdminHomeEvent {
+  const ResetAdminHomeEvent();
+}

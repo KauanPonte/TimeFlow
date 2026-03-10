@@ -1,20 +1,39 @@
+import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_application_appdeponto/blocs/global_loading/global_loading_cubit.dart';
+import 'package:flutter_application_appdeponto/blocs/ponto_data/ponto_data_changed_cubit.dart';
 import 'package:flutter_application_appdeponto/repositories/ponto_history_repository.dart';
 import 'ponto_history_event.dart';
 import 'ponto_history_state.dart';
 
 class PontoHistoryBloc extends Bloc<PontoHistoryEvent, PontoHistoryState> {
   final PontoHistoryRepository repository;
+  final GlobalLoadingCubit? globalLoading;
+  StreamSubscription<DateTime>? _dataChangedSub;
   String? _currentUid;
   DateTime _currentMonth = DateTime.now();
   Map<String, List<Map<String, dynamic>>> _lastDaysMap = {};
 
-  PontoHistoryBloc({required this.repository})
-      : super(const PontoHistoryInitial()) {
+  /// Mês atualmente carregado.
+  DateTime get currentMonth => _currentMonth;
+
+  PontoHistoryBloc({
+    required this.repository,
+    this.globalLoading,
+    PontoDataChangedCubit? dataChangedCubit,
+  }) : super(const PontoHistoryInitial()) {
     on<LoadHistoryEvent>(_onLoad);
+    on<SilentReloadHistoryEvent>(_onSilentReload);
     on<AddEventoEvent>(_onAdd);
     on<UpdateEventoEvent>(_onUpdate);
     on<DeleteEventoEvent>(_onDelete);
+    on<ResetHistoryEvent>((_, emit) => emit(const PontoHistoryInitial()));
+
+    // Auto-refresh silenciosamente quando dados de ponto mudarem.
+    if (dataChangedCubit != null) {
+      _dataChangedSub = dataChangedCubit.stream
+          .listen((_) => add(const SilentReloadHistoryEvent()));
+    }
   }
 
   Future<void> _onLoad(
@@ -46,10 +65,34 @@ class PontoHistoryBloc extends Bloc<PontoHistoryEvent, PontoHistoryState> {
     );
   }
 
+  /// Recarrega sem emitir PontoHistoryLoading — mantém os dados atuais visíveis.
+  Future<void> _onSilentReload(
+    SilentReloadHistoryEvent event,
+    Emitter<PontoHistoryState> emit,
+  ) async {
+    try {
+      // _currentUid pode ser null → o repositório usa FirebaseAuth.currentUser.
+      final daysMap = await repository.loadDaysByMonth(
+        uid: _currentUid,
+        year: _currentMonth.year,
+        month: _currentMonth.month,
+      );
+      _lastDaysMap = daysMap;
+      emit(PontoHistoryLoaded(daysMap: daysMap));
+    } catch (_) {
+      // Silencia erros — mantém o estado atual sem exibir spinner.
+    }
+  }
+
   Future<void> _onAdd(
     AddEventoEvent event,
     Emitter<PontoHistoryState> emit,
   ) async {
+    globalLoading?.show('Adicionando ponto...');
+    emit(PontoHistoryActionProcessing(
+      message: 'Adicionando ponto...',
+      daysMap: _lastDaysMap,
+    ));
     try {
       await repository.addEvento(
         uid: event.uid,
@@ -59,11 +102,13 @@ class PontoHistoryBloc extends Bloc<PontoHistoryEvent, PontoHistoryState> {
       );
       final daysMap = await _reloadMonth(_currentUid ?? event.uid);
       _lastDaysMap = daysMap;
+      globalLoading?.hide();
       emit(PontoHistoryActionSuccess(
         message: 'Ponto adicionado com sucesso',
         daysMap: daysMap,
       ));
     } catch (e) {
+      globalLoading?.hide();
       emit(PontoHistoryActionError(
         message: e.toString().replaceAll('Exception: ', ''),
         daysMap: _lastDaysMap,
@@ -75,6 +120,11 @@ class PontoHistoryBloc extends Bloc<PontoHistoryEvent, PontoHistoryState> {
     UpdateEventoEvent event,
     Emitter<PontoHistoryState> emit,
   ) async {
+    globalLoading?.show('Atualizando ponto...');
+    emit(PontoHistoryActionProcessing(
+      message: 'Atualizando ponto...',
+      daysMap: _lastDaysMap,
+    ));
     try {
       await repository.updateEvento(
         uid: event.uid,
@@ -85,11 +135,13 @@ class PontoHistoryBloc extends Bloc<PontoHistoryEvent, PontoHistoryState> {
       );
       final daysMap = await _reloadMonth(_currentUid ?? event.uid);
       _lastDaysMap = daysMap;
+      globalLoading?.hide();
       emit(PontoHistoryActionSuccess(
         message: 'Ponto atualizado com sucesso',
         daysMap: daysMap,
       ));
     } catch (e) {
+      globalLoading?.hide();
       emit(PontoHistoryActionError(
         message: e.toString().replaceAll('Exception: ', ''),
         daysMap: _lastDaysMap,
@@ -101,6 +153,11 @@ class PontoHistoryBloc extends Bloc<PontoHistoryEvent, PontoHistoryState> {
     DeleteEventoEvent event,
     Emitter<PontoHistoryState> emit,
   ) async {
+    globalLoading?.show('Removendo ponto...');
+    emit(PontoHistoryActionProcessing(
+      message: 'Removendo ponto...',
+      daysMap: _lastDaysMap,
+    ));
     try {
       await repository.deleteEvento(
         uid: event.uid,
@@ -109,15 +166,26 @@ class PontoHistoryBloc extends Bloc<PontoHistoryEvent, PontoHistoryState> {
       );
       final daysMap = await _reloadMonth(_currentUid ?? event.uid);
       _lastDaysMap = daysMap;
+      globalLoading?.hide();
       emit(PontoHistoryActionSuccess(
         message: 'Ponto removido com sucesso',
         daysMap: daysMap,
       ));
     } catch (e) {
+      globalLoading?.hide();
       emit(PontoHistoryActionError(
         message: e.toString().replaceAll('Exception: ', ''),
         daysMap: _lastDaysMap,
       ));
     }
+  }
+
+  /// Limpa o estado (chamado no logout).
+  void reset() => add(const ResetHistoryEvent());
+
+  @override
+  Future<void> close() {
+    _dataChangedSub?.cancel();
+    return super.close();
   }
 }

@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_application_appdeponto/blocs/global_loading/global_loading_cubit.dart';
 import 'package:flutter_application_appdeponto/repositories/user_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'user_management_event.dart';
@@ -6,7 +7,10 @@ import 'user_management_state.dart';
 
 class UserManagementBloc
     extends Bloc<UserManagementEvent, UserManagementState> {
-  UserManagementBloc() : super(const UserManagementInitial()) {
+  final GlobalLoadingCubit? globalLoading;
+
+  UserManagementBloc({this.globalLoading})
+      : super(const UserManagementInitial()) {
     on<LoadUsersEvent>(_onLoadUsers);
     on<LoadPendingRequestsEvent>(_onLoadPendingRequests);
     on<ApproveRequestEvent>(_onApproveRequest);
@@ -66,6 +70,7 @@ class UserManagementBloc
     Emitter<UserManagementState> emit,
   ) async {
     try {
+      globalLoading?.show('Aprovando solicitação...');
       final currentState = state;
 
       await UserRepository.approveRequest(
@@ -83,6 +88,7 @@ class UserManagementBloc
       );
 
       // Emite sucesso apenas uma vez
+      globalLoading?.hide();
       emit(UserManagementActionSuccess(
         message: '${event.userName} aprovado com sucesso!',
         previousState: newState,
@@ -92,6 +98,7 @@ class UserManagementBloc
       await Future.delayed(const Duration(milliseconds: 100));
       emit(newState);
     } catch (e) {
+      globalLoading?.hide();
       emit(UserManagementError(
         message: 'Erro ao aprovar solicitação',
         details: e.toString(),
@@ -105,6 +112,7 @@ class UserManagementBloc
     Emitter<UserManagementState> emit,
   ) async {
     try {
+      globalLoading?.show('Rejeitando solicitação...');
       final currentState = state;
 
       await UserRepository.rejectRequest(event.requestId);
@@ -118,6 +126,7 @@ class UserManagementBloc
             : '',
       );
 
+      globalLoading?.hide();
       emit(UserManagementActionSuccess(
         message: 'Solicitação de ${event.userName} rejeitada',
         previousState: newState,
@@ -127,6 +136,7 @@ class UserManagementBloc
       await Future.delayed(const Duration(milliseconds: 100));
       emit(newState);
     } catch (e) {
+      globalLoading?.hide();
       emit(UserManagementError(
         message: 'Erro ao rejeitar solicitação',
         details: e.toString(),
@@ -140,6 +150,7 @@ class UserManagementBloc
     Emitter<UserManagementState> emit,
   ) async {
     try {
+      globalLoading?.show('Atualizando cargo...');
       final currentState = state;
 
       await UserRepository.updateUserRole(event.userId, event.newRole);
@@ -154,6 +165,7 @@ class UserManagementBloc
             currentState is UsersLoaded ? currentState.searchQuery : '',
       );
 
+      globalLoading?.hide();
       emit(UserManagementActionSuccess(
         message: 'Cargo de ${event.userName} atualizado com sucesso!',
         previousState: newState,
@@ -161,6 +173,7 @@ class UserManagementBloc
 
       emit(newState);
     } catch (e) {
+      globalLoading?.hide();
       emit(UserManagementError(
         message: 'Erro ao atualizar cargo',
         details: e.toString(),
@@ -174,6 +187,7 @@ class UserManagementBloc
     Emitter<UserManagementState> emit,
   ) async {
     try {
+      globalLoading?.show('Excluindo usuário...');
       final currentState = state;
 
       await UserRepository.deleteUser(event.userId);
@@ -188,6 +202,7 @@ class UserManagementBloc
             currentState is UsersLoaded ? currentState.searchQuery : '',
       );
 
+      globalLoading?.hide();
       emit(UserManagementActionSuccess(
         message: '${event.userName} excluído com sucesso',
         previousState: newState,
@@ -195,6 +210,7 @@ class UserManagementBloc
 
       emit(newState);
     } catch (e) {
+      globalLoading?.hide();
       emit(UserManagementError(
         message: 'Erro ao excluir usuário',
         details: e.toString(),

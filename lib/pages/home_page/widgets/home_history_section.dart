@@ -91,6 +91,8 @@ class HomeHistorySection extends StatelessWidget {
               daysMap = state.daysMap;
             } else if (state is PontoHistoryActionError) {
               daysMap = state.daysMap;
+            } else if (state is PontoHistoryActionProcessing) {
+              daysMap = state.daysMap;
             }
 
             final allDays = generateMonthDays();
