@@ -7,10 +7,10 @@ import 'package:flutter_application_appdeponto/repositories/ponto_history_reposi
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
 import 'package:flutter_application_appdeponto/widgets/custom_snackbar.dart';
+import 'package:flutter_application_appdeponto/services/ponto_edit_dialogs.dart';
 import 'package:intl/intl.dart';
 import 'widgets/day_card.dart';
 import 'widgets/empty_history_state.dart';
-import 'widgets/evento_dialog.dart';
 import 'widgets/month_selector.dart';
 
 class HistoryPage extends StatelessWidget {
@@ -101,94 +101,30 @@ class _HistoryViewState extends State<_HistoryView> {
     return days;
   }
 
-  void _showAddDialogForDay(BuildContext context, String diaId) async {
-    final date = DateTime.parse(diaId);
-    final result = await showDialog<Map<String, dynamic>>(
-      context: context,
-      builder: (_) => EventoDialog(
-        title: 'Adicionar Ponto',
-        fixedDate: date,
-      ),
-    );
-
-    if (result != null && context.mounted) {
-      context.read<PontoHistoryBloc>().add(AddEventoEvent(
-            uid: widget.targetUid!,
-            diaId: result['diaId'],
-            tipo: result['tipo'],
-            horario: result['horario'],
-          ));
-    }
-  }
+  void _showAddDialogForDay(BuildContext context, String diaId) =>
+      showPontoAddDialog(
+        context: context,
+        uid: widget.targetUid!,
+        diaId: diaId,
+      );
 
   void _showEditDialog(
-      BuildContext context, String diaId, Map<String, dynamic> evento) async {
-    final result = await showDialog<Map<String, dynamic>>(
-      context: context,
-      builder: (_) => EventoDialog(
-        title: 'Editar Ponto',
-        initialTipo: evento['tipo'],
-        initialHorario: evento['at'],
-      ),
-    );
-
-    if (result != null && context.mounted) {
-      context.read<PontoHistoryBloc>().add(UpdateEventoEvent(
-            uid: widget.targetUid!,
-            diaId: result['diaId'],
-            eventoId: evento['id'],
-            tipo: result['tipo'],
-            horario: result['horario'],
-          ));
-    }
-  }
+          BuildContext context, String diaId, Map<String, dynamic> evento) =>
+      showPontoEditDialog(
+        context: context,
+        uid: widget.targetUid!,
+        diaId: diaId,
+        evento: evento,
+      );
 
   void _showDeleteConfirm(
-      BuildContext context, String diaId, Map<String, dynamic> evento) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
-          children: [
-            Icon(Icons.warning_amber_rounded,
-                color: AppColors.warning, size: 20),
-            SizedBox(width: 12),
-            Text('Remover Ponto', style: AppTextStyles.h3),
-          ],
-        ),
-        content: Text(
-          'Tem certeza que deseja remover este registro de ponto?',
-          style: AppTextStyles.bodyMedium,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text('Cancelar',
-                style: AppTextStyles.bodyMedium
-                    .copyWith(color: AppColors.textSecondary)),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              context.read<PontoHistoryBloc>().add(DeleteEventoEvent(
-                    uid: widget.targetUid!,
-                    diaId: diaId,
-                    eventoId: evento['id'],
-                  ));
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.error,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8)),
-            ),
-            child: const Text('Remover'),
-          ),
-        ],
-      ),
-    );
-  }
+          BuildContext context, String diaId, Map<String, dynamic> evento) =>
+      showPontoDeleteConfirm(
+        context: context,
+        uid: widget.targetUid!,
+        diaId: diaId,
+        evento: evento,
+      );
 
   @override
   Widget build(BuildContext context) {

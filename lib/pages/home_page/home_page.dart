@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
 import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/ponto_history/ponto_history_bloc.dart';
@@ -13,7 +12,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import '../../services/ponto_service.dart';
 import '../../widgets/bottom_nav.dart';
-import '../history_page/widgets/evento_dialog.dart';
 import 'widgets/status_card.dart';
 import 'widgets/balance_card.dart';
 import 'widgets/punch_button.dart';
@@ -211,102 +209,6 @@ class _HomePageState extends State<HomePage> {
     return total.inMinutes;
   }
 
-  void _showAddDialogForDay(String diaId) async {
-    final uid = _uid;
-    if (uid == null || !mounted) return;
-
-    final date = DateTime.parse(diaId);
-    final result = await showDialog<Map<String, dynamic>>(
-      context: context,
-      builder: (_) => EventoDialog(
-        title: 'Adicionar Ponto',
-        fixedDate: date,
-      ),
-    );
-
-    if (result != null && mounted) {
-      _historyBloc.add(AddEventoEvent(
-        uid: uid,
-        diaId: result['diaId'],
-        tipo: result['tipo'],
-        horario: result['horario'],
-      ));
-    }
-  }
-
-  void _showEditDialog(String diaId, Map<String, dynamic> evento) async {
-    final uid = _uid;
-    if (uid == null || !mounted) return;
-
-    final result = await showDialog<Map<String, dynamic>>(
-      context: context,
-      builder: (_) => EventoDialog(
-        title: 'Editar Ponto',
-        initialTipo: evento['tipo'],
-        initialHorario: evento['at'],
-      ),
-    );
-
-    if (result != null && mounted) {
-      _historyBloc.add(UpdateEventoEvent(
-        uid: uid,
-        diaId: result['diaId'],
-        eventoId: evento['id'],
-        tipo: result['tipo'],
-        horario: result['horario'],
-      ));
-    }
-  }
-
-  void _showDeleteConfirm(String diaId, Map<String, dynamic> evento) {
-    final uid = _uid;
-    if (uid == null || !mounted) return;
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
-          children: [
-            Icon(Icons.warning_amber_rounded,
-                color: AppColors.warning, size: 20),
-            SizedBox(width: 12),
-            Text('Remover Ponto', style: AppTextStyles.h3),
-          ],
-        ),
-        content: Text(
-          'Tem certeza que deseja remover este registro de ponto?',
-          style: AppTextStyles.bodyMedium,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text('Cancelar',
-                style: AppTextStyles.bodyMedium
-                    .copyWith(color: AppColors.textSecondary)),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              _historyBloc.add(DeleteEventoEvent(
-                uid: uid,
-                diaId: diaId,
-                eventoId: evento['id'],
-              ));
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.error,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8)),
-            ),
-            child: const Text('Remover'),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   void dispose() {
     _tickTimer?.cancel();
@@ -368,11 +270,9 @@ class _HomePageState extends State<HomePage> {
                     onPrevious: _goToPreviousMonth,
                     onNext: _goToNextMonth,
                     isAdmin: isAdmin,
+                    uid: _uid,
                     generateMonthDays: _generateMonthDays,
                     onActionSuccess: _loadAll,
-                    onAdd: _showAddDialogForDay,
-                    onEdit: _showEditDialog,
-                    onDelete: _showDeleteConfirm,
                   ),
                 ],
               ),

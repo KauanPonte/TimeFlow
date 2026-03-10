@@ -5,6 +5,7 @@ import 'package:flutter_application_appdeponto/blocs/ponto_history/ponto_history
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
 import 'package:flutter_application_appdeponto/widgets/custom_snackbar.dart';
+import 'package:flutter_application_appdeponto/services/ponto_edit_dialogs.dart';
 import '../../history_page/widgets/day_card.dart';
 import '../../history_page/widgets/month_selector.dart';
 
@@ -13,11 +14,9 @@ class HomeHistorySection extends StatelessWidget {
   final VoidCallback onPrevious;
   final VoidCallback onNext;
   final bool isAdmin;
+  final String? uid;
   final List<String> Function() generateMonthDays;
   final VoidCallback onActionSuccess;
-  final void Function(String diaId)? onAdd;
-  final void Function(String diaId, Map<String, dynamic> evento)? onEdit;
-  final void Function(String diaId, Map<String, dynamic> evento)? onDelete;
 
   const HomeHistorySection({
     super.key,
@@ -27,9 +26,7 @@ class HomeHistorySection extends StatelessWidget {
     required this.isAdmin,
     required this.generateMonthDays,
     required this.onActionSuccess,
-    this.onAdd,
-    this.onEdit,
-    this.onDelete,
+    this.uid,
   });
 
   @override
@@ -111,6 +108,8 @@ class HomeHistorySection extends StatelessWidget {
               );
             }
 
+            final canEdit = isAdmin && uid != null;
+
             return Column(
               children: allDays.map((diaId) {
                 final eventos = daysMap[diaId] ?? [];
@@ -118,11 +117,29 @@ class HomeHistorySection extends StatelessWidget {
                   diaId: diaId,
                   eventos: eventos,
                   isAdmin: isAdmin,
-                  onAddEvento: isAdmin ? () => onAdd?.call(diaId) : null,
-                  onEditEvento:
-                      isAdmin ? (ev) => onEdit?.call(diaId, ev) : null,
-                  onDeleteEvento:
-                      isAdmin ? (ev) => onDelete?.call(diaId, ev) : null,
+                  onAddEvento: canEdit
+                      ? () => showPontoAddDialog(
+                            context: context,
+                            uid: uid!,
+                            diaId: diaId,
+                          )
+                      : null,
+                  onEditEvento: canEdit
+                      ? (ev) => showPontoEditDialog(
+                            context: context,
+                            uid: uid!,
+                            diaId: diaId,
+                            evento: ev,
+                          )
+                      : null,
+                  onDeleteEvento: canEdit
+                      ? (ev) => showPontoDeleteConfirm(
+                            context: context,
+                            uid: uid!,
+                            diaId: diaId,
+                            evento: ev,
+                          )
+                      : null,
                 );
               }).toList(),
             );
