@@ -15,6 +15,20 @@ class PontoHistoryLoading extends PontoHistoryState {
   const PontoHistoryLoading();
 }
 
+/// Estado emitido enquanto uma ação (add/edit/delete) está em andamento.
+class PontoHistoryActionProcessing extends PontoHistoryState {
+  final String message;
+  final Map<String, List<Map<String, dynamic>>> daysMap;
+
+  const PontoHistoryActionProcessing({
+    required this.message,
+    required this.daysMap,
+  });
+
+  @override
+  List<Object?> get props => [message, daysMap];
+}
+
 class PontoHistoryLoaded extends PontoHistoryState {
   /// Mapa de diaId → eventos: [{ id, tipo, at }]
   final Map<String, List<Map<String, dynamic>>> daysMap;

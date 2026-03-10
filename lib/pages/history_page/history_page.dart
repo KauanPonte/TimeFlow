@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/ponto_history/ponto_history_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/ponto_history/ponto_history_event.dart';
 import 'package:flutter_application_appdeponto/blocs/ponto_history/ponto_history_state.dart';
+import 'package:flutter_application_appdeponto/blocs/global_loading/global_loading_cubit.dart';
 import 'package:flutter_application_appdeponto/repositories/ponto_history_repository.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
@@ -28,8 +29,10 @@ class HistoryPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final now = DateTime.now();
     return BlocProvider(
-      create: (_) => PontoHistoryBloc(repository: PontoHistoryRepository())
-        ..add(LoadHistoryEvent(uid: targetUid, month: now)),
+      create: (_) => PontoHistoryBloc(
+        repository: PontoHistoryRepository(),
+        globalLoading: context.read<GlobalLoadingCubit>(),
+      )..add(LoadHistoryEvent(uid: targetUid, month: now)),
       child: _HistoryView(
         targetUid: targetUid,
         targetName: targetName,
@@ -176,122 +179,121 @@ class _HistoryViewState extends State<_HistoryView> {
           ],
         ),
       ),
-      body: Column(
-        children: [
-          MonthSelector(
-            currentMonth: _currentMonth,
-            onPrevious: _goToPreviousMonth,
-            onNext: _goToNextMonth,
-          ),
-          Expanded(
-            child: BlocConsumer<PontoHistoryBloc, PontoHistoryState>(
-              listener: (context, state) {
-                if (state is PontoHistoryActionSuccess) {
-                  CustomSnackbar.showSuccess(context, state.message);
-                } else if (state is PontoHistoryActionError) {
-                  CustomSnackbar.showError(context, state.message);
-                } else if (state is PontoHistoryError) {
-                  CustomSnackbar.showError(context, state.message);
-                }
-              },
-              builder: (context, state) {
-                if (state is PontoHistoryLoading) {
-                  return const Center(
-                    child: CircularProgressIndicator(
-                      valueColor:
-                          AlwaysStoppedAnimation<Color>(AppColors.primary),
-                    ),
-                  );
-                }
+      body: BlocConsumer<PontoHistoryBloc, PontoHistoryState>(
+        listener: (context, state) {
+          if (state is PontoHistoryActionSuccess) {
+            CustomSnackbar.showSuccess(context, state.message);
+          } else if (state is PontoHistoryActionError) {
+            CustomSnackbar.showError(context, state.message);
+          } else if (state is PontoHistoryError) {
+            CustomSnackbar.showError(context, state.message);
+          }
+        },
+        builder: (context, state) {
+          return Column(
+            children: [
+              MonthSelector(
+                currentMonth: _currentMonth,
+                onPrevious: _goToPreviousMonth,
+                onNext: _goToNextMonth,
+              ),
+              Expanded(
+                child: _buildHistoryContent(context, state),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
 
-                Map<String, List<Map<String, dynamic>>> daysMap = {};
-                if (state is PontoHistoryLoaded) {
-                  daysMap = state.daysMap;
-                } else if (state is PontoHistoryActionSuccess) {
-                  daysMap = state.daysMap;
-                } else if (state is PontoHistoryActionError) {
-                  daysMap = state.daysMap;
-                }
+  Widget _buildHistoryContent(BuildContext context, PontoHistoryState state) {
+    if (state is PontoHistoryLoading) {
+      return const Center(
+        child: CircularProgressIndicator(
+          valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+        ),
+      );
+    }
 
-                if (state is PontoHistoryError && daysMap.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.error_outline,
-                            size: 64, color: AppColors.error),
-                        const SizedBox(height: 16),
-                        Text(
-                          state.message,
-                          style: AppTextStyles.bodyLarge
-                              .copyWith(color: AppColors.error),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 16),
-                        ElevatedButton(
-                          onPressed: () {
-                            context.read<PontoHistoryBloc>().add(
-                                  LoadHistoryEvent(
-                                    uid: widget.targetUid,
-                                    month: _currentMonth,
-                                  ),
-                                );
-                          },
-                          child: const Text('Tentar novamente'),
-                        ),
-                      ],
-                    ),
-                  );
-                }
+    Map<String, List<Map<String, dynamic>>> daysMap = {};
+    if (state is PontoHistoryLoaded) {
+      daysMap = state.daysMap;
+    } else if (state is PontoHistoryActionSuccess) {
+      daysMap = state.daysMap;
+    } else if (state is PontoHistoryActionError) {
+      daysMap = state.daysMap;
+    } else if (state is PontoHistoryActionProcessing) {
+      daysMap = state.daysMap;
+    }
 
-                // Gera todos os dias do mês (sem futuros)
-                final allDays = _generateMonthDays();
-
-                if (allDays.isEmpty) {
-                  return const EmptyHistoryState();
-                }
-
-                return RefreshIndicator(
-                  onRefresh: () async {
-                    context.read<PontoHistoryBloc>().add(
-                          LoadHistoryEvent(
-                            uid: widget.targetUid,
-                            month: _currentMonth,
-                          ),
-                        );
-                  },
-                  color: AppColors.primary,
-                  child: ListView.builder(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    itemCount: allDays.length,
-                    itemBuilder: (context, index) {
-                      final diaId = allDays[index];
-                      final eventos = daysMap[diaId] ?? [];
-
-                      return DayCard(
-                        diaId: diaId,
-                        eventos: eventos,
-                        isAdmin: isAdmin,
-                        onAddEvento: isAdmin
-                            ? () => _showAddDialogForDay(context, diaId)
-                            : null,
-                        onEditEvento: isAdmin
-                            ? (evento) =>
-                                _showEditDialog(context, diaId, evento)
-                            : null,
-                        onDeleteEvento: isAdmin
-                            ? (evento) =>
-                                _showDeleteConfirm(context, diaId, evento)
-                            : null,
-                      );
-                    },
-                  ),
-                );
-              },
+    if (state is PontoHistoryError && daysMap.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, size: 64, color: AppColors.error),
+            const SizedBox(height: 16),
+            Text(
+              state.message,
+              style: AppTextStyles.bodyLarge.copyWith(color: AppColors.error),
+              textAlign: TextAlign.center,
             ),
-          ),
-        ],
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () {
+                context.read<PontoHistoryBloc>().add(
+                      LoadHistoryEvent(
+                        uid: widget.targetUid,
+                        month: _currentMonth,
+                      ),
+                    );
+              },
+              child: const Text('Tentar novamente'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Gera todos os dias do mês (sem futuros)
+    final allDays = _generateMonthDays();
+
+    if (allDays.isEmpty) {
+      return const EmptyHistoryState();
+    }
+
+    return RefreshIndicator(
+      onRefresh: () async {
+        context.read<PontoHistoryBloc>().add(
+              LoadHistoryEvent(
+                uid: widget.targetUid,
+                month: _currentMonth,
+              ),
+            );
+      },
+      color: AppColors.primary,
+      child: ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        itemCount: allDays.length,
+        itemBuilder: (context, index) {
+          final diaId = allDays[index];
+          final eventos = daysMap[diaId] ?? [];
+
+          return DayCard(
+            diaId: diaId,
+            eventos: eventos,
+            isAdmin: isAdmin,
+            onAddEvento:
+                isAdmin ? () => _showAddDialogForDay(context, diaId) : null,
+            onEditEvento: isAdmin
+                ? (evento) => _showEditDialog(context, diaId, evento)
+                : null,
+            onDeleteEvento: isAdmin
+                ? (evento) => _showDeleteConfirm(context, diaId, evento)
+                : null,
+          );
+        },
       ),
     );
   }

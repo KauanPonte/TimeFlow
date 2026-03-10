@@ -1,15 +1,17 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_application_appdeponto/blocs/global_loading/global_loading_cubit.dart';
 import 'package:flutter_application_appdeponto/repositories/ponto_history_repository.dart';
 import 'ponto_history_event.dart';
 import 'ponto_history_state.dart';
 
 class PontoHistoryBloc extends Bloc<PontoHistoryEvent, PontoHistoryState> {
   final PontoHistoryRepository repository;
+  final GlobalLoadingCubit? globalLoading;
   String? _currentUid;
   DateTime _currentMonth = DateTime.now();
   Map<String, List<Map<String, dynamic>>> _lastDaysMap = {};
 
-  PontoHistoryBloc({required this.repository})
+  PontoHistoryBloc({required this.repository, this.globalLoading})
       : super(const PontoHistoryInitial()) {
     on<LoadHistoryEvent>(_onLoad);
     on<AddEventoEvent>(_onAdd);
@@ -50,6 +52,11 @@ class PontoHistoryBloc extends Bloc<PontoHistoryEvent, PontoHistoryState> {
     AddEventoEvent event,
     Emitter<PontoHistoryState> emit,
   ) async {
+    globalLoading?.show('Adicionando ponto...');
+    emit(PontoHistoryActionProcessing(
+      message: 'Adicionando ponto...',
+      daysMap: _lastDaysMap,
+    ));
     try {
       await repository.addEvento(
         uid: event.uid,
@@ -68,6 +75,8 @@ class PontoHistoryBloc extends Bloc<PontoHistoryEvent, PontoHistoryState> {
         message: e.toString().replaceAll('Exception: ', ''),
         daysMap: _lastDaysMap,
       ));
+    } finally {
+      globalLoading?.hide();
     }
   }
 
@@ -75,6 +84,11 @@ class PontoHistoryBloc extends Bloc<PontoHistoryEvent, PontoHistoryState> {
     UpdateEventoEvent event,
     Emitter<PontoHistoryState> emit,
   ) async {
+    globalLoading?.show('Atualizando ponto...');
+    emit(PontoHistoryActionProcessing(
+      message: 'Atualizando ponto...',
+      daysMap: _lastDaysMap,
+    ));
     try {
       await repository.updateEvento(
         uid: event.uid,
@@ -94,6 +108,8 @@ class PontoHistoryBloc extends Bloc<PontoHistoryEvent, PontoHistoryState> {
         message: e.toString().replaceAll('Exception: ', ''),
         daysMap: _lastDaysMap,
       ));
+    } finally {
+      globalLoading?.hide();
     }
   }
 
@@ -101,6 +117,11 @@ class PontoHistoryBloc extends Bloc<PontoHistoryEvent, PontoHistoryState> {
     DeleteEventoEvent event,
     Emitter<PontoHistoryState> emit,
   ) async {
+    globalLoading?.show('Removendo ponto...');
+    emit(PontoHistoryActionProcessing(
+      message: 'Removendo ponto...',
+      daysMap: _lastDaysMap,
+    ));
     try {
       await repository.deleteEvento(
         uid: event.uid,
@@ -118,6 +139,8 @@ class PontoHistoryBloc extends Bloc<PontoHistoryEvent, PontoHistoryState> {
         message: e.toString().replaceAll('Exception: ', ''),
         daysMap: _lastDaysMap,
       ));
+    } finally {
+      globalLoading?.hide();
     }
   }
 }

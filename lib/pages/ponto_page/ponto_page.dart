@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../blocs/global_loading/global_loading_cubit.dart';
 import '../../widgets/bottom_nav.dart';
 import '../../services/ponto_service.dart';
 import '../../services/notification_service.dart';
@@ -62,9 +64,14 @@ class _PontoPageState extends State<PontoPage> {
 
   Future<void> _registrar(String status) async {
     setState(() => registering = true);
-    await PontoService.registrarPonto(context, status);
-    await _loadRegistros();
-    setState(() => registering = false);
+    context.read<GlobalLoadingCubit>().show('Registrando ponto...');
+    try {
+      await PontoService.registrarPonto(context, status);
+      await _loadRegistros();
+    } finally {
+      context.read<GlobalLoadingCubit>().hide();
+      setState(() => registering = false);
+    }
 
     String title;
     String body;

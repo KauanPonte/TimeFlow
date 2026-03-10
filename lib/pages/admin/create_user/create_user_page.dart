@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/create_user/create_user_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/create_user/create_user_event.dart';
 import 'package:flutter_application_appdeponto/blocs/create_user/create_user_state.dart';
+import 'package:flutter_application_appdeponto/blocs/global_loading/global_loading_cubit.dart';
 import 'package:flutter_application_appdeponto/pages/auth/login/widgets/custom_text_field.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
@@ -15,7 +16,9 @@ class CreateUserPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => CreateUserBloc(),
+      create: (context) => CreateUserBloc(
+        globalLoading: context.read<GlobalLoadingCubit>(),
+      ),
       child: const CreateUserView(),
     );
   }

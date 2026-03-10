@@ -6,6 +6,7 @@ import 'package:image_cropper/image_cropper.dart';
 import 'package:flutter_application_appdeponto/blocs/profile/profile_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/profile/profile_event.dart';
 import 'package:flutter_application_appdeponto/blocs/profile/profile_state.dart';
+import 'package:flutter_application_appdeponto/blocs/global_loading/global_loading_cubit.dart';
 import 'package:flutter_application_appdeponto/repositories/profile_repository.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
@@ -22,8 +23,10 @@ class ProfilePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => ProfileBloc(profileRepository: ProfileRepository())
-        ..add(const LoadProfileEvent()),
+      create: (_) => ProfileBloc(
+        profileRepository: ProfileRepository(),
+        globalLoading: context.read<GlobalLoadingCubit>(),
+      )..add(const LoadProfileEvent()),
       child: const _ProfilePageView(),
     );
   }

@@ -4,7 +4,10 @@ import 'package:flutter_application_appdeponto/firebase_options.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/auth/auth_bloc.dart';
+import 'package:flutter_application_appdeponto/blocs/global_loading/global_loading_cubit.dart';
+import 'package:flutter_application_appdeponto/blocs/global_loading/global_loading_state.dart';
 import 'package:flutter_application_appdeponto/repositories/auth_repository.dart';
+import 'package:flutter_application_appdeponto/widgets/action_loading_overlay.dart';
 import 'pages/splash/splash_page.dart';
 import 'services/notification_service.dart';
 import 'pages/auth/welcome/welcome_page.dart';
@@ -56,6 +59,9 @@ class TimeFlow extends StatelessWidget {
             authRepository: AuthRepository(),
           ),
         ),
+        BlocProvider<GlobalLoadingCubit>(
+          create: (_) => GlobalLoadingCubit(),
+        ),
         // BlocProvider<AdminBloc>(
         //   create: (context) => AdminBloc(
         //     repository: AdminRepository(),
@@ -64,6 +70,17 @@ class TimeFlow extends StatelessWidget {
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
+        builder: (context, child) {
+          return BlocBuilder<GlobalLoadingCubit, GlobalLoadingState>(
+            builder: (context, loadingState) {
+              return ActionLoadingOverlay(
+                isProcessing: loadingState.isLoading,
+                message: loadingState.message,
+                child: child ?? const SizedBox.shrink(),
+              );
+            },
+          );
+        },
         theme: ThemeData(
           pageTransitionsTheme: const PageTransitionsTheme(
             builders: {

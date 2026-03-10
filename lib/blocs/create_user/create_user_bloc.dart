@@ -1,12 +1,14 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_application_appdeponto/blocs/global_loading/global_loading_cubit.dart';
 import 'create_user_event.dart';
 import 'create_user_state.dart';
 import '../../repositories/create_user_repository.dart';
 
 class CreateUserBloc extends Bloc<CreateUserEvent, CreateUserState> {
   final CreateUserRepository _repository = CreateUserRepository();
+  final GlobalLoadingCubit? globalLoading;
 
-  CreateUserBloc() : super(const CreateUserFormState()) {
+  CreateUserBloc({this.globalLoading}) : super(const CreateUserFormState()) {
     on<ValidateFieldEvent>(_onValidateField);
     on<ValidateConfirmPasswordEvent>(_onValidateConfirmPassword);
     on<CreateUserSubmitEvent>(_onCreateUser);
@@ -108,6 +110,7 @@ class CreateUserBloc extends Bloc<CreateUserEvent, CreateUserState> {
     }
 
     // Tudo válido, prossegue com a criação
+    globalLoading?.show('Criando usuário...');
     emit(const CreateUserLoading());
 
     try {
@@ -123,6 +126,8 @@ class CreateUserBloc extends Bloc<CreateUserEvent, CreateUserState> {
       emit(CreateUserError(e.toString().replaceAll('Exception: ', '')));
       // Volta para o estado do formulário
       emit(formState);
+    } finally {
+      globalLoading?.hide();
     }
   }
 

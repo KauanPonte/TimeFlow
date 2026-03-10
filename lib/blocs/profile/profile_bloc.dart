@@ -1,12 +1,15 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_application_appdeponto/blocs/global_loading/global_loading_cubit.dart';
 import 'package:flutter_application_appdeponto/repositories/profile_repository.dart';
 import 'profile_event.dart';
 import 'profile_state.dart';
 
 class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
   final ProfileRepository _profileRepository;
+  final GlobalLoadingCubit? globalLoading;
 
-  ProfileBloc({required ProfileRepository profileRepository})
+  ProfileBloc(
+      {required ProfileRepository profileRepository, this.globalLoading})
       : _profileRepository = profileRepository,
         super(const ProfileInitial()) {
     on<LoadProfileEvent>(_onLoadProfile);
@@ -48,6 +51,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     final previousData = state is ProfileLoaded ? state as ProfileLoaded : null;
 
     try {
+      globalLoading?.show('Enviando foto...');
       if (previousData != null) {
         emit(ProfileImageUploading(previousData: previousData));
       }
@@ -85,6 +89,8 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
         await Future.delayed(const Duration(milliseconds: 100));
         emit(previousData);
       }
+    } finally {
+      globalLoading?.hide();
     }
   }
 
@@ -96,6 +102,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     final previousData = state is ProfileLoaded ? state as ProfileLoaded : null;
 
     try {
+      globalLoading?.show('Removendo foto...');
       if (previousData != null) {
         emit(ProfileImageUploading(previousData: previousData));
       }
@@ -129,6 +136,8 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
         await Future.delayed(const Duration(milliseconds: 100));
         emit(previousData);
       }
+    } finally {
+      globalLoading?.hide();
     }
   }
 
@@ -140,6 +149,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     final previousData = state is ProfileLoaded ? state as ProfileLoaded : null;
 
     try {
+      globalLoading?.show('Atualizando nome...');
       await _profileRepository.updateProfileName(event.newName);
 
       final updatedData = previousData?.copyWith(name: event.newName.trim()) ??
@@ -169,6 +179,8 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
         await Future.delayed(const Duration(milliseconds: 100));
         emit(previousData);
       }
+    } finally {
+      globalLoading?.hide();
     }
   }
 }

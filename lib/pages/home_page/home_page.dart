@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/ponto_history/ponto_history_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/ponto_history/ponto_history_event.dart';
+import 'package:flutter_application_appdeponto/blocs/global_loading/global_loading_cubit.dart';
 import 'package:flutter_application_appdeponto/repositories/ponto_history_repository.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/widgets/main_app_bar.dart';
@@ -63,8 +64,10 @@ class _HomePageState extends State<HomePage> {
     profileImageUrl = widget.profileImageUrl;
     final now = DateTime.now();
     _currentMonth = DateTime(now.year, now.month);
-    _historyBloc = PontoHistoryBloc(repository: PontoHistoryRepository())
-      ..add(LoadHistoryEvent(month: _currentMonth));
+    _historyBloc = PontoHistoryBloc(
+      repository: PontoHistoryRepository(),
+      globalLoading: context.read<GlobalLoadingCubit>(),
+    )..add(LoadHistoryEvent(month: _currentMonth));
     _loadAll();
   }
 
