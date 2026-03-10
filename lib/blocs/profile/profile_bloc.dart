@@ -16,7 +16,11 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     on<UploadProfileImageEvent>(_onUploadProfileImage);
     on<RemoveProfileImageEvent>(_onRemoveProfileImage);
     on<UpdateProfileNameEvent>(_onUpdateProfileName);
+    on<ResetProfileEvent>((_, emit) => emit(const ProfileInitial()));
   }
+
+  /// Limpa o estado (chamado no logout).
+  void reset() => add(const ResetProfileEvent());
 
   /// Carrega os dados do perfil
   Future<void> _onLoadProfile(

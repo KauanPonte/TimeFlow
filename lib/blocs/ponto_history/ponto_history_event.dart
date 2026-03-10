@@ -20,6 +20,11 @@ class LoadHistoryEvent extends PontoHistoryEvent {
   List<Object?> get props => [uid, month.year, month.month];
 }
 
+/// Reseta o histórico para o estado inicial (logout).
+class ResetHistoryEvent extends PontoHistoryEvent {
+  const ResetHistoryEvent();
+}
+
 /// Admin adiciona um evento de ponto.
 class AddEventoEvent extends PontoHistoryEvent {
   final String uid;

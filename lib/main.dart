@@ -4,10 +4,17 @@ import 'package:flutter_application_appdeponto/firebase_options.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/auth/auth_bloc.dart';
+import 'package:flutter_application_appdeponto/blocs/auth/auth_state.dart';
 import 'package:flutter_application_appdeponto/blocs/global_loading/global_loading_cubit.dart';
 import 'package:flutter_application_appdeponto/blocs/global_loading/global_loading_state.dart';
 import 'package:flutter_application_appdeponto/blocs/ponto_data/ponto_data_changed_cubit.dart';
+import 'package:flutter_application_appdeponto/blocs/ponto_today/ponto_today_cubit.dart';
+import 'package:flutter_application_appdeponto/blocs/ponto_history/ponto_history_bloc.dart';
+import 'package:flutter_application_appdeponto/blocs/profile/profile_bloc.dart';
+import 'package:flutter_application_appdeponto/blocs/admin_home/admin_home_bloc.dart';
 import 'package:flutter_application_appdeponto/repositories/auth_repository.dart';
+import 'package:flutter_application_appdeponto/repositories/ponto_history_repository.dart';
+import 'package:flutter_application_appdeponto/repositories/profile_repository.dart';
 import 'package:flutter_application_appdeponto/widgets/action_loading_overlay.dart';
 import 'pages/splash/splash_page.dart';
 import 'services/notification_service.dart';
@@ -66,6 +73,27 @@ class TimeFlow extends StatelessWidget {
         BlocProvider<PontoDataChangedCubit>(
           create: (_) => PontoDataChangedCubit(),
         ),
+        BlocProvider<PontoTodayCubit>(
+          create: (context) => PontoTodayCubit(
+            dataChangedCubit: context.read<PontoDataChangedCubit>(),
+          ),
+        ),
+        BlocProvider<PontoHistoryBloc>(
+          create: (context) => PontoHistoryBloc(
+            repository: PontoHistoryRepository(),
+            globalLoading: context.read<GlobalLoadingCubit>(),
+            dataChangedCubit: context.read<PontoDataChangedCubit>(),
+          ),
+        ),
+        BlocProvider<ProfileBloc>(
+          create: (context) => ProfileBloc(
+            profileRepository: ProfileRepository(),
+            globalLoading: context.read<GlobalLoadingCubit>(),
+          ),
+        ),
+        BlocProvider<AdminHomeBloc>(
+          create: (_) => AdminHomeBloc(),
+        ),
         // BlocProvider<AdminBloc>(
         //   create: (context) => AdminBloc(
         //     repository: AdminRepository(),
@@ -75,14 +103,24 @@ class TimeFlow extends StatelessWidget {
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
         builder: (context, child) {
-          return BlocBuilder<GlobalLoadingCubit, GlobalLoadingState>(
-            builder: (context, loadingState) {
-              return ActionLoadingOverlay(
-                isProcessing: loadingState.isLoading,
-                message: loadingState.message,
-                child: child ?? const SizedBox.shrink(),
-              );
+          return BlocListener<AuthBloc, AuthState>(
+            listenWhen: (previous, current) =>
+                previous is UserAuthenticated && current is AuthFieldsState,
+            listener: (context, _) {
+              context.read<PontoTodayCubit>().clear();
+              context.read<PontoHistoryBloc>().reset();
+              context.read<ProfileBloc>().reset();
+              context.read<AdminHomeBloc>().reset();
             },
+            child: BlocBuilder<GlobalLoadingCubit, GlobalLoadingState>(
+              builder: (context, loadingState) {
+                return ActionLoadingOverlay(
+                  isProcessing: loadingState.isLoading,
+                  message: loadingState.message,
+                  child: child ?? const SizedBox.shrink(),
+                );
+              },
+            ),
           );
         },
         theme: ThemeData(

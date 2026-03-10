@@ -3,16 +3,14 @@ import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/ponto_history/ponto_history_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/ponto_history/ponto_history_event.dart';
-import 'package:flutter_application_appdeponto/blocs/global_loading/global_loading_cubit.dart';
-import 'package:flutter_application_appdeponto/blocs/ponto_data/ponto_data_changed_cubit.dart';
-import 'package:flutter_application_appdeponto/repositories/ponto_history_repository.dart';
+import 'package:flutter_application_appdeponto/blocs/ponto_history/ponto_history_state.dart';
+import 'package:flutter_application_appdeponto/blocs/ponto_today/ponto_today_cubit.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/widgets/main_app_bar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
-import '../../services/ponto_service.dart';
 import '../../widgets/bottom_nav.dart';
 import 'widgets/status_card.dart';
 import 'widgets/balance_card.dart';
@@ -39,22 +37,13 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  //Map<String, Map<String, String>> registros = {};
-  List<Map<String, dynamic>> eventosHoje = [];
-  String statusLabel = 'Fora do expediente';
-  String? ultimoTipoHoje;
-  double monthBalance = 0.0;
   String employeeName = '';
   String profileImageUrl = '';
-  String todayWorkedDisplay = '0h 0m';
-  bool loading = true;
   String? _uid;
   Timer? _tickTimer;
   static const int _targetMinutesPerDay = 8 * 60; // 8 horas por dia
-  double workProgress = 0.0;
 
   late DateTime _currentMonth;
-  late PontoHistoryBloc _historyBloc;
 
   bool get _isAdmin => widget.employeeRole.toUpperCase().contains('ADM');
 
@@ -65,18 +54,48 @@ class _HomePageState extends State<HomePage> {
     profileImageUrl = widget.profileImageUrl;
     final now = DateTime.now();
     _currentMonth = DateTime(now.year, now.month);
-    _historyBloc = PontoHistoryBloc(
-      repository: PontoHistoryRepository(),
-      globalLoading: context.read<GlobalLoadingCubit>(),
-    )..add(LoadHistoryEvent(month: _currentMonth));
-    _loadAll();
+
+    // Timer que força rebuild a cada 30 s para atualizar tempo trabalhado.
+    _tickTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (mounted) setState(() {});
+    });
+
+    _resolveUserData();
+
+    // Dispara carregamento dos dados do dia (cubit persiste entre telas).
+    context.read<PontoTodayCubit>().load();
+
+    // Garante que o histórico esteja carregado para o mês atual.
+    final historyBloc = context.read<PontoHistoryBloc>();
+    if (historyBloc.state is PontoHistoryInitial ||
+        historyBloc.currentMonth.year != _currentMonth.year ||
+        historyBloc.currentMonth.month != _currentMonth.month) {
+      historyBloc.add(LoadHistoryEvent(month: _currentMonth));
+    }
+  }
+
+  /// Resolve nome, foto e UID do SharedPreferences / FirebaseAuth.
+  Future<void> _resolveUserData() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (employeeName.isEmpty) {
+      employeeName = prefs.getString('employee_name') ?? '';
+    }
+    if (profileImageUrl.isEmpty) {
+      profileImageUrl = prefs.getString('profile_image_path') ?? '';
+    }
+    _uid = FirebaseAuth.instance.currentUser?.uid;
+    _uid ??= prefs.getString('userUid');
+    if ((_uid ?? '').isEmpty) _uid = null;
+    if (mounted) setState(() {});
   }
 
   void _goToPreviousMonth() {
     setState(() {
       _currentMonth = DateTime(_currentMonth.year, _currentMonth.month - 1);
     });
-    _historyBloc.add(LoadHistoryEvent(month: _currentMonth));
+    context
+        .read<PontoHistoryBloc>()
+        .add(LoadHistoryEvent(month: _currentMonth));
   }
 
   void _goToNextMonth() {
@@ -89,7 +108,9 @@ class _HomePageState extends State<HomePage> {
     setState(() {
       _currentMonth = nextMonth;
     });
-    _historyBloc.add(LoadHistoryEvent(month: _currentMonth));
+    context
+        .read<PontoHistoryBloc>()
+        .add(LoadHistoryEvent(month: _currentMonth));
   }
 
   List<String> _generateMonthDays() {
@@ -107,82 +128,7 @@ class _HomePageState extends State<HomePage> {
     return days;
   }
 
-  Future<void> _loadAll() async {
-    setState(() => loading = true);
-    //registros = await PontoService.loadRegistros();
-
-    eventosHoje = await PontoService.loadEventosHoje();
-    ultimoTipoHoje = await PontoService.getUltimoTipoHoje();
-
-    final now = DateTime.now();
-    statusLabel = _labelFromUltimoTipo(ultimoTipoHoje);
-    todayWorkedDisplay = _computeWorkedFromEventos(eventosHoje, now: now);
-
-    final minutesNow = _computeWorkedMinutesFromEventos(eventosHoje, now: now);
-    workProgress = (_targetMinutesPerDay == 0)
-        ? 0.0
-        : (minutesNow / _targetMinutesPerDay).clamp(0.0, 1.0);
-
-    final prefs = await SharedPreferences.getInstance();
-    monthBalance = await PontoService.getSaldoMesAtualHoras();
-
-    if (employeeName.isEmpty) {
-      employeeName = prefs.getString('employee_name') ?? '';
-    }
-    if (profileImageUrl.isEmpty) {
-      profileImageUrl = prefs.getString('profile_image_path') ?? '';
-    }
-
-    // Resolve UID: prefer FirebaseAuth, fallback to SharedPreferences
-    _uid = FirebaseAuth.instance.currentUser?.uid;
-    _uid ??= prefs.getString('userUid');
-    if ((_uid ?? '').isEmpty) _uid = null;
-
-    _tickTimer?.cancel();
-    _tickTimer = Timer.periodic(const Duration(seconds: 30), (_) {
-      if (!mounted) return;
-
-      final now2 = DateTime.now();
-      final minutes2 = _computeWorkedMinutesFromEventos(eventosHoje, now: now2);
-      final display2 = _computeWorkedFromEventos(eventosHoje, now: now2);
-
-      setState(() {
-        todayWorkedDisplay = display2;
-        workProgress = (_targetMinutesPerDay == 0)
-            ? 0.0
-            : (minutes2 / _targetMinutesPerDay).clamp(0.0, 1.0);
-      });
-    });
-
-    setState(() => loading = false);
-
-    // Recarrega o histórico embutido após atualizar os dados do dia.
-    _historyBloc.add(LoadHistoryEvent(month: _currentMonth));
-  }
-
-  /// Atualiza os dados da home sem exibir o loading da página inteira.
-  /// Usado após ações de edição/adição/remoção de ponto e ao
-  /// retornar da tela de bater ponto.
-  Future<void> _refreshData() async {
-    eventosHoje = await PontoService.loadEventosHoje();
-    ultimoTipoHoje = await PontoService.getUltimoTipoHoje();
-
-    final now = DateTime.now();
-    statusLabel = _labelFromUltimoTipo(ultimoTipoHoje);
-    todayWorkedDisplay = _computeWorkedFromEventos(eventosHoje, now: now);
-
-    final minutesNow = _computeWorkedMinutesFromEventos(eventosHoje, now: now);
-    workProgress = (_targetMinutesPerDay == 0)
-        ? 0.0
-        : (minutesNow / _targetMinutesPerDay).clamp(0.0, 1.0);
-
-    monthBalance = await PontoService.getSaldoMesAtualHoras();
-
-    if (mounted) setState(() {});
-
-    // Recarrega o histórico embutido silenciosamente (sem spinner).
-    _historyBloc.add(const SilentReloadHistoryEvent());
-  }
+  // ── Helpers de cálculo de horas trabalhadas ─────────────────────────
 
   String _labelFromUltimoTipo(String? ultimo) {
     switch (ultimo) {
@@ -197,15 +143,13 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  String _computeWorkedFromEventos(List<Map<String, dynamic>> eventos,
-      {required DateTime now}) {
-    final totalMin = _computeWorkedMinutesFromEventos(eventos, now: now);
+  String _formatMinutes(int totalMin) {
     final h = totalMin ~/ 60;
     final m = totalMin % 60;
     return '${h}h ${m}m';
   }
 
-  int _computeWorkedMinutesFromEventos(List<Map<String, dynamic>> eventos,
+  int _computeWorkedMinutes(List<Map<String, dynamic>> eventos,
       {required DateTime now}) {
     DateTime? openWork;
     Duration total = Duration.zero;
@@ -240,15 +184,25 @@ class _HomePageState extends State<HomePage> {
   @override
   void dispose() {
     _tickTimer?.cancel();
-    _historyBloc.close();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final isAdmin = _isAdmin;
+    final pontoState = context.watch<PontoTodayCubit>().state;
 
-    final scaffold = Scaffold(
+    // Valores derivados do estado global do cubit + hora atual.
+    final now = DateTime.now();
+    final statusLabel = _labelFromUltimoTipo(pontoState.ultimoTipo);
+    final workedMinutes =
+        _computeWorkedMinutes(pontoState.eventosHoje, now: now);
+    final todayWorkedDisplay = _formatMinutes(workedMinutes);
+    final workProgress = _targetMinutesPerDay == 0
+        ? 0.0
+        : (workedMinutes / _targetMinutesPerDay).clamp(0.0, 1.0);
+
+    return Scaffold(
       backgroundColor: AppColors.bgLight,
       appBar: const MainAppBar(subtitle: 'Meu Ponto'),
       bottomNavigationBar: BottomNav(
@@ -260,14 +214,19 @@ class _HomePageState extends State<HomePage> {
           'employeeRole': widget.employeeRole,
         },
       ),
-      body: loading
+      body: pontoState.loading
           ? const Center(
               child: CircularProgressIndicator(
                 valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
               ),
             )
           : RefreshIndicator(
-              onRefresh: _refreshData,
+              onRefresh: () async {
+                context.read<PontoTodayCubit>().refresh();
+                context
+                    .read<PontoHistoryBloc>()
+                    .add(const SilentReloadHistoryEvent());
+              },
               color: AppColors.primary,
               child: ListView(
                 padding: const EdgeInsets.all(20),
@@ -280,7 +239,7 @@ class _HomePageState extends State<HomePage> {
                     workProgress: workProgress,
                   ),
                   const SizedBox(height: 16),
-                  BalanceCard(monthBalance: monthBalance),
+                  BalanceCard(monthBalance: pontoState.monthBalance),
                   const SizedBox(height: 24),
                   PunchButton(
                     onPressed: () async {
@@ -293,8 +252,8 @@ class _HomePageState extends State<HomePage> {
                           'employeeRole': widget.employeeRole,
                         },
                       );
-                      if (!mounted) return;
-                      _refreshData();
+                      // PontoTodayCubit e PontoHistoryBloc atualizam-se
+                      // automaticamente via PontoDataChangedCubit.
                     },
                   ),
                   HomeHistorySection(
@@ -304,19 +263,15 @@ class _HomePageState extends State<HomePage> {
                     isAdmin: isAdmin,
                     uid: _uid,
                     generateMonthDays: _generateMonthDays,
-                    onActionSuccess: _refreshData,
+                    onActionSuccess: () {
+                      // Após editar/adicionar/remover ponto pelo histórico embutido,
+                      // atualiza os dados do dia (saldo, status, etc.).
+                      context.read<PontoTodayCubit>().refresh();
+                    },
                   ),
                 ],
               ),
             ),
-    );
-
-    return BlocProvider.value(
-      value: _historyBloc,
-      child: BlocListener<PontoDataChangedCubit, DateTime>(
-        listener: (_, __) => _refreshData(),
-        child: scaffold,
-      ),
     );
   }
 }

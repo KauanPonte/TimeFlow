@@ -2,10 +2,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../blocs/global_loading/global_loading_cubit.dart';
-import '../../blocs/ponto_data/ponto_data_changed_cubit.dart';
+import '../../blocs/ponto_today/ponto_today_cubit.dart';
+import '../../blocs/ponto_today/ponto_today_state.dart';
 import '../../widgets/bottom_nav.dart';
 import '../../widgets/custom_snackbar.dart';
-import '../../services/ponto_service.dart';
 import '../../services/notification_service.dart';
 import '../../services/ponto_validator.dart';
 import '../../theme/app_colors.dart';
@@ -24,10 +24,6 @@ class PontoPage extends StatefulWidget {
 }
 
 class _PontoPageState extends State<PontoPage> {
-  Map<String, Map<String, String>> registros = {};
-  List<Map<String, String>> _eventosHojeList = [];
-  String? _ultimoTipo;
-  bool loading = true;
   bool registering = false;
   late DateTime _now;
   Timer? _clockTimer;
@@ -47,7 +43,8 @@ class _PontoPageState extends State<PontoPage> {
       minute: 0,
     );
 
-    _loadRegistros();
+    // Garante que o cubit tenha dados carregados.
+    context.read<PontoTodayCubit>().load();
   }
 
   @override
@@ -56,37 +53,13 @@ class _PontoPageState extends State<PontoPage> {
     super.dispose();
   }
 
-  Future<void> _loadRegistros() async {
-    setState(() => loading = true);
-    registros = await PontoService.loadRegistros();
-    _eventosHojeList = await PontoService.loadEventosHojeFormatados();
-    _ultimoTipo = await PontoService.getUltimoTipoHoje();
-    setState(() => loading = false);
-  }
-
-  /// Atualiza os dados sem exibir o loading da página inteira.
-  Future<void> _refreshRegistros() async {
-    registros = await PontoService.loadRegistros();
-    _eventosHojeList = await PontoService.loadEventosHojeFormatados();
-    _ultimoTipo = await PontoService.getUltimoTipoHoje();
-    if (mounted) setState(() {});
-  }
-
   Future<void> _registrar(String status) async {
     setState(() => registering = true);
-    // Captura referências antes dos gaps assíncronos.
     final globalLoading = context.read<GlobalLoadingCubit>();
-    final pontoDataChanged = context.read<PontoDataChangedCubit>();
+    final cubit = context.read<PontoTodayCubit>();
     globalLoading.show('Registrando ponto...');
-    var pontoResult = const PontoResult(success: false, message: '');
     try {
-      pontoResult = await PontoService.registrarPonto(status);
-      if (pontoResult.success) {
-        await _refreshRegistros();
-        // Notifica outras telas (ex: Meu Ponto) para atualizar silenciosamente.
-        pontoDataChanged.notifyChanged();
-      }
-    } finally {
+      final pontoResult = await cubit.registrar(status);
       globalLoading.hide();
       if (mounted) {
         setState(() => registering = false);
@@ -119,11 +92,15 @@ class _PontoPageState extends State<PontoPage> {
           CustomSnackbar.showError(context, pontoResult.message);
         }
       }
+    } catch (_) {
+      globalLoading.hide();
+      if (mounted) setState(() => registering = false);
     }
   }
 
   String get _statusLabel {
-    switch (_ultimoTipo) {
+    final ultimoTipo = context.read<PontoTodayCubit>().state.ultimoTipo;
+    switch (ultimoTipo) {
       case 'entrada':
       case 'retorno':
         return 'Trabalhando...';
@@ -135,10 +112,9 @@ class _PontoPageState extends State<PontoPage> {
   }
 
   /// Mapa com o último horário registrado de cada tipo hoje.
-  /// Usado nos ActionRows para exibir "done" e a hora.
-  Map<String, String> get _hojeMapComputed {
+  Map<String, String> _hojeMapComputed(PontoTodayState state) {
     final map = <String, String>{};
-    for (final ev in _eventosHojeList) {
+    for (final ev in state.eventosHojeFormatados) {
       final tipo = ev['tipo'] ?? '';
       final hora = ev['hora'] ?? '';
       if (tipo.isNotEmpty && hora.isNotEmpty) map[tipo] = hora;
@@ -155,15 +131,16 @@ class _PontoPageState extends State<PontoPage> {
   }
 
   /// Próximas ações possíveis com base no último tipo registrado.
-  Set<String> get _proximasAcoes {
-    return PontoValidator.proximosPermitidos(_ultimoTipo);
+  Set<String> _proximasAcoes(PontoTodayState state) {
+    return PontoValidator.proximosPermitidos(state.ultimoTipo);
   }
 
-  /// Dias passados com sequência incompleta (entrada sem saída ou pausa sem retorno).
-  List<MapEntry<String, Map<String, String>>> get _incompletos {
+  /// Dias passados com sequência incompleta.
+  List<MapEntry<String, Map<String, String>>> _incompletos(
+      PontoTodayState state) {
     final hoje = _hojeKey;
-    return registros.entries.where((e) {
-      if (e.key == hoje) return false; // hoje não conta como incompleto
+    return state.registros.entries.where((e) {
+      if (e.key == hoje) return false;
       final m = e.value;
       final temEntrada = m['entrada'] != null;
       final temSaida = m['saida'] != null;
@@ -182,9 +159,11 @@ class _PontoPageState extends State<PontoPage> {
         ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>?;
     final isAdmin =
         (args?['employeeRole'] ?? '').toString().toUpperCase().contains('ADM');
-    final hoje = _hojeMapComputed;
-    final proximas = _proximasAcoes;
-    final incompletos = _incompletos;
+
+    final pontoState = context.watch<PontoTodayCubit>().state;
+    final hoje = _hojeMapComputed(pontoState);
+    final proximas = _proximasAcoes(pontoState);
+    final incompletos = _incompletos(pontoState);
 
     return Scaffold(
       backgroundColor: AppColors.bgLight,
@@ -221,14 +200,16 @@ class _PontoPageState extends State<PontoPage> {
         isAdmin: isAdmin,
         args: args,
       ),
-      body: loading
+      body: pontoState.loading
           ? const Center(
               child: CircularProgressIndicator(
                 valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
               ),
             )
           : RefreshIndicator(
-              onRefresh: _refreshRegistros,
+              onRefresh: () async {
+                context.read<PontoTodayCubit>().refresh();
+              },
               color: AppColors.primary,
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
@@ -326,7 +307,7 @@ class _PontoPageState extends State<PontoPage> {
                     const SizedBox(height: 28),
 
                     // ── Timeline de hoje ─────────────────────────────
-                    if (_eventosHojeList.isNotEmpty) ...[
+                    if (pontoState.eventosHojeFormatados.isNotEmpty) ...[
                       Text(
                         'Registros de hoje',
                         style: AppTextStyles.bodyLarge.copyWith(
@@ -335,7 +316,7 @@ class _PontoPageState extends State<PontoPage> {
                         ),
                       ),
                       const SizedBox(height: 12),
-                      TodayTimeline(eventos: _eventosHojeList),
+                      TodayTimeline(eventos: pontoState.eventosHojeFormatados),
                       const SizedBox(height: 8),
                     ],
                   ],

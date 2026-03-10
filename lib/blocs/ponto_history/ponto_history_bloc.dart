@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/global_loading/global_loading_cubit.dart';
+import 'package:flutter_application_appdeponto/blocs/ponto_data/ponto_data_changed_cubit.dart';
 import 'package:flutter_application_appdeponto/repositories/ponto_history_repository.dart';
 import 'ponto_history_event.dart';
 import 'ponto_history_state.dart';
@@ -7,17 +9,31 @@ import 'ponto_history_state.dart';
 class PontoHistoryBloc extends Bloc<PontoHistoryEvent, PontoHistoryState> {
   final PontoHistoryRepository repository;
   final GlobalLoadingCubit? globalLoading;
+  StreamSubscription<DateTime>? _dataChangedSub;
   String? _currentUid;
   DateTime _currentMonth = DateTime.now();
   Map<String, List<Map<String, dynamic>>> _lastDaysMap = {};
 
-  PontoHistoryBloc({required this.repository, this.globalLoading})
-      : super(const PontoHistoryInitial()) {
+  /// Mês atualmente carregado.
+  DateTime get currentMonth => _currentMonth;
+
+  PontoHistoryBloc({
+    required this.repository,
+    this.globalLoading,
+    PontoDataChangedCubit? dataChangedCubit,
+  }) : super(const PontoHistoryInitial()) {
     on<LoadHistoryEvent>(_onLoad);
     on<SilentReloadHistoryEvent>(_onSilentReload);
     on<AddEventoEvent>(_onAdd);
     on<UpdateEventoEvent>(_onUpdate);
     on<DeleteEventoEvent>(_onDelete);
+    on<ResetHistoryEvent>((_, emit) => emit(const PontoHistoryInitial()));
+
+    // Auto-refresh silenciosamente quando dados de ponto mudarem.
+    if (dataChangedCubit != null) {
+      _dataChangedSub = dataChangedCubit.stream
+          .listen((_) => add(const SilentReloadHistoryEvent()));
+    }
   }
 
   Future<void> _onLoad(
@@ -162,5 +178,14 @@ class PontoHistoryBloc extends Bloc<PontoHistoryEvent, PontoHistoryState> {
         daysMap: _lastDaysMap,
       ));
     }
+  }
+
+  /// Limpa o estado (chamado no logout).
+  void reset() => add(const ResetHistoryEvent());
+
+  @override
+  Future<void> close() {
+    _dataChangedSub?.cancel();
+    return super.close();
   }
 }

@@ -7,7 +7,11 @@ class AdminHomeBloc extends Bloc<AdminHomeEvent, AdminHomeState> {
   AdminHomeBloc() : super(const AdminHomeInitial()) {
     on<LoadAdminStatsEvent>(_onLoadStats);
     on<RefreshAdminStatsEvent>(_onRefreshStats);
+    on<ResetAdminHomeEvent>((_, emit) => emit(const AdminHomeInitial()));
   }
+
+  /// Limpa o estado (chamado no logout).
+  void reset() => add(const ResetAdminHomeEvent());
 
   /// Carrega as estatísticas do dashboard
   Future<void> _onLoadStats(
