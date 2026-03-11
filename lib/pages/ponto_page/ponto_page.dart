@@ -216,7 +216,7 @@ class _PontoPageState extends State<PontoPage> {
                     ClockCard(now: _now),
                     const SizedBox(height: 16),
 
-                    // ── SELEÇÃO DE MODO DE TRABALHO ──────────────────────
+                    //  SELEÇÃO DE MODO DE TRABALHO
                     Text('Selecione o modo de trabalho',
                         style: AppTextStyles.bodyMedium
                             .copyWith(fontWeight: FontWeight.bold)),
