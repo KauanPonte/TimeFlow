@@ -12,9 +12,13 @@ import 'package:flutter_application_appdeponto/blocs/ponto_today/ponto_today_cub
 import 'package:flutter_application_appdeponto/blocs/ponto_history/ponto_history_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/profile/profile_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/admin_home/admin_home_bloc.dart';
+import 'package:flutter_application_appdeponto/blocs/solicitations/solicitation_bloc.dart';
+import 'package:flutter_application_appdeponto/blocs/solicitations/solicitation_event.dart';
+import 'package:flutter_application_appdeponto/blocs/solicitations/solicitation_state.dart';
 import 'package:flutter_application_appdeponto/repositories/auth_repository.dart';
 import 'package:flutter_application_appdeponto/repositories/ponto_history_repository.dart';
 import 'package:flutter_application_appdeponto/repositories/profile_repository.dart';
+import 'package:flutter_application_appdeponto/repositories/solicitation_repository.dart';
 import 'package:flutter_application_appdeponto/widgets/action_loading_overlay.dart';
 import 'pages/splash/splash_page.dart';
 import 'services/notification_service.dart';
@@ -94,6 +98,12 @@ class TimeFlow extends StatelessWidget {
         BlocProvider<AdminHomeBloc>(
           create: (_) => AdminHomeBloc(),
         ),
+        BlocProvider<SolicitationBloc>(
+          create: (context) => SolicitationBloc(
+            repository: SolicitationRepository(),
+            globalLoading: context.read<GlobalLoadingCubit>(),
+          ),
+        ),
         // BlocProvider<AdminBloc>(
         //   create: (context) => AdminBloc(
         //     repository: AdminRepository(),
@@ -104,22 +114,50 @@ class TimeFlow extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         builder: (context, child) {
           return BlocListener<AuthBloc, AuthState>(
+            // Logout: limpa todos os dados ao sair de qualquer conta
             listenWhen: (previous, current) =>
-                previous is UserAuthenticated && current is AuthFieldsState,
+                (previous is UserAuthenticated ||
+                    previous is AdminAuthenticated) &&
+                current is AuthFieldsState,
             listener: (context, _) {
               context.read<PontoTodayCubit>().clear();
               context.read<PontoHistoryBloc>().reset();
               context.read<ProfileBloc>().reset();
               context.read<AdminHomeBloc>().reset();
+              context.read<SolicitationBloc>().reset();
             },
-            child: BlocBuilder<GlobalLoadingCubit, GlobalLoadingState>(
-              builder: (context, loadingState) {
-                return ActionLoadingOverlay(
-                  isProcessing: loadingState.isLoading,
-                  message: loadingState.message,
-                  child: child ?? const SizedBox.shrink(),
-                );
+            child: BlocListener<AuthBloc, AuthState>(
+              // Login direto (ex: tela de login, sem passar pelo splash):
+              // garante que as notificações sejam carregadas mesmo nesse caminho.
+              listenWhen: (previous, current) =>
+                  (current is UserAuthenticated ||
+                      current is AdminAuthenticated) &&
+                  previous is! UserAuthenticated &&
+                  previous is! AdminAuthenticated,
+              listener: (context, state) {
+                // Só dispara se o bloc ainda não tem dados (splash já cuida do caso normal)
+                final solState = context.read<SolicitationBloc>().state;
+                if (solState is! SolicitationLoaded &&
+                    solState is! SolicitationLoading) {
+                  bool isAdmin = state is AdminAuthenticated;
+                  if (!isAdmin && state is UserAuthenticated) {
+                    final r = (state.userData['role'] ?? '').toString();
+                    isAdmin = r.toUpperCase().contains('ADM');
+                  }
+                  context
+                      .read<SolicitationBloc>()
+                      .add(LoadSolicitationsEvent(isAdmin: isAdmin));
+                }
               },
+              child: BlocBuilder<GlobalLoadingCubit, GlobalLoadingState>(
+                builder: (context, loadingState) {
+                  return ActionLoadingOverlay(
+                    isProcessing: loadingState.isLoading,
+                    message: loadingState.message,
+                    child: child ?? const SizedBox.shrink(),
+                  );
+                },
+              ),
             ),
           );
         },
