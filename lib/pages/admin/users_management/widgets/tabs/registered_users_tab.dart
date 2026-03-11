@@ -227,6 +227,10 @@ class _RegisteredUsersTabState extends State<RegisteredUsersTab>
                                   user['name'],
                                   user['role'],
                                 ),
+                                onEditWorkload: () => _showEditWorkloadDialog(
+                                  user['id'],
+                                  user['name'],
+                                ),
                                 onDelete: () => _showDeleteUserDialog(
                                   user['id'],
                                   user['name'],
@@ -265,6 +269,98 @@ class _RegisteredUsersTabState extends State<RegisteredUsersTab>
       ),
     );
   }
+
+  int? _parseCargaHoraria(String input) {
+    input = input.trim();
+
+    if (input.contains(':')) {
+      final parts = input.split(':');
+
+      if (parts.length != 2) return null;
+
+      final horas = int.tryParse(parts[0]);
+      final minutos = int.tryParse(parts[1]);
+
+      if (horas == null || minutos == null) return null;
+      if (minutos < 0 || minutos >= 60) return null;
+      if (horas < 0) return null;
+
+      return horas * 60 + minutos;
+    }
+
+    final horas = int.tryParse(input);
+    if (horas == null || horas < 0) return null;
+
+    return horas * 60;
+  }
+
+ Future<void> _showEditWorkloadDialog(
+  String userId,
+  String userName,
+) async {
+  final controller = TextEditingController();
+   final blocContext = context;
+
+  await showDialog(
+    context: context,
+    builder: (dialogContext) {
+      return AlertDialog(
+        title: Text('Editar carga horária de $userName'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Digite a carga horária diária (ex: 8 ou 8:30)',
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              keyboardType: TextInputType.text,
+              decoration: const InputDecoration(
+                labelText: 'Carga horária',
+                hintText: 'Ex: 8:30',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final minutos = _parseCargaHoraria(controller.text);
+
+              if (minutos == null) {
+                ScaffoldMessenger.of(blocContext).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'Formato inválido. Use 8 ou 8:30',
+                    ),
+                  ),
+                );
+                return;
+              }
+
+              blocContext.read<UserManagementBloc>().add(
+                    UpdateUserWorkloadEvent(
+                      userId: userId,
+                      userName: userName,
+                      cargaHorariaMinutos: minutos,
+                    ),
+                  );
+
+              Navigator.pop(dialogContext);
+            },
+            child: const Text('Salvar'),
+          ),
+        ],
+      );
+    },
+  );
+}
 
   Future<void> _showDeleteUserDialog(String userId, String userName) async {
     await showDialog(

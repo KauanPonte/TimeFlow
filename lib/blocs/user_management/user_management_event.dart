@@ -63,6 +63,22 @@ class UpdateUserRoleEvent extends UserManagementEvent {
   List<Object?> get props => [userId, userName, newRole];
 }
 
+// Editar a carga horária do usuário 
+class UpdateUserWorkloadEvent extends UserManagementEvent {
+  final String userId;
+  final String userName;
+  final int cargaHorariaMinutos;
+
+  const UpdateUserWorkloadEvent({
+    required this.userId,
+    required this.userName,
+    required this.cargaHorariaMinutos,
+  });
+
+  @override
+  List<Object> get props => [userId, userName, cargaHorariaMinutos];
+}
+
 /// Remove um usuário do sistema
 class DeleteUserEvent extends UserManagementEvent {
   final String userId;

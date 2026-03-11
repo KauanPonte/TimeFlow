@@ -48,7 +48,7 @@ class _HomePageState extends State<HomePage> {
   String todayWorkedDisplay = '0h 0m';
   bool loading = true;
   Timer? _tickTimer;
-  static const int _targetMinutesPerDay = 8 * 60; // 8 horas por dia
+  int _targetMinutesPerDay = 8 * 60; // 8 horas por dia
   double workProgress = 0.0;
 
   late DateTime _currentMonth;
@@ -109,6 +109,7 @@ class _HomePageState extends State<HomePage> {
 
     eventosHoje = await PontoService.loadEventosHoje();
     ultimoTipoHoje = await PontoService.getUltimoTipoHoje();
+    _targetMinutesPerDay = await PontoService.getCargaHorariaUsuarioAtual();
 
     final now = DateTime.now();
     statusLabel = _labelFromUltimoTipo(ultimoTipoHoje);
@@ -116,8 +117,8 @@ class _HomePageState extends State<HomePage> {
 
     final minutesNow = _computeWorkedMinutesFromEventos(eventosHoje, now: now);
     workProgress = (_targetMinutesPerDay == 0)
-        ? 0.0
-        : (minutesNow / _targetMinutesPerDay).clamp(0.0, 1.0);
+      ? 0.0
+      : (minutesNow / _targetMinutesPerDay).clamp(0.0, 1.0);
 
     final prefs = await SharedPreferences.getInstance();
     monthBalance = await PontoService.getSaldoMesAtualHoras();

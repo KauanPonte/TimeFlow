@@ -12,14 +12,18 @@ import 'widgets/action_row.dart';
 import 'widgets/incompletos_card.dart';
 import 'widgets/today_timeline.dart';
 
+enum TipoJornada { presencial, homeOffice }
+
 class PontoPage extends StatefulWidget {
   const PontoPage({super.key});
+  
 
   @override
   State<PontoPage> createState() => _PontoPageState();
 }
 
 class _PontoPageState extends State<PontoPage> {
+  TipoJornada? _tipoJornadaSelecionado;
   Map<String, Map<String, String>> registros = {};
   List<Map<String, String>> _eventosHojeList = [];
   String? _ultimoTipo;
