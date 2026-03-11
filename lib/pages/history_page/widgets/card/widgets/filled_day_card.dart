@@ -118,17 +118,24 @@ class FilledDayCard extends StatelessWidget {
   // Sub-builders
 
   Widget _buildSubtitle(bool incomplete, bool hasPending, int count) {
-    return Row(
+    return Wrap(
+      spacing: 6,
+      runSpacing: 4,
+      crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        const Icon(Icons.timer_outlined,
-            size: 14, color: AppColors.textSecondary),
-        const SizedBox(width: 4),
-        Text(
-          computeWorked(eventos),
-          style:
-              AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.timer_outlined,
+                size: 14, color: AppColors.textSecondary),
+            const SizedBox(width: 4),
+            Text(
+              computeWorked(eventos),
+              style: AppTextStyles.bodySmall
+                  .copyWith(color: AppColors.textSecondary),
+            ),
+          ],
         ),
-        const SizedBox(width: 8),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
           decoration: BoxDecoration(
@@ -144,22 +151,18 @@ class FilledDayCard extends StatelessWidget {
             ),
           ),
         ),
-        if (incomplete) ...[
-          const SizedBox(width: 6),
+        if (incomplete)
           _badge(
             Icons.warning_amber_rounded,
             'Incompleto',
             AppColors.warning,
           ),
-        ],
-        if (hasPending) ...[
-          const SizedBox(width: 6),
+        if (hasPending)
           _badge(
             null,
             '$count pendencia${count != 1 ? 's' : ''}',
             AppColors.warning,
           ),
-        ],
       ],
     );
   }
