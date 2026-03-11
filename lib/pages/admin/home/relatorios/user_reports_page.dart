@@ -236,7 +236,7 @@ class _UserReportsPageState extends State<UserReportsPage> {
                 pw.SizedBox(height: 10),
 
                 // Tabela de registros
-                pw.Table.fromTextArray(
+                pw.TableHelper.fromTextArray(
                   context: context,
                   border: pw.TableBorder.all(),
                   headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
