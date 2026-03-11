@@ -4,6 +4,7 @@ import 'package:flutter_application_appdeponto/blocs/auth/auth_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/auth/auth_event.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
+import '../pages/solicitacoes_page/solicitacoes_page.dart';
 
 /// AppBar padrão para as telas principais (Painel, Meu Ponto, Perfil).
 /// Logo + subtítulo configurável + menu com "Sair" (e "Configurações" opcional).
@@ -116,6 +117,11 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
           onSelected: (value) {
             if (value == 'settings') {
               onSettingsTap?.call();
+            } else if (value == 'solicitacoes') {
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => const SolicitacoesPage()));
             } else if (value == 'logout') {
               _showLogoutDialog(context);
             }
@@ -134,6 +140,16 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                 ]),
               ),
             if (showSettings) const PopupMenuDivider(),
+            PopupMenuItem<String>(
+              value: 'solicitacoes',
+              child: Row(children: [
+                const Icon(Icons.assignment_turned_in_outlined,
+                    color: AppColors.primary, size: 20),
+                const SizedBox(width: 12),
+                Text('Solicitações', style: AppTextStyles.bodyMedium),
+              ]),
+            ),
+            const PopupMenuDivider(),
             PopupMenuItem<String>(
               value: 'logout',
               child: Row(children: [

@@ -340,9 +340,11 @@ class PontoService {
     final uid = user.uid;
     final mesId = DateFormat('yyyy-MM').format(DateTime.now());
 
-    final snap = await _refMes(uid, mesId).get();
+    final snap = await _refMes(uid, newMethod(mesId)).get();
     final minutes = (snap.data()?['balanceMinutes'] as int?) ?? 0;
 
     return minutes / 60.0;
   }
+
+  static String newMethod(String mesId) => mesId;
 }
