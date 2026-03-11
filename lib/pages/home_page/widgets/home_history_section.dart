@@ -208,9 +208,14 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
                   final eventos = daysMap[diaId] ?? [];
                   final isHighlight = diaId == widget.highlightDayId;
 
-                  // Filtra solicitações pendentes para este dia
-                  final daySolicitations =
-                      allSolicitations.where((s) => s.diaId == diaId).toList();
+                  // Filtra solicitações pendentes para este dia.
+                  // Admin não vê solicitações de outros usuários nos próprios
+                  // day cards — elas pertencem às telas de gestão de solicitações.
+                  final daySolicitations = widget.isAdmin
+                      ? <SolicitationModel>[]
+                      : allSolicitations
+                          .where((s) => s.diaId == diaId)
+                          .toList();
 
                   return DayCard(
                     key: isHighlight ? _keyForDay(diaId) : null,
