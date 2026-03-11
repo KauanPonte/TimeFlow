@@ -10,7 +10,7 @@ import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
 import 'package:flutter_application_appdeponto/widgets/custom_snackbar.dart';
 import 'package:flutter_application_appdeponto/services/ponto_edit_dialogs.dart';
 import 'package:intl/intl.dart';
-import 'widgets/day_card.dart';
+import 'widgets/card/day_card.dart';
 import 'widgets/empty_history_state.dart';
 import 'widgets/month_selector.dart';
 

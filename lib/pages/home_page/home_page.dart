@@ -5,6 +5,8 @@ import 'package:flutter_application_appdeponto/blocs/ponto_history/ponto_history
 import 'package:flutter_application_appdeponto/blocs/ponto_history/ponto_history_event.dart';
 import 'package:flutter_application_appdeponto/blocs/ponto_history/ponto_history_state.dart';
 import 'package:flutter_application_appdeponto/blocs/ponto_today/ponto_today_cubit.dart';
+import 'package:flutter_application_appdeponto/blocs/solicitations/solicitation_bloc.dart';
+import 'package:flutter_application_appdeponto/blocs/solicitations/solicitation_event.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/widgets/main_app_bar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -45,6 +47,7 @@ class _HomePageState extends State<HomePage> {
   String profileImageUrl = '';
   String? _uid;
   Timer? _tickTimer;
+  Timer? _solTimer;
   static const int _targetMinutesPerDay = 8 * 60; // 8 horas por dia
 
   late DateTime _currentMonth;
@@ -98,6 +101,19 @@ class _HomePageState extends State<HomePage> {
 
     // O scroll até o DayCard é gerenciado por HomeHistorySection
     // (via BlocConsumer.listener quando o histórico terminar de carregar).
+
+    // Atualiza silenciosamente as solicitações (já carregadas desde o splash).
+    context.read<SolicitationBloc>().add(
+          SilentReloadSolicitationsEvent(isAdmin: _isAdmin),
+        );
+    // Atualização periódica das notificações a cada 2 minutos.
+    _solTimer = Timer.periodic(const Duration(minutes: 2), (_) {
+      if (mounted) {
+        context.read<SolicitationBloc>().add(
+              SilentReloadSolicitationsEvent(isAdmin: _isAdmin),
+            );
+      }
+    });
   }
 
   /// Resolve nome, foto e UID do SharedPreferences / FirebaseAuth.
@@ -154,7 +170,7 @@ class _HomePageState extends State<HomePage> {
     return days;
   }
 
-  // ── Helpers de cálculo de horas trabalhadas ─────────────────────────
+  //  Helpers de cálculo de horas trabalhadas
 
   String _labelFromUltimoTipo(String? ultimo) {
     switch (ultimo) {
@@ -210,11 +226,12 @@ class _HomePageState extends State<HomePage> {
   @override
   void dispose() {
     _tickTimer?.cancel();
+    _solTimer?.cancel();
     _scrollController.dispose();
     super.dispose();
   }
 
-  // ── Navegação de notificação para dia específico ────────────────────
+  //  Navegação de notificação para dia específico
 
   /// Chamado pelo botão de notificação na AppBar quando já estamos na home.
   /// Troca o mês, carrega o histórico e scrolla até a seção.
@@ -222,19 +239,30 @@ class _HomePageState extends State<HomePage> {
     final targetMonth = DateTime(date.year, date.month);
     final needsReload = _currentMonth.year != targetMonth.year ||
         _currentMonth.month != targetMonth.month;
+    final newDayId = DateFormat('yyyy-MM-dd').format(date);
 
+    // Zera o highlight primeiro — garante que didUpdateWidget detecte sempre
+    // a mudança (null → valor), inclusive quando o mesmo dia é selecionado
+    // repetidamente sem sair da tela.
     setState(() {
       _currentMonth = targetMonth;
-      _highlightDayId = DateFormat('yyyy-MM-dd').format(date);
+      _highlightDayId = null;
     });
 
-    if (needsReload) {
-      context
-          .read<PontoHistoryBloc>()
-          .add(LoadHistoryEvent(month: targetMonth));
-    }
-    // O scroll até o DayCard é gerenciado por HomeHistorySection
-    // (via didUpdateWidget quando já carregado, ou via BlocConsumer.listener).
+    // Define o destaque e dispara o reload (se necessário) no próximo frame,
+    // após o rebuild com highlight=null ter sido confirmado pela UI.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      setState(() => _highlightDayId = newDayId);
+      if (needsReload) {
+        context
+            .read<PontoHistoryBloc>()
+            .add(LoadHistoryEvent(month: targetMonth));
+      }
+      // O scroll é gerenciado por HomeHistorySection:
+      //  • já carregado → didUpdateWidget → _scrollToHighlightedDay()
+      //  • carregando    → BlocConsumer.listener quando PontoHistoryLoaded
+    });
   }
 
   @override
