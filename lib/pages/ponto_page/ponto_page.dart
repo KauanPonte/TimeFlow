@@ -13,7 +13,6 @@ import '../../theme/app_text_styles.dart';
 import 'widgets/clock_card.dart';
 import 'widgets/status_badge.dart';
 import 'widgets/action_row.dart';
-import 'widgets/incompletos_card.dart';
 import 'widgets/today_timeline.dart';
 
 class PontoPage extends StatefulWidget {
@@ -63,12 +62,11 @@ class _PontoPageState extends State<PontoPage> {
       final pontoResult = await cubit.registrar(status);
       globalLoading.hide();
       if (mounted) {
-    
-    if (status == 'saida') {
-      _workMode = null;
-    }
+        if (status == 'saida') {
+          _workMode = null;
+        }
 
-    setState(() => registering = false);
+        setState(() => registering = false);
         if (pontoResult.success) {
           CustomSnackbar.showSuccess(context, pontoResult.message);
           String title;
@@ -128,34 +126,9 @@ class _PontoPageState extends State<PontoPage> {
     return map;
   }
 
-  String get _hojeKey {
-    final y = _now.year.toString().padLeft(4, '0');
-    final m = _now.month.toString().padLeft(2, '0');
-    final d = _now.day.toString().padLeft(2, '0');
-    return '$y-$m-$d';
-  }
-
   /// Próximas ações possíveis com base no último tipo registrado.
   Set<String> _proximasAcoes(PontoTodayState state) {
     return PontoValidator.proximosPermitidos(state.ultimoTipo);
-  }
-
-  /// Dias passados com sequência incompleta.
-  List<MapEntry<String, Map<String, String>>> _incompletos(
-      PontoTodayState state) {
-    final hoje = _hojeKey;
-    return state.registros.entries.where((e) {
-      if (e.key == hoje) return false;
-      final m = e.value;
-      final temEntrada = m['entrada'] != null;
-      final temSaida = m['saida'] != null;
-      final temPausa = m['pausa'] != null;
-      final temRetorno = m['retorno'] != null;
-      if (temEntrada && !temSaida) return true;
-      if (temPausa && !temRetorno) return true;
-      return false;
-    }).toList()
-      ..sort((a, b) => b.key.compareTo(a.key));
   }
 
   Widget _buildWorkModeButton(String mode) {
@@ -195,7 +168,6 @@ class _PontoPageState extends State<PontoPage> {
     final pontoState = context.watch<PontoTodayCubit>().state;
     final hoje = _hojeMapComputed(pontoState);
     final proximas = _proximasAcoes(pontoState);
-    final incompletos = _incompletos(pontoState);
     final bool isPanelAccessible = _workMode != null;
 
     return Scaffold(
@@ -244,7 +216,7 @@ class _PontoPageState extends State<PontoPage> {
                     ClockCard(now: _now),
                     const SizedBox(height: 16),
 
-                    // ── SELEÇÃO DE MODO DE TRABALHO ──────────────────────
+                    //  SELEÇÃO DE MODO DE TRABALHO
                     Text('Selecione o modo de trabalho',
                         style: AppTextStyles.bodyMedium
                             .copyWith(fontWeight: FontWeight.bold)),
@@ -260,11 +232,6 @@ class _PontoPageState extends State<PontoPage> {
 
                     StatusBadge(statusLabel: _statusLabel),
                     const SizedBox(height: 24),
-
-                    if (incompletos.isNotEmpty) ...[
-                      IncompletosCard(incompletos: incompletos),
-                      const SizedBox(height: 16),
-                    ],
 
                     Text(
                       'Registrar ponto',

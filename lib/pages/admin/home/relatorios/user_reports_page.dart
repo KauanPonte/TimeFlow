@@ -1,9 +1,6 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
-import 'package:open_file/open_file.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
@@ -58,7 +55,7 @@ class _UserReportsPageState extends State<UserReportsPage> {
                   },
                   child: CircleAvatar(
                     radius: 28,
-                    backgroundColor: AppColors.primary.withOpacity(0.1),
+                    backgroundColor: AppColors.primary.withValues(alpha: 0.1),
                     backgroundImage: widget.profileImageUrl != null
                         ? NetworkImage(widget.profileImageUrl!)
                         : null,
@@ -102,7 +99,7 @@ class _UserReportsPageState extends State<UserReportsPage> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.05),
+                  color: AppColors.primary.withValues(alpha: 0.05),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
@@ -239,7 +236,7 @@ class _UserReportsPageState extends State<UserReportsPage> {
                 pw.SizedBox(height: 10),
 
                 // Tabela de registros
-                pw.Table.fromTextArray(
+                pw.TableHelper.fromTextArray(
                   context: context,
                   border: pw.TableBorder.all(),
                   headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),

@@ -53,7 +53,7 @@ class _UploadAtestadoPageState extends State<UploadAtestadoPage> {
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.shadow.withOpacity(0.1),
+                    color: AppColors.shadow.withValues(alpha: 0.1),
                     blurRadius: 4,
                     offset: const Offset(0, 2),
                   ),
