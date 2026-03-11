@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/pages/admin/home/relatorios/reports_page.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/admin_home/admin_home_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/admin_home/admin_home_event.dart';
@@ -236,7 +237,22 @@ class _HomeAdminViewState extends State<HomeAdminView> {
                       }
                     },
                   ),
-                ],
+                  const SizedBox(height: 8), // Espaçamento
+                // NOVO BOTÃO RELATÓRIOS
+                AdminMenuItem(
+                  icon: Icons.assignment_outlined,
+                  title: 'Relatórios',
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        // REMOVA O CONST DAQUI
+                        builder: (context) => const ReportsPage(),
+                      ),
+                    );
+                  },
+                ),
+              ],
               ),
             ),
           );
