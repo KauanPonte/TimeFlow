@@ -72,7 +72,8 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
     }
 
     // Highlight mudou → se o histórico já está carregado, scrolla imediatamente.
-    if (widget.highlightDayId != null) {
+    if (widget.highlightDayId != null &&
+        widget.highlightDayId != oldWidget.highlightDayId) {
       final state = context.read<PontoHistoryBloc>().state;
       final alreadyLoaded = state is PontoHistoryLoaded ||
           state is PontoHistoryActionSuccess ||

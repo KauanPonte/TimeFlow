@@ -76,7 +76,13 @@ class _HomePageState extends State<HomePage> {
         : null;
     if (initDate != null) {
       _currentMonth = DateTime(initDate.year, initDate.month);
-      _highlightDayId = DateFormat('yyyy-MM-dd').format(initDate);
+      // Aplica o highlight no próximo frame (null → valor), igual ao caminho
+      // de _goToDay, para que didUpdateWidget em HomeHistorySection veja sempre
+      // a mesma sequência null→null / null→valor independente da tela de origem.
+      final newDayId = DateFormat('yyyy-MM-dd').format(initDate);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) setState(() => _highlightDayId = newDayId);
+      });
     } else {
       _currentMonth = DateTime(now.year, now.month);
     }
