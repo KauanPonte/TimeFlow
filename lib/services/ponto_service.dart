@@ -73,7 +73,7 @@ class PontoService {
       final refEventos = _refEventos(uid, diaId);
       final now = Timestamp.now();
 
-      // ── Validação antes da transação ────────────────────────────────────
+      //  Validação antes da transação
       // Lemos o documento do dia fora da transação para evitar o erro
       // "Bad state: Future already completed" que ocorre ao lançar exceções
       // dentro do callback de runTransaction no cloud_firestore.
@@ -101,7 +101,7 @@ class PontoService {
         }
       }
 
-      // ── Escrita atômica (sem throws dentro da transação) ────────────────
+      //  Escrita atômica (sem throws dentro da transação)
       await FirebaseFirestore.instance.runTransaction((tx) async {
         final newDoc = refEventos.doc();
         tx.set(newDoc, {'tipo': tipo, 'at': now});
