@@ -230,7 +230,7 @@ class _RegisteredUsersTabState extends State<RegisteredUsersTab>
                                 onEditWorkload: () => _showEditWorkloadDialog(
                                   user['id'],
                                   user['name'],
-                                  user['cargaHorariaMinutos'] as int?,
+                                  user['workloadMinutes'] as int?,
                                 ),
                                 onDelete: () => _showDeleteUserDialog(
                                   user['id'],
@@ -313,10 +313,10 @@ class _RegisteredUsersTabState extends State<RegisteredUsersTab>
   Future<void> _showEditWorkloadDialog(
     String userId,
     String userName,
-    int? currentCargaHorariaMinutos,
+    int? currentWorkloadMinutes,
   ) async {
     final controller = TextEditingController(
-      text: _formatCargaHoraria(currentCargaHorariaMinutos),
+      text: _formatCargaHoraria(currentWorkloadMinutes),
     );
     final blocContext = context;
 
@@ -367,7 +367,7 @@ class _RegisteredUsersTabState extends State<RegisteredUsersTab>
                       UpdateUserWorkloadEvent(
                         userId: userId,
                         userName: userName,
-                        cargaHorariaMinutos: minutos,
+                        workloadMinutes: minutos,
                       ),
                     );
 

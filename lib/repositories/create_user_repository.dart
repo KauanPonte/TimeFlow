@@ -35,7 +35,7 @@ class CreateUserRepository {
     FirebaseApp? secondaryApp;
 
     try {
-      final cargaHorariaMinutos = _parseCargaHoraria(cargaHoraria);
+      final workloadMinutes = _parseCargaHoraria(cargaHoraria);
 
       // Inicia um app secundário isolado para não deslogar o admin
       secondaryApp = await Firebase.initializeApp(
@@ -61,7 +61,7 @@ class CreateUserRepository {
         'uid': uid,
         'email': email.trim(),
         'name': name.trim(),
-        'cargaHorariaMinutos': cargaHorariaMinutos,
+        'workloadMinutes': workloadMinutes,
         'role': role.trim(),
         'status': 'active',
         'profileImage': '',

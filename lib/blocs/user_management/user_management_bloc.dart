@@ -192,7 +192,7 @@ class UserManagementBloc
 
       final success = await UserRepository.updateUserWorkload(
         event.userId,
-        event.cargaHorariaMinutos,
+        event.workloadMinutes,
       );
 
       if (!success) {

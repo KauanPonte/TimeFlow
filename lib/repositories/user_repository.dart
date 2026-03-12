@@ -45,8 +45,8 @@ class UserRepository {
         .where((doc) => excludeUid == null || doc.id != excludeUid)
         .map((doc) {
       final data = doc.data();
-      final cargaHorariaMinutos =
-          (data['cargaHorariaMinutos'] ?? data['cargaHorairaMinutos']) as int?;
+      final workloadMinutes =
+          (data['workloadMinutes'] ?? data['cargaHorairaMinutos']) as int?;
 
       return {
         'id': doc.id,
@@ -54,7 +54,7 @@ class UserRepository {
         'email': data['email'] ?? '',
         'role': data['role'] ?? '',
         'status': data['status'] ?? '',
-        'cargaHorariaMinutos': cargaHorariaMinutos,
+        'workloadMinutes': workloadMinutes,
         'registeredAt': _formatTimestamp(data['createdAt']),
         'profileImage': data['profileImage'] ?? '',
       };
@@ -122,10 +122,10 @@ class UserRepository {
     required String role,
   }) async {
     try {
-      final cargaHorariaMinutos = _parseCargaHoraria(cargaHoraria);
+      final workloadMinutes = _parseCargaHoraria(cargaHoraria);
       await _db.collection(_usersCollection).doc(requestId).update({
         'status': 'active',
-        'cargaHorariaMinutos': cargaHorariaMinutos,
+        'workloadMinutes': workloadMinutes,
         'role': role,
       });
       return true;
@@ -171,11 +171,11 @@ class UserRepository {
   /// Uses merge to avoid NOT_FOUND when the document does not exist yet.
   static Future<bool> updateUserWorkload(
     String userId,
-    int cargaHorariaMinutos,
+    int workloadMinutes,
   ) async {
     try {
       await _db.collection(_usersCollection).doc(userId).set({
-        'cargaHorariaMinutos': cargaHorariaMinutos,
+        'workloadMinutes': workloadMinutes,
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
       return true;
