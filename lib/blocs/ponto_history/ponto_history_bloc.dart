@@ -27,6 +27,7 @@ class PontoHistoryBloc extends Bloc<PontoHistoryEvent, PontoHistoryState> {
     on<AddEventoEvent>(_onAdd);
     on<UpdateEventoEvent>(_onUpdate);
     on<DeleteEventoEvent>(_onDelete);
+    on<BatchUpdateDayEvent>(_onBatchUpdate);
     on<ResetHistoryEvent>((_, emit) => emit(const PontoHistoryInitial()));
 
     // Auto-refresh silenciosamente quando dados de ponto mudarem.
@@ -169,6 +170,39 @@ class PontoHistoryBloc extends Bloc<PontoHistoryEvent, PontoHistoryState> {
       globalLoading?.hide();
       emit(PontoHistoryActionSuccess(
         message: 'Ponto removido com sucesso',
+        daysMap: daysMap,
+      ));
+    } catch (e) {
+      globalLoading?.hide();
+      emit(PontoHistoryActionError(
+        message: e.toString().replaceAll('Exception: ', ''),
+        daysMap: _lastDaysMap,
+      ));
+    }
+  }
+
+  Future<void> _onBatchUpdate(
+    BatchUpdateDayEvent event,
+    Emitter<PontoHistoryState> emit,
+  ) async {
+    globalLoading?.show('Salvando alterações...');
+    emit(PontoHistoryActionProcessing(
+      message: 'Salvando alterações...',
+      daysMap: _lastDaysMap,
+    ));
+    try {
+      await repository.batchUpdateDay(
+        uid: event.uid,
+        diaId: event.diaId,
+        updates: event.updates,
+        deletes: event.deletes,
+        adds: event.adds,
+      );
+      final daysMap = await _reloadMonth(_currentUid ?? event.uid);
+      _lastDaysMap = daysMap;
+      globalLoading?.hide();
+      emit(PontoHistoryActionSuccess(
+        message: 'Alterações salvas com sucesso',
         daysMap: daysMap,
       ));
     } catch (e) {

@@ -62,7 +62,7 @@ class ReviewItemRow extends StatelessWidget {
     );
   }
 
-  // ── Sub-builders ───────────────────────────────────────────────────────────
+  // Sub-builders
 
   Widget _buildHeader(bool isAccepted, Color acColor, Color color) {
     return Row(

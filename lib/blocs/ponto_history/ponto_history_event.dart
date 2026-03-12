@@ -84,3 +84,23 @@ class DeleteEventoEvent extends PontoHistoryEvent {
   @override
   List<Object?> get props => [uid, diaId, eventoId];
 }
+
+/// Admin edita, adiciona e remove pontos de um dia em lote.
+class BatchUpdateDayEvent extends PontoHistoryEvent {
+  final String uid;
+  final String diaId;
+  final List<Map<String, dynamic>> updates;
+  final List<String> deletes;
+  final List<Map<String, dynamic>> adds;
+
+  const BatchUpdateDayEvent({
+    required this.uid,
+    required this.diaId,
+    required this.updates,
+    required this.deletes,
+    required this.adds,
+  });
+
+  @override
+  List<Object?> get props => [uid, diaId, updates, deletes, adds];
+}

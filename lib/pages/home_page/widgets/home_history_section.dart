@@ -12,7 +12,7 @@ import 'package:flutter_application_appdeponto/widgets/custom_snackbar.dart';
 import 'package:flutter_application_appdeponto/services/ponto_edit_dialogs.dart';
 import '../../history_page/widgets/card/day_card.dart';
 import '../../history_page/widgets/month_selector.dart';
-import '../../history_page/widgets/dialogs/solicitation_request_dialog.dart';
+import '../../history_page/widgets/dialogs/day_edit_dialog.dart';
 
 class HomeHistorySection extends StatefulWidget {
   final DateTime currentMonth;
@@ -223,6 +223,14 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
                     eventos: eventos,
                     isAdmin: widget.isAdmin,
                     pendingSolicitations: daySolicitations,
+                    onBatchEdit: canEdit
+                        ? (d, evs) => showBatchEditDayDialog(
+                              context: context,
+                              uid: widget.uid!,
+                              diaId: d,
+                              eventos: evs,
+                            )
+                        : null,
                     onAddEvento: canEdit
                         ? () => showPontoAddDialog(
                               context: context,
@@ -311,9 +319,10 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
   ) async {
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
-      builder: (_) => SolicitationRequestDialog(
+      builder: (_) => DayEditDialog(
+        mode: DayEditMode.solicitation,
         diaId: diaId,
-        eventosExistentes: eventos,
+        eventos: eventos,
       ),
     );
 

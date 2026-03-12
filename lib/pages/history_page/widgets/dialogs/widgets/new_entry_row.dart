@@ -1,26 +1,23 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_application_appdeponto/models/solicitation_request_models.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
 import 'solicitation_helpers.dart';
+import '../../../../../models/day_edit_models.dart';
 
-const _tipos = ['entrada', 'pausa', 'retorno', 'saida'];
-
-/// Linha de um novo registro a adicionar na solicitação.
 class NewEntryRow extends StatelessWidget {
-  final int index;
-  final NewEntry entry;
-  final VoidCallback onRemove;
+  static const _tipos = ['entrada', 'pausa', 'retorno', 'saida'];
+
+  final NewEntryState entry;
   final VoidCallback onPickTime;
-  final ValueChanged<String> onChangeTipo;
+  final ValueChanged<String> onTipoChanged;
+  final VoidCallback onRemove;
 
   const NewEntryRow({
     super.key,
-    required this.index,
     required this.entry,
-    required this.onRemove,
     required this.onPickTime,
-    required this.onChangeTipo,
+    required this.onTipoChanged,
+    required this.onRemove,
   });
 
   @override
@@ -74,7 +71,7 @@ class NewEntryRow extends StatelessWidget {
                   );
                 }).toList(),
                 onChanged: (v) {
-                  if (v != null) onChangeTipo(v);
+                  if (v != null) onTipoChanged(v);
                 },
               ),
             ),

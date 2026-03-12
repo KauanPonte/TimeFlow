@@ -17,6 +17,10 @@ class DayCard extends StatelessWidget {
   final List<SolicitationModel> pendingSolicitations;
   final void Function(String solicitationId)? onCancelSolicitation;
 
+  /// Admin: abre edição em lote passando diaId e eventos atuais.
+  final void Function(String diaId, List<Map<String, dynamic>> eventos)?
+      onBatchEdit;
+
   const DayCard({
     super.key,
     required this.diaId,
@@ -29,6 +33,7 @@ class DayCard extends StatelessWidget {
     this.onRequestSolicitation,
     this.pendingSolicitations = const [],
     this.onCancelSolicitation,
+    this.onBatchEdit,
   });
 
   @override
@@ -39,6 +44,7 @@ class DayCard extends StatelessWidget {
         disabled: true,
         isAdmin: isAdmin,
         onAddEvento: onAddEvento,
+        onBatchEdit: onBatchEdit != null ? () => onBatchEdit!(diaId, []) : null,
         onRequestSolicitation: onRequestSolicitation,
       );
     }
@@ -48,6 +54,7 @@ class DayCard extends StatelessWidget {
         disabled: false,
         isAdmin: isAdmin,
         onAddEvento: onAddEvento,
+        onBatchEdit: onBatchEdit != null ? () => onBatchEdit!(diaId, []) : null,
         onRequestSolicitation: onRequestSolicitation,
       );
     }
@@ -68,6 +75,8 @@ class DayCard extends StatelessWidget {
       onEditEvento: onEditEvento,
       onDeleteEvento: onDeleteEvento,
       onAddEvento: onAddEvento,
+      onBatchEdit:
+          onBatchEdit != null ? () => onBatchEdit!(diaId, eventos) : null,
       onRequestSolicitation: onRequestSolicitation,
       onCancelSolicitation: onCancelSolicitation,
     );
