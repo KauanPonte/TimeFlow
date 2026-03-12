@@ -1,5 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_application_appdeponto/firebase_options.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -32,12 +33,13 @@ import 'pages/admin/users_management/users_management_page.dart';
 import 'pages/ponto_page/ponto_page.dart';
 import 'pages/profile_page/profile_page.dart';
 import 'pages/history_page/history_page.dart';
-// import 'pages/admin/admin_dashboard_page.dart';
-// import 'package:flutter_application_appdeponto/blocs/admin/admin_bloc.dart';
-// import 'package:flutter_application_appdeponto/repositories/admin_repository.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+  ]);
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await initializeDateFormatting('pt_BR');
   await NotificationService.init();
@@ -104,11 +106,6 @@ class TimeFlow extends StatelessWidget {
             globalLoading: context.read<GlobalLoadingCubit>(),
           ),
         ),
-        // BlocProvider<AdminBloc>(
-        //   create: (context) => AdminBloc(
-        //     repository: AdminRepository(),
-        //   ),
-        // ),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
@@ -211,12 +208,6 @@ class TimeFlow extends StatelessWidget {
               ),
             );
           }
-
-          // if (settings.name == "/admin") {
-          //   return MaterialPageRoute(
-          //     builder: (context) => const AdminDashboardPage(),
-          //   );
-          // }
 
           return null;
         },
