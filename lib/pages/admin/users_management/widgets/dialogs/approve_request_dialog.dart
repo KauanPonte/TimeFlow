@@ -80,7 +80,7 @@ class ApproveRequestDialog extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           TextField(
-            controller:cargaHorariaController,
+            controller: cargaHorariaController,
             decoration: InputDecoration(
               hintText: 'Ex: 8 ou 8:30',
               border: OutlineInputBorder(
@@ -114,38 +114,38 @@ class ApproveRequestDialog extends StatelessWidget {
         ),
         ElevatedButton(
           onPressed: () {
-           final role = roleController.text.trim();
-           final cargaHoraria = cargaHorariaController.text.trim();
+            final role = roleController.text.trim();
+            final cargaHoraria = cargaHorariaController.text.trim();
 
-           if (role.isEmpty) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: const Text('Por favor, defina um cargo'),
-                backgroundColor: AppColors.error,
-                behavior: SnackBarBehavior.floating,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+            if (role.isEmpty) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: const Text('Por favor, defina um cargo'),
+                  backgroundColor: AppColors.error,
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
-              ),
-            );
-            return;
-}
+              );
+              return;
+            }
 
-if (cargaHoraria.isEmpty) {
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(
-      content: const Text('Por favor, defina a carga horária'),
-      backgroundColor: AppColors.error,
-      behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
-      ),
-    ),
-  );
-  return;
-}
+            if (cargaHoraria.isEmpty) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: const Text('Por favor, defina a carga horária'),
+                  backgroundColor: AppColors.error,
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              );
+              return;
+            }
 
-onApprove(role, cargaHoraria);
+            onApprove(role, cargaHoraria);
           },
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.success,
