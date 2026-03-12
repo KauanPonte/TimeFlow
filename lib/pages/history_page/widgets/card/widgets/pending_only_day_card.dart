@@ -30,7 +30,7 @@ class PendingOnlyDayCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.borderLight),
         boxShadow: const [
           BoxShadow(

@@ -14,8 +14,16 @@ class PontoHistoryBloc extends Bloc<PontoHistoryEvent, PontoHistoryState> {
   DateTime _currentMonth = DateTime.now();
   Map<String, List<Map<String, dynamic>>> _lastDaysMap = {};
 
+  /// Cache em memória: chave = "uid_ano_mes" → daysMap do mês.
+  /// Permite exibir dados imediatamente ao trocar de mês sem spinner.
+  final Map<String, Map<String, List<Map<String, dynamic>>>> _monthCache = {};
+
   /// Mês atualmente carregado.
   DateTime get currentMonth => _currentMonth;
+
+  /// Gera a chave do cache para o mês/uid indicados.
+  String _cacheKey(DateTime month, String? uid) =>
+      '${uid ?? 'me'}_${month.year}_${month.month}';
 
   PontoHistoryBloc({
     required this.repository,
@@ -41,20 +49,35 @@ class PontoHistoryBloc extends Bloc<PontoHistoryEvent, PontoHistoryState> {
     LoadHistoryEvent event,
     Emitter<PontoHistoryState> emit,
   ) async {
-    emit(const PontoHistoryLoading());
+    _currentUid = event.uid;
+    _currentMonth = event.month;
+
+    final key = _cacheKey(_currentMonth, _currentUid);
+    final cached = _monthCache[key];
+
+    // Exibe dados cacheados imediatamente — sem spinner ao trocar de mês.
+    if (cached != null) {
+      _lastDaysMap = cached;
+      emit(PontoHistoryLoaded(daysMap: cached));
+    } else {
+      emit(const PontoHistoryLoading());
+    }
+
     try {
-      _currentUid = event.uid;
-      _currentMonth = event.month;
       final daysMap = await repository.loadDaysByMonth(
         uid: event.uid,
         year: _currentMonth.year,
         month: _currentMonth.month,
       );
-      emit(PontoHistoryLoaded(daysMap: daysMap));
+      _monthCache[key] = daysMap;
       _lastDaysMap = daysMap;
+      emit(PontoHistoryLoaded(daysMap: daysMap));
     } catch (e) {
-      emit(PontoHistoryError(
-          message: e.toString().replaceAll('Exception: ', '')));
+      // Se não havia cache, exibe erro; caso contrário mantém dados cacheados.
+      if (cached == null) {
+        emit(PontoHistoryError(
+            message: e.toString().replaceAll('Exception: ', '')));
+      }
     }
   }
 
@@ -78,6 +101,7 @@ class PontoHistoryBloc extends Bloc<PontoHistoryEvent, PontoHistoryState> {
         year: _currentMonth.year,
         month: _currentMonth.month,
       );
+      _monthCache[_cacheKey(_currentMonth, _currentUid)] = daysMap;
       _lastDaysMap = daysMap;
       emit(PontoHistoryLoaded(daysMap: daysMap));
     } catch (_) {
@@ -102,6 +126,7 @@ class PontoHistoryBloc extends Bloc<PontoHistoryEvent, PontoHistoryState> {
         horario: event.horario,
       );
       final daysMap = await _reloadMonth(_currentUid ?? event.uid);
+      _monthCache[_cacheKey(_currentMonth, _currentUid)] = daysMap;
       _lastDaysMap = daysMap;
       globalLoading?.hide();
       emit(PontoHistoryActionSuccess(
@@ -135,6 +160,7 @@ class PontoHistoryBloc extends Bloc<PontoHistoryEvent, PontoHistoryState> {
         horario: event.horario,
       );
       final daysMap = await _reloadMonth(_currentUid ?? event.uid);
+      _monthCache[_cacheKey(_currentMonth, _currentUid)] = daysMap;
       _lastDaysMap = daysMap;
       globalLoading?.hide();
       emit(PontoHistoryActionSuccess(
@@ -166,6 +192,7 @@ class PontoHistoryBloc extends Bloc<PontoHistoryEvent, PontoHistoryState> {
         eventoId: event.eventoId,
       );
       final daysMap = await _reloadMonth(_currentUid ?? event.uid);
+      _monthCache[_cacheKey(_currentMonth, _currentUid)] = daysMap;
       _lastDaysMap = daysMap;
       globalLoading?.hide();
       emit(PontoHistoryActionSuccess(
@@ -199,6 +226,7 @@ class PontoHistoryBloc extends Bloc<PontoHistoryEvent, PontoHistoryState> {
         adds: event.adds,
       );
       final daysMap = await _reloadMonth(_currentUid ?? event.uid);
+      _monthCache[_cacheKey(_currentMonth, _currentUid)] = daysMap;
       _lastDaysMap = daysMap;
       globalLoading?.hide();
       emit(PontoHistoryActionSuccess(
@@ -214,8 +242,11 @@ class PontoHistoryBloc extends Bloc<PontoHistoryEvent, PontoHistoryState> {
     }
   }
 
-  /// Limpa o estado (chamado no logout).
-  void reset() => add(const ResetHistoryEvent());
+  /// Limpa o estado e o cache (chamado no logout).
+  void reset() {
+    _monthCache.clear();
+    add(const ResetHistoryEvent());
+  }
 
   @override
   Future<void> close() {
