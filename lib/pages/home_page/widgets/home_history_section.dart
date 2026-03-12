@@ -12,7 +12,7 @@ import 'package:flutter_application_appdeponto/widgets/custom_snackbar.dart';
 import 'package:flutter_application_appdeponto/services/ponto_edit_dialogs.dart';
 import '../../history_page/widgets/card/day_card.dart';
 import '../../history_page/widgets/month_selector.dart';
-import '../../history_page/widgets/dialogs/solicitation_request_dialog.dart';
+import '../../history_page/widgets/dialogs/day_edit_dialog.dart';
 
 class HomeHistorySection extends StatefulWidget {
   final DateTime currentMonth;
@@ -208,9 +208,14 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
                   final eventos = daysMap[diaId] ?? [];
                   final isHighlight = diaId == widget.highlightDayId;
 
-                  // Filtra solicitações pendentes para este dia
-                  final daySolicitations =
-                      allSolicitations.where((s) => s.diaId == diaId).toList();
+                  // Filtra solicitações pendentes para este dia.
+                  // Admin não vê solicitações de outros usuários nos próprios
+                  // day cards — elas pertencem às telas de gestão de solicitações.
+                  final daySolicitations = widget.isAdmin
+                      ? <SolicitationModel>[]
+                      : allSolicitations
+                          .where((s) => s.diaId == diaId)
+                          .toList();
 
                   return DayCard(
                     key: isHighlight ? _keyForDay(diaId) : null,
@@ -218,6 +223,14 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
                     eventos: eventos,
                     isAdmin: widget.isAdmin,
                     pendingSolicitations: daySolicitations,
+                    onBatchEdit: canEdit
+                        ? (d, evs) => showBatchEditDayDialog(
+                              context: context,
+                              uid: widget.uid!,
+                              diaId: d,
+                              eventos: evs,
+                            )
+                        : null,
                     onAddEvento: canEdit
                         ? () => showPontoAddDialog(
                               context: context,
@@ -306,9 +319,10 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
   ) async {
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
-      builder: (_) => SolicitationRequestDialog(
+      builder: (_) => DayEditDialog(
+        mode: DayEditMode.solicitation,
         diaId: diaId,
-        eventosExistentes: eventos,
+        eventos: eventos,
       ),
     );
 

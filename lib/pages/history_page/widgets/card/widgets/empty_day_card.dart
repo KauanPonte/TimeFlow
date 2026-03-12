@@ -9,6 +9,7 @@ class EmptyDayCard extends StatelessWidget {
   final bool disabled;
   final bool isAdmin;
   final VoidCallback? onAddEvento;
+  final VoidCallback? onBatchEdit;
   final VoidCallback? onRequestSolicitation;
 
   const EmptyDayCard({
@@ -17,6 +18,7 @@ class EmptyDayCard extends StatelessWidget {
     this.disabled = false,
     this.isAdmin = false,
     this.onAddEvento,
+    this.onBatchEdit,
     this.onRequestSolicitation,
   });
 
@@ -64,7 +66,7 @@ class EmptyDayCard extends StatelessWidget {
                   fontSize: 11,
                 ),
               ),
-        trailing: (!disabled && isAdmin)
+        trailing: (!disabled && isAdmin && onBatchEdit != null)
             ? IconButton(
                 constraints: const BoxConstraints(),
                 style: IconButton.styleFrom(
@@ -73,12 +75,12 @@ class EmptyDayCard extends StatelessWidget {
                   padding: EdgeInsets.zero,
                 ),
                 padding: EdgeInsets.zero,
-                onPressed: onAddEvento,
-                icon: const Icon(Icons.add_circle_outline,
+                onPressed: onBatchEdit,
+                icon: const Icon(Icons.edit_note_rounded,
                     color: AppColors.primary),
-                tooltip: 'Adicionar ponto',
+                tooltip: 'Editar dia',
               )
-            : (!disabled && onRequestSolicitation != null)
+            : (!disabled && isAdmin && onAddEvento != null)
                 ? IconButton(
                     constraints: const BoxConstraints(),
                     style: IconButton.styleFrom(
@@ -87,12 +89,26 @@ class EmptyDayCard extends StatelessWidget {
                       padding: EdgeInsets.zero,
                     ),
                     padding: EdgeInsets.zero,
-                    onPressed: onRequestSolicitation,
-                    icon: const Icon(Icons.edit_note_rounded,
+                    onPressed: onAddEvento,
+                    icon: const Icon(Icons.add_circle_outline,
                         color: AppColors.primary),
-                    tooltip: 'Solicitar alteração',
+                    tooltip: 'Adicionar ponto',
                   )
-                : null,
+                : (!disabled && onRequestSolicitation != null)
+                    ? IconButton(
+                        constraints: const BoxConstraints(),
+                        style: IconButton.styleFrom(
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          minimumSize: Size.zero,
+                          padding: EdgeInsets.zero,
+                        ),
+                        padding: EdgeInsets.zero,
+                        onPressed: onRequestSolicitation,
+                        icon: const Icon(Icons.edit_note_rounded,
+                            color: AppColors.primary),
+                        tooltip: 'Solicitar alteração',
+                      )
+                    : null,
       ),
     );
   }

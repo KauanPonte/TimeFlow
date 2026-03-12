@@ -1,59 +1,52 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_application_appdeponto/models/solicitation_model.dart';
-import 'package:flutter_application_appdeponto/models/solicitation_request_models.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
 import 'package:intl/intl.dart';
 import 'solicitation_helpers.dart';
+import '../../../../../models/day_edit_models.dart';
+import 'undo_btn.dart';
 
-const _tipos = ['entrada', 'pausa', 'retorno', 'saida'];
-
-/// Linha de um evento existente no diálogo de solicitação.
-/// Pode estar em estado normal, edição ou marcado para remoção.
 class ExistingEventRow extends StatelessWidget {
-  final Map<String, dynamic> ev;
-  final EventoModification? modification;
+  static const _tipos = ['entrada', 'pausa', 'retorno', 'saida'];
+
+  final EventoEditState ev;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
   final VoidCallback onUndo;
   final VoidCallback onPickTime;
-  final ValueChanged<String> onChangeTipo;
+  final ValueChanged<String> onTipoChanged;
+
+  /// Quando `true`, exibe os valores originais (antes) na linha de edição.
+  final bool showOldValues;
 
   const ExistingEventRow({
     super.key,
     required this.ev,
-    required this.modification,
     required this.onEdit,
     required this.onDelete,
     required this.onUndo,
     required this.onPickTime,
-    required this.onChangeTipo,
+    required this.onTipoChanged,
+    this.showOldValues = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    final tipo = (ev['tipo'] ?? 'entrada').toString();
-    final at = ev['at'] as DateTime?;
-
-    //  Marcado para remoção
-    if (modification?.action == SolicitationAction.delete) {
-      return _DeletedRow(tipo: tipo, at: at, onUndo: onUndo);
+    switch (ev.mode) {
+      case RowMode.deleting:
+        return _buildDeletedRow();
+      case RowMode.editing:
+        return _buildEditingRow();
+      case RowMode.normal:
+        return _buildNormalRow();
     }
+  }
 
-    //  Em modo edição
-    if (modification?.action == SolicitationAction.edit) {
-      return _EditRow(
-        mod: modification!,
-        onUndo: onUndo,
-        onPickTime: onPickTime,
-        onChangeTipo: onChangeTipo,
-      );
-    }
-
-    //  Normal
-    final color = colorForTipo(tipo);
-    final hora = at != null ? DateFormat('HH:mm').format(at) : '--:--';
-    final eventoId = ev['id'] as String?;
+  Widget _buildNormalRow() {
+    final color = colorForTipo(ev.tipo);
+    final hora = ev.originalAt != null
+        ? DateFormat('HH:mm').format(ev.originalAt!)
+        : '--:--';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 6),
@@ -65,16 +58,16 @@ class ExistingEventRow extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(iconForTipo(tipo), size: 15, color: color),
+          Icon(iconForTipo(ev.tipo), size: 15, color: color),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              '${labelForTipo(tipo)} — $hora',
+              '${labelForTipo(ev.tipo)} — $hora',
               style: AppTextStyles.bodySmall
                   .copyWith(color: AppColors.textPrimary),
             ),
           ),
-          if (eventoId != null) ...[
+          if (ev.id != null) ...[
             IconButton(
               onPressed: onEdit,
               icon: const Icon(Icons.edit_outlined, size: 16),
@@ -96,21 +89,12 @@ class ExistingEventRow extends StatelessWidget {
       ),
     );
   }
-}
 
-//  Sub-widgets privados
+  Widget _buildDeletedRow() {
+    final hora = ev.originalAt != null
+        ? DateFormat('HH:mm').format(ev.originalAt!)
+        : '--:--';
 
-class _DeletedRow extends StatelessWidget {
-  final String tipo;
-  final DateTime? at;
-  final VoidCallback onUndo;
-
-  const _DeletedRow(
-      {required this.tipo, required this.at, required this.onUndo});
-
-  @override
-  Widget build(BuildContext context) {
-    final hora = at != null ? DateFormat('HH:mm').format(at!) : '--:--';
     return Container(
       margin: const EdgeInsets.only(bottom: 6),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -121,12 +105,12 @@ class _DeletedRow extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(iconForTipo(tipo),
+          Icon(iconForTipo(ev.originalTipo ?? ev.tipo),
               size: 15, color: AppColors.error.withValues(alpha: 0.5)),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              '${labelForTipo(tipo)} — $hora',
+              '${labelForTipo(ev.originalTipo ?? ev.tipo)} — $hora',
               style: AppTextStyles.bodySmall.copyWith(
                 color: AppColors.error.withValues(alpha: 0.6),
                 decoration: TextDecoration.lineThrough,
@@ -149,31 +133,16 @@ class _DeletedRow extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 4),
-          _UndoBtn(onTap: onUndo),
+          UndoBtn(onTap: onUndo),
         ],
       ),
     );
   }
-}
 
-class _EditRow extends StatelessWidget {
-  final EventoModification mod;
-  final VoidCallback onUndo;
-  final VoidCallback onPickTime;
-  final ValueChanged<String> onChangeTipo;
-
-  const _EditRow({
-    required this.mod,
-    required this.onUndo,
-    required this.onPickTime,
-    required this.onChangeTipo,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final editColor = colorForTipo(mod.newTipo);
+  Widget _buildEditingRow() {
+    final editColor = colorForTipo(ev.tipo);
     final timeStr =
-        '${mod.newTime.hour.toString().padLeft(2, '0')}:${mod.newTime.minute.toString().padLeft(2, '0')}';
+        '${ev.time.hour.toString().padLeft(2, '0')}:${ev.time.minute.toString().padLeft(2, '0')}';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 6),
@@ -203,17 +172,21 @@ class _EditRow extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(width: 6),
-              Text(
-                'antes: ${labelForTipo(mod.oldTipo)} ${DateFormat('HH:mm').format(mod.oldHorario)}',
-                style: AppTextStyles.bodySmall.copyWith(
-                  fontSize: 10,
-                  color: AppColors.textSecondary,
-                  decoration: TextDecoration.lineThrough,
+              if (showOldValues &&
+                  ev.originalTipo != null &&
+                  ev.originalAt != null) ...[
+                const SizedBox(width: 6),
+                Text(
+                  'antes: ${labelForTipo(ev.originalTipo!)} ${DateFormat('HH:mm').format(ev.originalAt!)}',
+                  style: AppTextStyles.bodySmall.copyWith(
+                    fontSize: 10,
+                    color: AppColors.textSecondary,
+                    decoration: TextDecoration.lineThrough,
+                  ),
                 ),
-              ),
+              ],
               const Spacer(),
-              _UndoBtn(onTap: onUndo),
+              UndoBtn(onTap: onUndo),
             ],
           ),
           const SizedBox(height: 8),
@@ -222,7 +195,7 @@ class _EditRow extends StatelessWidget {
               Expanded(
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<String>(
-                    value: mod.newTipo,
+                    value: ev.tipo,
                     isDense: true,
                     items: _tipos.map((t) {
                       return DropdownMenuItem(
@@ -240,11 +213,12 @@ class _EditRow extends StatelessWidget {
                       );
                     }).toList(),
                     onChanged: (v) {
-                      if (v != null) onChangeTipo(v);
+                      if (v != null) onTipoChanged(v);
                     },
                   ),
                 ),
               ),
+              const SizedBox(width: 8),
               InkWell(
                 onTap: onPickTime,
                 borderRadius: BorderRadius.circular(8),
@@ -274,37 +248,6 @@ class _EditRow extends StatelessWidget {
             ],
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _UndoBtn extends StatelessWidget {
-  final VoidCallback onTap;
-  const _UndoBtn({required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(6),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.undo_rounded,
-                size: 14, color: AppColors.textSecondary),
-            const SizedBox(width: 2),
-            Text(
-              'Desfazer',
-              style: AppTextStyles.bodySmall.copyWith(
-                fontSize: 10,
-                color: AppColors.textSecondary,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

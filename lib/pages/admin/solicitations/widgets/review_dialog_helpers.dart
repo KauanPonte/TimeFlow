@@ -4,7 +4,7 @@ import 'package:flutter_application_appdeponto/models/solicitation_model.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
 
-// ── Funções helpers de apresentação ─────────────────────────────────────────
+// Funções helpers de apresentação
 
 String labelForTipo(String tipo) {
   switch (tipo) {
@@ -73,7 +73,7 @@ Color actionColor(SolicitationAction action) {
   }
 }
 
-// ── Widgets auxiliares ───────────────────────────────────────────────────────
+// Widgets auxiliares
 
 /// Chip de ação rápida (Aceitar todos / Rejeitar todos).
 class QuickActionChip extends StatelessWidget {

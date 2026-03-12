@@ -5,6 +5,7 @@ import 'package:flutter_application_appdeponto/blocs/ponto_history/ponto_history
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
 import '../pages/history_page/widgets/evento_dialog.dart';
+import '../pages/history_page/widgets/dialogs/day_edit_dialog.dart';
 
 /// Exibe o diálogo para adicionar um ponto num [diaId] para o [uid] informado.
 Future<void> showPontoAddDialog({
@@ -109,4 +110,31 @@ void showPontoDeleteConfirm({
       ],
     ),
   );
+}
+
+/// Exibe o diálogo de edição em lote para o [diaId] do [uid].
+Future<void> showBatchEditDayDialog({
+  required BuildContext context,
+  required String uid,
+  required String diaId,
+  required List<Map<String, dynamic>> eventos,
+}) async {
+  final result = await showDialog<BatchEditResult>(
+    context: context,
+    builder: (_) => DayEditDialog(
+      mode: DayEditMode.adminEdit,
+      diaId: diaId,
+      eventos: eventos,
+    ),
+  );
+
+  if (result != null && !result.isEmpty && context.mounted) {
+    context.read<PontoHistoryBloc>().add(BatchUpdateDayEvent(
+          uid: uid,
+          diaId: diaId,
+          updates: result.updates,
+          deletes: result.deletes,
+          adds: result.adds,
+        ));
+  }
 }

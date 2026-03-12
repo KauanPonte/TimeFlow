@@ -15,6 +15,7 @@ class FilledDayCard extends StatelessWidget {
   final void Function(Map<String, dynamic>)? onEditEvento;
   final void Function(Map<String, dynamic>)? onDeleteEvento;
   final VoidCallback? onAddEvento;
+  final VoidCallback? onBatchEdit;
   final VoidCallback? onRequestSolicitation;
   final void Function(String)? onCancelSolicitation;
 
@@ -27,6 +28,7 @@ class FilledDayCard extends StatelessWidget {
     this.onEditEvento,
     this.onDeleteEvento,
     this.onAddEvento,
+    this.onBatchEdit,
     this.onRequestSolicitation,
     this.onCancelSolicitation,
   });
@@ -54,7 +56,7 @@ class FilledDayCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
         color: incomplete ? AppColors.warningLight8 : AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: incomplete ? AppColors.warningLight30 : AppColors.borderLight,
         ),
@@ -99,7 +101,8 @@ class FilledDayCard extends StatelessWidget {
             const SizedBox(height: 8),
             ..._buildEventoRows(),
             if (incomplete) _buildIncompleteWarning(),
-            if (isAdmin) _buildAddButton(),
+            if (isAdmin && onBatchEdit != null) _buildBatchEditButton(),
+            if (!isAdmin && onAddEvento != null) _buildAddButton(),
             if (hasPending) ...[
               PendingSolicitationsSection(
                 solicitations: pendingSolicitations,
@@ -234,20 +237,26 @@ class FilledDayCard extends StatelessWidget {
               ),
             ),
             if (isAdmin) ...[
-              IconButton(
-                onPressed: () => onEditEvento?.call(ev),
-                icon: const Icon(Icons.edit_outlined,
-                    size: 18, color: AppColors.primary),
-                tooltip: 'Editar',
-                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-              ),
-              IconButton(
-                onPressed: () => onDeleteEvento?.call(ev),
-                icon: const Icon(Icons.delete_outline,
-                    size: 18, color: AppColors.error),
-                tooltip: 'Remover',
-                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-              ),
+              // Botões individuais de editar/excluir omitidos quando
+              // a edição em lote está habilitada.
+              if (onBatchEdit == null) ...[
+                IconButton(
+                  onPressed: () => onEditEvento?.call(ev),
+                  icon: const Icon(Icons.edit_outlined,
+                      size: 18, color: AppColors.primary),
+                  tooltip: 'Editar',
+                  constraints:
+                      const BoxConstraints(minWidth: 36, minHeight: 36),
+                ),
+                IconButton(
+                  onPressed: () => onDeleteEvento?.call(ev),
+                  icon: const Icon(Icons.delete_outline,
+                      size: 18, color: AppColors.error),
+                  tooltip: 'Remover',
+                  constraints:
+                      const BoxConstraints(minWidth: 36, minHeight: 36),
+                ),
+              ],
             ],
           ],
         ),
@@ -288,6 +297,39 @@ class FilledDayCard extends StatelessWidget {
           ),
           const SizedBox(height: 4),
         ],
+      ),
+    );
+  }
+
+  Widget _buildBatchEditButton() {
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: InkWell(
+        onTap: onBatchEdit,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+          decoration: BoxDecoration(
+            border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+            borderRadius: BorderRadius.circular(8),
+            color: AppColors.primaryLight10.withValues(alpha: 0.3),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.edit_note_rounded,
+                  size: 18, color: AppColors.primary),
+              const SizedBox(width: 6),
+              Text(
+                'Editar dia',
+                style: AppTextStyles.bodySmall.copyWith(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -295,6 +295,14 @@ class _HistoryViewState extends State<_HistoryView> {
             diaId: diaId,
             eventos: eventos,
             isAdmin: isAdmin,
+            onBatchEdit: isAdmin
+                ? (d, evs) => showBatchEditDayDialog(
+                      context: context,
+                      uid: widget.targetUid!,
+                      diaId: d,
+                      eventos: evs,
+                    )
+                : null,
             onAddEvento:
                 isAdmin ? () => _showAddDialogForDay(context, diaId) : null,
             onEditEvento: isAdmin
