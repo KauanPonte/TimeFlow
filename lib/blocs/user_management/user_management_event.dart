@@ -21,16 +21,18 @@ class LoadPendingRequestsEvent extends UserManagementEvent {
 class ApproveRequestEvent extends UserManagementEvent {
   final String requestId;
   final String userName;
+  final String cargaHoraria;
   final String role;
 
   const ApproveRequestEvent({
     required this.requestId,
     required this.userName,
+    required this.cargaHoraria,
     required this.role,
   });
 
   @override
-  List<Object?> get props => [requestId, userName, role];
+  List<Object?> get props => [requestId, userName, cargaHoraria, role];
 }
 
 /// Rejeita uma solicitação de cadastro

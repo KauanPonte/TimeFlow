@@ -243,11 +243,12 @@ class _PendingRequestsTabState extends State<PendingRequestsTab>
       context: context,
       builder: (dialogContext) => ApproveRequestDialog(
         userName: userName,
-        onApprove: (role) {
+        onApprove: (role, cargaHoraria) {
           bloc.add(
             ApproveRequestEvent(
               requestId: requestId,
               userName: userName,
+              cargaHoraria: cargaHoraria,
               role: role,
             ),
           );

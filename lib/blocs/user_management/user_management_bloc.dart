@@ -72,6 +72,7 @@ class UserManagementBloc
 
       await UserRepository.approveRequest(
         requestId: event.requestId,
+        cargaHoraria: event.cargaHoraria,
         role: event.role,
       );
 
