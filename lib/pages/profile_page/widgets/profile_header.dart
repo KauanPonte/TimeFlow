@@ -22,6 +22,7 @@ class ProfileHeader extends StatelessWidget {
             color: AppColors.textPrimary,
             fontWeight: FontWeight.bold,
           ),
+          textAlign: TextAlign.center,
         ),
         const SizedBox(height: 8),
         Container(

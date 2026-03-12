@@ -132,6 +132,43 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                       ),
                       const SizedBox(height: 16),
 
+                      //  Estado vazio — sem nenhuma notificação
+                      if (incompletos.isEmpty &&
+                          allReviewed.isEmpty &&
+                          solicitations.isEmpty) ...[
+                        const SizedBox(height: 32),
+                        Center(
+                          child: Column(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(20),
+                                decoration: const BoxDecoration(
+                                  color: AppColors.primaryLight10,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.notifications_none_rounded,
+                                  size: 48,
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              const Text(
+                                'Tudo em dia!',
+                                style: AppTextStyles.h3,
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                'Nenhuma notificação no momento.',
+                                style: AppTextStyles.bodySmall
+                                    .copyWith(color: AppColors.textSecondary),
+                              ),
+                              const SizedBox(height: 32),
+                            ],
+                          ),
+                        ),
+                      ],
+
                       //  Seção: Registros incompletos
                       if (incompletos.isNotEmpty) ...[
                         Row(
@@ -828,14 +865,12 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                 tooltip: !hasNotification
                     ? 'Sem pendências'
                     : '$totalCount pendência(s)',
-                onPressed: !hasNotification
-                    ? null
-                    : () => _showNotificationsSheet(
-                          context,
-                          incompletos,
-                          isAdmin: isAdmin,
-                          reviewedSolicitations: reviewedSolicitations,
-                        ),
+                onPressed: () => _showNotificationsSheet(
+                  context,
+                  incompletos,
+                  isAdmin: isAdmin,
+                  reviewedSolicitations: reviewedSolicitations,
+                ),
               ),
             );
           },
