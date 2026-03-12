@@ -31,6 +31,24 @@ class CreateSolicitationEvent extends SolicitationEvent {
   List<Object?> get props => [diaId, items, reason];
 }
 
+/// Funcionário: atualiza uma solicitação pendente (cancela a atual e cria nova).
+class UpdateSolicitationEvent extends SolicitationEvent {
+  final String existingSolicitationId;
+  final String diaId;
+  final List<SolicitationItem> items;
+  final String? reason;
+
+  const UpdateSolicitationEvent({
+    required this.existingSolicitationId,
+    required this.diaId,
+    required this.items,
+    this.reason,
+  });
+
+  @override
+  List<Object?> get props => [existingSolicitationId, diaId, items, reason];
+}
+
 /// Funcionário: cancela uma solicitação pendente.
 class CancelSolicitationEvent extends SolicitationEvent {
   final String solicitationId;

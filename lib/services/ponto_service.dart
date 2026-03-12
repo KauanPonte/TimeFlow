@@ -71,7 +71,10 @@ class PontoService {
       final diaId = _hojeId();
       final refDia = _refDia(uid, diaId);
       final refEventos = _refEventos(uid, diaId);
-      final now = Timestamp.now();
+      // Registra sem segundos (truncado ao minuto).
+      final nowRaw = DateTime.now();
+      final now = Timestamp.fromDate(DateTime(
+          nowRaw.year, nowRaw.month, nowRaw.day, nowRaw.hour, nowRaw.minute));
 
       //  Validação antes da transação
       // Lemos o documento do dia fora da transação para evitar o erro

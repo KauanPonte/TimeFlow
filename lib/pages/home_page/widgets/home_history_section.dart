@@ -255,7 +255,12 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
                             )
                         : null,
                     onRequestSolicitation: (!widget.isAdmin)
-                        ? () => _showSolicitationDialog(context, diaId, eventos)
+                        ? () => _showSolicitationDialog(
+                              context,
+                              diaId,
+                              eventos,
+                              daySolicitations,
+                            )
                         : null,
                     onCancelSolicitation: (!widget.isAdmin)
                         ? (solId) => _confirmCancelSolicitation(context, solId)
@@ -316,26 +321,46 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
     BuildContext context,
     String diaId,
     List<Map<String, dynamic>> eventos,
+    List<SolicitationModel> daySolicitations,
   ) async {
+    // Se já existe uma solicitação pendente para este dia, abre o diálogo
+    // para edição — ao salvar, a existente é substituída pela nova.
+    final existing =
+        daySolicitations.isNotEmpty ? daySolicitations.first : null;
+
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
       builder: (_) => DayEditDialog(
         mode: DayEditMode.solicitation,
         diaId: diaId,
         eventos: eventos,
+        existingSolicitation: existing,
       ),
     );
 
     if (result != null && context.mounted) {
       final items = result['items'] as List<SolicitationItem>;
       final reason = result['reason'] as String?;
-      context.read<SolicitationBloc>().add(
-            CreateSolicitationEvent(
-              diaId: diaId,
-              items: items,
-              reason: reason,
-            ),
-          );
+
+      if (existing != null) {
+        // Substitui a solicitação existente pela nova
+        context.read<SolicitationBloc>().add(
+              UpdateSolicitationEvent(
+                existingSolicitationId: existing.id,
+                diaId: diaId,
+                items: items,
+                reason: reason,
+              ),
+            );
+      } else {
+        context.read<SolicitationBloc>().add(
+              CreateSolicitationEvent(
+                diaId: diaId,
+                items: items,
+                reason: reason,
+              ),
+            );
+      }
     }
   }
 }
