@@ -36,11 +36,16 @@ class DayEditDialog extends StatefulWidget {
   final String diaId;
   final List<Map<String, dynamic>> eventos;
 
+  /// Quando fornecido, o diálogo abre pré-preenchido com os dados desta
+  /// solicitação pendente, permitindo ao funcionário editá-la diretamente.
+  final SolicitationModel? existingSolicitation;
+
   const DayEditDialog({
     super.key,
     required this.mode,
     required this.diaId,
     required this.eventos,
+    this.existingSolicitation,
   });
 
   @override
@@ -89,6 +94,36 @@ class _DayEditDialogState extends State<DayEditDialog> {
         originalAt: at,
       );
     }).toList();
+
+    // Pré-preenche com a solicitação existente (modo edição de solicitação).
+    final sol = widget.existingSolicitation;
+    if (sol != null) {
+      _reasonController.text = sol.reason ?? '';
+      for (final item in sol.items) {
+        if (item.action == SolicitationAction.add) {
+          _newEntries.add(NewEntryState(
+            tipo: item.tipo,
+            time:
+                TimeOfDay(hour: item.horario.hour, minute: item.horario.minute),
+          ));
+        } else if (item.eventoId != null) {
+          final ev = _existing
+              .where((e) => e.id == item.eventoId)
+              .cast<EventoEditState?>()
+              .firstOrNull;
+          if (ev != null) {
+            if (item.action == SolicitationAction.edit) {
+              ev.mode = RowMode.editing;
+              ev.tipo = item.tipo;
+              ev.time = TimeOfDay(
+                  hour: item.horario.hour, minute: item.horario.minute);
+            } else if (item.action == SolicitationAction.delete) {
+              ev.mode = RowMode.deleting;
+            }
+          }
+        }
+      }
+    }
   }
 
   @override
@@ -283,7 +318,11 @@ class _DayEditDialogState extends State<DayEditDialog> {
             children: [
               DayEditHeader(
                 formattedDate: formattedDate,
-                title: _isSolicitation ? 'Solicitar Alteração' : 'Editar Dia',
+                title: _isSolicitation
+                    ? (widget.existingSolicitation != null
+                        ? 'Editar Solicitação'
+                        : 'Solicitar Alteração')
+                    : 'Editar Dia',
               ),
               const SizedBox(height: 16),
               Flexible(
@@ -334,7 +373,9 @@ class _DayEditDialogState extends State<DayEditDialog> {
                 onCancel: () => Navigator.pop(context),
                 onSave: _onSave,
                 saveLabel: _isSolicitation
-                    ? 'Enviar Solicitação'
+                    ? (widget.existingSolicitation != null
+                        ? 'Atualizar Solicitação'
+                        : 'Enviar Solicitação')
                     : 'Salvar alterações',
               ),
             ],
