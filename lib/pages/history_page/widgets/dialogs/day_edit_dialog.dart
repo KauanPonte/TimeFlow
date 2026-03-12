@@ -5,6 +5,7 @@ import 'package:flutter_application_appdeponto/pages/history_page/widgets/dialog
 import 'package:flutter_application_appdeponto/pages/history_page/widgets/dialogs/widgets/pending_event_row.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/services/ponto_validator.dart';
+import 'package:flutter_application_appdeponto/widgets/time_picker.dart';
 import 'package:intl/intl.dart';
 import 'widgets/batch_edit_result.dart';
 import 'widgets/day_edit_actions.dart';
@@ -115,16 +116,7 @@ class _DayEditDialogState extends State<DayEditDialog> {
   // Pick time
 
   Future<void> _pickTimeForExisting(EventoEditState ev) async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: ev.time,
-      builder: (context, child) => Theme(
-        data: Theme.of(context).copyWith(
-          colorScheme: const ColorScheme.light(primary: AppColors.primary),
-        ),
-        child: child!,
-      ),
-    );
+    final picked = await showTimePicker24h(context, ev.time);
     if (picked != null) {
       setState(() {
         _validationError = null;
@@ -134,16 +126,7 @@ class _DayEditDialogState extends State<DayEditDialog> {
   }
 
   Future<void> _pickTimeForNew(int index) async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: _newEntries[index].time,
-      builder: (context, child) => Theme(
-        data: Theme.of(context).copyWith(
-          colorScheme: const ColorScheme.light(primary: AppColors.primary),
-        ),
-        child: child!,
-      ),
-    );
+    final picked = await showTimePicker24h(context, _newEntries[index].time);
     if (picked != null) {
       setState(() {
         _validationError = null;
