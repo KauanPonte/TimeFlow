@@ -24,6 +24,7 @@ class ProfileLoaded extends ProfileState {
   final String email;
   final String role;
   final String profileImageUrl;
+  final int? workloadMinutes;
 
   const ProfileLoaded({
     required this.uid,
@@ -31,10 +32,18 @@ class ProfileLoaded extends ProfileState {
     required this.email,
     required this.role,
     required this.profileImageUrl,
+    this.workloadMinutes,
   });
 
   @override
-  List<Object?> get props => [uid, name, email, role, profileImageUrl];
+  List<Object?> get props => [
+        uid,
+        name,
+        email,
+        role,
+        profileImageUrl,
+        workloadMinutes,
+      ];
 
   ProfileLoaded copyWith({
     String? uid,
@@ -42,6 +51,7 @@ class ProfileLoaded extends ProfileState {
     String? email,
     String? role,
     String? profileImageUrl,
+    int? workloadMinutes,
   }) {
     return ProfileLoaded(
       uid: uid ?? this.uid,
@@ -49,6 +59,7 @@ class ProfileLoaded extends ProfileState {
       email: email ?? this.email,
       role: role ?? this.role,
       profileImageUrl: profileImageUrl ?? this.profileImageUrl,
+      workloadMinutes: workloadMinutes ?? this.workloadMinutes,
     );
   }
 }

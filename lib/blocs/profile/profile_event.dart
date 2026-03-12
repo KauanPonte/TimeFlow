@@ -31,11 +31,15 @@ class RemoveProfileImageEvent extends ProfileEvent {
 /// Atualiza o nome do perfil
 class UpdateProfileNameEvent extends ProfileEvent {
   final String newName;
+  final int? workloadMinutes;
 
-  const UpdateProfileNameEvent({required this.newName});
+  const UpdateProfileNameEvent({
+    required this.newName,
+    this.workloadMinutes,
+  });
 
   @override
-  List<Object?> get props => [newName];
+  List<Object?> get props => [newName, workloadMinutes];
 }
 
 /// Reseta o perfil para o estado inicial (logout).

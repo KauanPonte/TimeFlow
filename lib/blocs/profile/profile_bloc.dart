@@ -38,6 +38,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
         email: data['email'] ?? '',
         role: data['role'] ?? '',
         profileImageUrl: data['profileImage'] ?? '',
+        workloadMinutes: data['workloadMinutes'] as int?,
       ));
     } catch (e) {
       emit(ProfileError(
@@ -71,6 +72,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
                 email: '',
                 role: '',
                 profileImageUrl: downloadUrl,
+                workloadMinutes: null,
               );
 
       globalLoading?.hide();
@@ -120,6 +122,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
             email: '',
             role: '',
             profileImageUrl: '',
+            workloadMinutes: null,
           );
 
       globalLoading?.hide();
@@ -153,21 +156,28 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     final previousData = state is ProfileLoaded ? state as ProfileLoaded : null;
 
     try {
-      globalLoading?.show('Atualizando nome...');
-      await _profileRepository.updateProfileName(event.newName);
+      globalLoading?.show('Atualizando perfil...');
+      await _profileRepository.updateProfileName(
+        event.newName,
+        workloadMinutes: event.workloadMinutes,
+      );
 
-      final updatedData = previousData?.copyWith(name: event.newName.trim()) ??
+      final updatedData = previousData?.copyWith(
+            name: event.newName.trim(),
+            workloadMinutes: event.workloadMinutes,
+          ) ??
           ProfileLoaded(
             uid: '',
             name: event.newName.trim(),
             email: '',
             role: '',
             profileImageUrl: '',
+            workloadMinutes: event.workloadMinutes,
           );
 
       globalLoading?.hide();
       emit(ProfileActionSuccess(
-        message: 'Nome atualizado com sucesso!',
+        message: 'Perfil atualizado com sucesso!',
         updatedData: updatedData,
       ));
 
@@ -177,7 +187,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
       globalLoading?.hide();
       emit(ProfileError(
         message:
-            'Erro ao atualizar nome: ${e.toString().replaceAll('Exception: ', '')}',
+            'Erro ao atualizar perfil: ${e.toString().replaceAll('Exception: ', '')}',
         previousData: previousData,
       ));
 
