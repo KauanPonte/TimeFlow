@@ -41,14 +41,18 @@ class CreateUserSubmitEvent extends CreateUserEvent {
   final String email;
   final String password;
   final String confirmPassword;
+  final String cargaHoraria;
   final String role;
+
 
   const CreateUserSubmitEvent({
     required this.name,
     required this.email,
     required this.password,
     required this.confirmPassword,
+    required this.cargaHoraria,
     required this.role,
+    
   });
 
   @override

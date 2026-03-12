@@ -48,7 +48,8 @@ class _HomePageState extends State<HomePage> {
   String? _uid;
   Timer? _tickTimer;
   Timer? _solTimer;
-  static const int _targetMinutesPerDay = 8 * 60; // 8 horas por dia
+  int _targetMinutesPerDay = 8 * 60; // 8 horas por dia
+    double workProgress = 0.0;
 
   late DateTime _currentMonth;
 
@@ -176,7 +177,7 @@ class _HomePageState extends State<HomePage> {
     return days;
   }
 
-  //  Helpers de cálculo de horas trabalhadas
+ 
 
   String _labelFromUltimoTipo(String? ultimo) {
     switch (ultimo) {
