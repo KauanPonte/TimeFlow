@@ -25,7 +25,7 @@ class SolicitationRepository {
     final uid = user.uid;
 
     // Busca nome do funcionário
-    final userDoc = await _firestore.collection('users').doc(uid).get();
+    final userDoc = await _firestore.collection('usuarios').doc(uid).get();
     final employeeName = (userDoc.data()?['name'] ?? '').toString();
 
     // Carrega eventos reais do dia

@@ -14,26 +14,24 @@ class PontoService {
 
   static String _hojeId() => DateFormat('yyyy-MM-dd').format(DateTime.now());
 
-  static Future<int> _getCargaHorariaMinutos(String uid) async {
-  final userSnap = await FirebaseFirestore.instance
-      .collection('users')
-      .doc(uid)
-      .get();
+  static Future<int> _getWorkloadMinutes(String uid) async {
+    final userSnap =
+        await FirebaseFirestore.instance.collection('usuarios').doc(uid).get();
 
-  return (userSnap.data()?['cargaHorariaMinutos'] as int?) ?? (8 * 60);
-}
+    return (userSnap.data()?['workloadMinutes'] as int?) ?? (8 * 60);
+  }
 
-static Future<int> getCargaHorariaUsuarioAtual() async {
-  final user = FirebaseAuth.instance.currentUser;
-  if (user == null) return 8 * 60;
+  static Future<int> getCargaHorariaUsuarioAtual() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return 8 * 60;
 
-  final userSnap = await FirebaseFirestore.instance
-      .collection('users')
-      .doc(user.uid)
-      .get();
+    final userSnap = await FirebaseFirestore.instance
+        .collection('usuarios')
+        .doc(user.uid)
+        .get();
 
-  return (userSnap.data()?['cargaHorariaMinutos'] as int?) ?? (8 * 60);
-}
+    return (userSnap.data()?['workloadMinutes'] as int?) ?? (8 * 60);
+  }
 
   static DocumentReference<Map<String, dynamic>> _refDia(
       String uid, String diaId) {
@@ -286,10 +284,10 @@ static Future<int> getCargaHorariaUsuarioAtual() async {
     final eventos = eventosSnap.docs.map((d) => d.data()).toList();
 
     final workedMinutes = _computeWorkedMinutesFromEventosFechado(eventos);
-    final cargaHorariaMinutos = await _getCargaHorariaMinutos(uid);
+    final workloadMinutes = await _getWorkloadMinutes(uid);
 
     final String? ultimoTipoEvento =
-      eventos.isNotEmpty ? (eventos.last['tipo'] ?? '').toString() : null;
+        eventos.isNotEmpty ? (eventos.last['tipo'] ?? '').toString() : null;
 
     final bool diaFechado = ultimoTipoEvento == 'saida';
 
@@ -301,8 +299,8 @@ static Future<int> getCargaHorariaUsuarioAtual() async {
     final bool emAberto = !diaFechado && eventos.isNotEmpty;
 
     final int deltaMinutes = falta
-      ? -cargaHorariaMinutos
-      : (diaFechado ? (workedMinutes - cargaHorariaMinutos) : 0);
+        ? -workloadMinutes
+        : (diaFechado ? (workedMinutes - workloadMinutes) : 0);
 
     await FirebaseFirestore.instance.runTransaction((tx) async {
       final diaSnap = await tx.get(refDia);
@@ -319,7 +317,7 @@ static Future<int> getCargaHorariaUsuarioAtual() async {
           {
             'workedMinutes': workedMinutes,
             'deltaMinutes': deltaMinutes,
-            'cargaHorariaMinutos': cargaHorariaMinutos,
+            'workloadMinutes': workloadMinutes,
             'isClosed': diaFechado,
             'isOpen': emAberto,
             'isAbsent': falta,

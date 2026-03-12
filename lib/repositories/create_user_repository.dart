@@ -7,17 +7,17 @@ class CreateUserRepository {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   static const String _usersCollection = 'usuarios';
 
-  int _parseCargaHoraria(String input ) {
+  int _parseCargaHoraria(String input) {
     input = input.trim();
 
-    if(input.contains(':')) {
+    if (input.contains(':')) {
       final parts = input.split(':');
-      if(parts.length != 2) throw Exception('Formato inválido');
+      if (parts.length != 2) throw Exception('Formato inválido');
 
       final horas = int.parse(parts[0]);
       final minutos = int.parse(parts[1]);
 
-      if(minutos >= 60) throw Exception('Minutos inválidos');
+      if (minutos >= 60) throw Exception('Minutos inválidos');
       return horas * 60 + minutos;
     }
     return int.parse(input) * 60;
@@ -35,7 +35,7 @@ class CreateUserRepository {
     FirebaseApp? secondaryApp;
 
     try {
-      final cargaHorariaMinutos = _parseCargaHoraria(cargaHoraria);
+      final workloadMinutes = _parseCargaHoraria(cargaHoraria);
 
       // Inicia um app secundário isolado para não deslogar o admin
       secondaryApp = await Firebase.initializeApp(
@@ -61,7 +61,7 @@ class CreateUserRepository {
         'uid': uid,
         'email': email.trim(),
         'name': name.trim(),
-        'cargaHorairaMinutos': cargaHorariaMinutos,
+        'workloadMinutes': workloadMinutes,
         'role': role.trim(),
         'status': 'active',
         'profileImage': '',

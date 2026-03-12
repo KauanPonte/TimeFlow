@@ -9,27 +9,27 @@ class UserRepository {
 
 //conversor de cargaHoraria
   static int _parseCargaHoraria(String input) {
-  input = input.trim();
+    input = input.trim();
 
-  if (input.contains(':')) {
-    final parts = input.split(':');
+    if (input.contains(':')) {
+      final parts = input.split(':');
 
-    if (parts.length != 2) {
-      throw Exception('Formato inválido. Use 8 ou 8:30');
+      if (parts.length != 2) {
+        throw Exception('Formato inválido. Use 8 ou 8:30');
+      }
+
+      final horas = int.parse(parts[0]);
+      final minutos = int.parse(parts[1]);
+
+      if (minutos >= 60) {
+        throw Exception('Minutos inválidos');
+      }
+
+      return horas * 60 + minutos;
     }
 
-    final horas = int.parse(parts[0]);
-    final minutos = int.parse(parts[1]);
-
-    if (minutos >= 60) {
-      throw Exception('Minutos inválidos');
-    }
-
-    return horas * 60 + minutos;
+    return int.parse(input) * 60;
   }
-
-  return int.parse(input) * 60;
-}
 
   /// Get all registered users (status == 'active'), excluding [excludeUid],
   /// sorted alphabetically by role.
@@ -45,12 +45,16 @@ class UserRepository {
         .where((doc) => excludeUid == null || doc.id != excludeUid)
         .map((doc) {
       final data = doc.data();
+      final workloadMinutes =
+          (data['workloadMinutes'] ?? data['cargaHorairaMinutos']) as int?;
+
       return {
         'id': doc.id,
         'name': data['name'] ?? '',
         'email': data['email'] ?? '',
         'role': data['role'] ?? '',
         'status': data['status'] ?? '',
+        'workloadMinutes': workloadMinutes,
         'registeredAt': _formatTimestamp(data['createdAt']),
         'profileImage': data['profileImage'] ?? '',
       };
@@ -118,10 +122,10 @@ class UserRepository {
     required String role,
   }) async {
     try {
-      final cargaHorariaMinutos = _parseCargaHoraria(cargaHoraria);
+      final workloadMinutes = _parseCargaHoraria(cargaHoraria);
       await _db.collection(_usersCollection).doc(requestId).update({
         'status': 'active',
-        'cargaHorariaMinutos': cargaHorariaMinutos,
+        'workloadMinutes': workloadMinutes,
         'role': role,
       });
       return true;
@@ -157,6 +161,23 @@ class UserRepository {
       await _db.collection(_usersCollection).doc(userId).update({
         'role': newRole,
       });
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Update user workload in minutes.
+  /// Uses merge to avoid NOT_FOUND when the document does not exist yet.
+  static Future<bool> updateUserWorkload(
+    String userId,
+    int workloadMinutes,
+  ) async {
+    try {
+      await _db.collection(_usersCollection).doc(userId).set({
+        'workloadMinutes': workloadMinutes,
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
       return true;
     } catch (e) {
       return false;
