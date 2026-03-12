@@ -45,12 +45,16 @@ class UserRepository {
         .where((doc) => excludeUid == null || doc.id != excludeUid)
         .map((doc) {
       final data = doc.data();
+      final cargaHorariaMinutos =
+          (data['cargaHorariaMinutos'] ?? data['cargaHorairaMinutos']) as int?;
+
       return {
         'id': doc.id,
         'name': data['name'] ?? '',
         'email': data['email'] ?? '',
         'role': data['role'] ?? '',
         'status': data['status'] ?? '',
+        'cargaHorariaMinutos': cargaHorariaMinutos,
         'registeredAt': _formatTimestamp(data['createdAt']),
         'profileImage': data['profileImage'] ?? '',
       };

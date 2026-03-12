@@ -188,6 +188,8 @@ class UserManagementBloc
     Emitter<UserManagementState> emit,
   ) async {
     try {
+      globalLoading?.show('Atualizando carga horária...');
+
       final success = await UserRepository.updateUserWorkload(
         event.userId,
         event.cargaHorariaMinutos,
@@ -196,6 +198,8 @@ class UserManagementBloc
       if (!success) {
         throw Exception('Falha ao atualizar carga horária do usuário.');
       }
+
+      globalLoading?.hide();
 
       emit(
         UserManagementActionSuccess(
@@ -206,6 +210,8 @@ class UserManagementBloc
 
       add(const LoadUsersEvent());
     } catch (e) {
+      globalLoading?.hide();
+
       emit(
         UserManagementError(
           message: 'Erro ao atualizar carga horária',
