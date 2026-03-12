@@ -12,6 +12,7 @@ import 'package:flutter_application_appdeponto/widgets/custom_snackbar.dart';
 import 'package:flutter_application_appdeponto/widgets/main_app_bar.dart';
 import '../../widgets/bottom_nav.dart';
 import 'widgets/profile_avatar.dart';
+import 'widgets/edit_profile_dialog.dart';
 import 'widgets/profile_header.dart';
 import 'widgets/profile_info_card.dart';
 
@@ -34,6 +35,31 @@ class _ProfilePageView extends StatefulWidget {
 class _ProfilePageViewState extends State<_ProfilePageView> {
   final _picker = ImagePicker();
   File? _pendingImage;
+
+  bool _isAdminRole(String role) {
+    return role.toUpperCase().contains('ADM');
+  }
+
+  void _showEditProfileDialog(ProfileLoaded profileData) {
+    final isAdmin = _isAdminRole(profileData.role);
+
+    showDialog(
+      context: context,
+      builder: (_) => EditProfileDialog(
+        currentName: profileData.name,
+        currentWorkloadMinutes: profileData.workloadMinutes,
+        isAdmin: isAdmin,
+        onSave: (name, workloadMinutes) {
+          context.read<ProfileBloc>().add(
+                UpdateProfileNameEvent(
+                  newName: name,
+                  workloadMinutes: workloadMinutes,
+                ),
+              );
+        },
+      ),
+    );
+  }
 
   @override
   void initState() {
@@ -343,6 +369,8 @@ class _ProfilePageViewState extends State<_ProfilePageView> {
             return const Center(child: Text('Carregando...'));
           }
 
+          final isAdmin = _isAdminRole(profileData.role);
+
           return ListView(
             padding: const EdgeInsets.all(24),
             children: [
@@ -372,8 +400,12 @@ class _ProfilePageViewState extends State<_ProfilePageView> {
               const SizedBox(height: 32),
 
               ProfileInfoCard(
+                name: profileData.name,
                 email: profileData.email,
                 role: profileData.role,
+                workloadMinutes: profileData.workloadMinutes,
+                isAdmin: isAdmin,
+                onEdit: () => _showEditProfileDialog(profileData!),
               ),
             ],
           );

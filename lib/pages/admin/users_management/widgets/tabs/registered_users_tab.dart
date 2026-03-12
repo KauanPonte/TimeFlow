@@ -8,7 +8,7 @@ import 'package:flutter_application_appdeponto/pages/history_page/history_page.d
 import '../user_card.dart';
 import '../empty_users_state.dart';
 import '../error_loading_state.dart';
-import '../dialogs/edit_role_dialog.dart';
+import '../dialogs/edit_user_dialog.dart';
 import '../dialogs/delete_user_dialog.dart';
 
 class RegisteredUsersTab extends StatefulWidget {
@@ -222,16 +222,7 @@ class _RegisteredUsersTabState extends State<RegisteredUsersTab>
                                     ),
                                   );
                                 },
-                                onEditRole: () => _showEditRoleDialog(
-                                  user['id'],
-                                  user['name'],
-                                  user['role'],
-                                ),
-                                onEditWorkload: () => _showEditWorkloadDialog(
-                                  user['id'],
-                                  user['name'],
-                                  user['workloadMinutes'] as int?,
-                                ),
+                                onEdit: () => _showEditUserDialog(user),
                                 onDelete: () => _showDeleteUserDialog(
                                   user['id'],
                                   user['name'],
@@ -247,137 +238,23 @@ class _RegisteredUsersTabState extends State<RegisteredUsersTab>
     );
   }
 
-  Future<void> _showEditRoleDialog(
-    String userId,
-    String userName,
-    String currentRole,
-  ) async {
+  Future<void> _showEditUserDialog(Map<String, dynamic> user) async {
     final bloc = context.read<UserManagementBloc>();
     await showDialog(
       context: context,
-      builder: (_) => EditRoleDialog(
-        userName: userName,
-        currentRole: currentRole,
-        onSave: (newRole) {
-          bloc.add(
-            UpdateUserRoleEvent(
-              userId: userId,
-              userName: userName,
-              newRole: newRole,
-            ),
-          );
+      builder: (_) => EditUserDialog(
+        userName: user['name'] as String,
+        currentRole: user['role'] as String,
+        currentWorkloadMinutes: user['workloadMinutes'] as int?,
+        onSave: (newRole, workloadMinutes) {
+          bloc.add(UpdateUserProfileEvent(
+            userId: user['id'] as String,
+            userName: user['name'] as String,
+            newRole: newRole,
+            workloadMinutes: workloadMinutes,
+          ));
         },
       ),
-    );
-  }
-
-  int? _parseCargaHoraria(String input) {
-    input = input.trim();
-
-    if (input.contains(':')) {
-      final parts = input.split(':');
-
-      if (parts.length != 2) return null;
-
-      final horas = int.tryParse(parts[0]);
-      final minutos = int.tryParse(parts[1]);
-
-      if (horas == null || minutos == null) return null;
-      if (minutos < 0 || minutos >= 60) return null;
-      if (horas < 0) return null;
-
-      return horas * 60 + minutos;
-    }
-
-    final horas = int.tryParse(input);
-    if (horas == null || horas < 0) return null;
-
-    return horas * 60;
-  }
-
-  String _formatCargaHoraria(int? minutos) {
-    if (minutos == null || minutos <= 0) {
-      return '';
-    }
-
-    final horas = minutos ~/ 60;
-    final minutosRestantes = minutos % 60;
-
-    if (minutosRestantes == 0) {
-      return horas.toString();
-    }
-
-    return '$horas:${minutosRestantes.toString().padLeft(2, '0')}';
-  }
-
-  Future<void> _showEditWorkloadDialog(
-    String userId,
-    String userName,
-    int? currentWorkloadMinutes,
-  ) async {
-    final controller = TextEditingController(
-      text: _formatCargaHoraria(currentWorkloadMinutes),
-    );
-    final blocContext = context;
-
-    await showDialog(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: Text('Editar carga horária de $userName'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                'Digite a carga horária diária (ex: 8 ou 8:30)',
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: controller,
-                keyboardType: TextInputType.text,
-                decoration: const InputDecoration(
-                  labelText: 'Carga horária',
-                  hintText: 'Ex: 8:30',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancelar'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                final minutos = _parseCargaHoraria(controller.text);
-
-                if (minutos == null) {
-                  ScaffoldMessenger.of(blocContext).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'Formato inválido. Use 8 ou 8:30',
-                      ),
-                    ),
-                  );
-                  return;
-                }
-
-                blocContext.read<UserManagementBloc>().add(
-                      UpdateUserWorkloadEvent(
-                        userId: userId,
-                        userName: userName,
-                        workloadMinutes: minutos,
-                      ),
-                    );
-
-                Navigator.pop(dialogContext);
-              },
-              child: const Text('Salvar'),
-            ),
-          ],
-        );
-      },
     );
   }
 

@@ -17,6 +17,7 @@ class UserManagementBloc
     on<RejectRequestEvent>(_onRejectRequest);
     on<UpdateUserRoleEvent>(_onUpdateUserRole);
     on<UpdateUserWorkloadEvent>(_onUpdateUserWorkload);
+    on<UpdateUserProfileEvent>(_onUpdateUserProfile);
     on<DeleteUserEvent>(_onDeleteUser);
     on<SearchUsersEvent>(_onSearchUsers);
     on<SearchPendingRequestsEvent>(_onSearchPendingRequests);
@@ -218,6 +219,43 @@ class UserManagementBloc
           details: e.toString(),
         ),
       );
+    }
+  }
+
+  /// Atualiza cargo e carga horária do usuário em uma única operação
+  Future<void> _onUpdateUserProfile(
+    UpdateUserProfileEvent event,
+    Emitter<UserManagementState> emit,
+  ) async {
+    try {
+      globalLoading?.show('Atualizando usuário...');
+
+      await Future.wait([
+        UserRepository.updateUserRole(event.userId, event.newRole),
+        UserRepository.updateUserWorkload(event.userId, event.workloadMinutes),
+      ]);
+
+      final prefs = await SharedPreferences.getInstance();
+      final currentUid = prefs.getString('userUid');
+      final users = await UserRepository.getUsers(excludeUid: currentUid);
+      final newState = UsersLoaded(
+        users: users,
+        searchQuery:
+            state is UsersLoaded ? (state as UsersLoaded).searchQuery : '',
+      );
+
+      globalLoading?.hide();
+      emit(UserManagementActionSuccess(
+        message: 'Perfil de ${event.userName} atualizado com sucesso!',
+        previousState: newState,
+      ));
+      emit(newState);
+    } catch (e) {
+      globalLoading?.hide();
+      emit(UserManagementError(
+        message: 'Erro ao atualizar perfil',
+        details: e.toString(),
+      ));
     }
   }
 

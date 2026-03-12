@@ -81,6 +81,24 @@ class UpdateUserWorkloadEvent extends UserManagementEvent {
   List<Object> get props => [userId, userName, workloadMinutes];
 }
 
+/// Editar cargo e carga horária do usuário em uma única operação
+class UpdateUserProfileEvent extends UserManagementEvent {
+  final String userId;
+  final String userName;
+  final String newRole;
+  final int workloadMinutes;
+
+  const UpdateUserProfileEvent({
+    required this.userId,
+    required this.userName,
+    required this.newRole,
+    required this.workloadMinutes,
+  });
+
+  @override
+  List<Object> get props => [userId, userName, newRole, workloadMinutes];
+}
+
 /// Remove um usuário do sistema
 class DeleteUserEvent extends UserManagementEvent {
   final String userId;
