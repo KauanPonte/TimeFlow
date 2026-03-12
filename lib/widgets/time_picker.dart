@@ -587,14 +587,21 @@ class _ClockPainter extends CustomPainter {
     _drawFace(canvas, center, radius);
     _drawTicks(canvas, center, radius);
 
-    // Mão desenhada ANTES dos números para que os números fiquem por cima da bolinha
-    // Raio interpolado animado entre anel externo e interno
+    // Raio e posição da ponta da mão (animados)
     final handR = lerpDouble(outerR, innerR, selectingHour ? ringT : 0.0)!;
-    _drawHand(canvas, center, handAngle, handR);
+    final bubbleR = lerpDouble(20.0, 17.0, selectingHour ? ringT : 0.0)!;
+    final tip = Offset(
+      center.dx + handR * cos(handAngle),
+      center.dy + handR * sin(handAngle),
+    );
 
+    // Mão desenhada ANTES dos números
+    _drawHand(canvas, center, handAngle, handR, bubbleR);
+
+    // Números por cima da bolinha; 2ª passagem em branco clippada à bolinha
     selectingHour
-        ? _paintHours(canvas, center, radius, outerR, innerR)
-        : _paintMinutes(canvas, center, radius, outerR);
+        ? _paintHours(canvas, center, radius, outerR, innerR, tip, bubbleR)
+        : _paintMinutes(canvas, center, radius, outerR, tip, bubbleR);
   }
 
   // Face
@@ -653,60 +660,93 @@ class _ClockPainter extends CustomPainter {
   // Horas
 
   void _paintHours(Canvas canvas, Offset center, double radius, double outerR,
-      double innerR) {
+      double innerR, Offset tip, double bubbleR) {
     final isInner = hour == 0 || hour >= 13;
     final selPos = _hourToPos(hour);
 
-    // ringT: 0.0 = outer ativo, 1.0 = inner ativo
-    // Alpha do anel externo decresce suavemente ao migrar para o interno
     final outerAlpha = contentAlpha * lerpDouble(1.0, 0.28, ringT)!;
     final innerAlpha = contentAlpha * lerpDouble(0.28, 1.0, ringT)!;
 
-    // Anel externo: 12, 1 … 11
+    // Passagem 1: cores normais
+    for (int i = 0; i < 12; i++) {
+      final value = i == 0 ? 12 : i;
+      _drawNumberNode(canvas, center, outerR, i, 12, '$value',
+          selected: !isInner && i == selPos,
+          fontSize: 15.5,
+          ringAlpha: outerAlpha);
+    }
+    for (int i = 0; i < 12; i++) {
+      final value = i == 0 ? 0 : i + 12;
+      _drawNumberNode(
+          canvas, center, innerR, i, 12, value.toString().padLeft(2, '0'),
+          selected: isInner && i == selPos,
+          fontSize: 11.5,
+          ringAlpha: innerAlpha);
+    }
+
+    // Passagem 2: branco clippado à bolinha
+    // Qualquer parte do número tocada pela bolinha vira branca, mesmo overlap parcial
+    canvas.save();
+    canvas.clipPath(
+        Path()..addOval(Rect.fromCircle(center: tip, radius: bubbleR)));
     for (int i = 0; i < 12; i++) {
       final value = i == 0 ? 12 : i;
       final isSel = !isInner && i == selPos;
-      _drawNumberNode(canvas, center, outerR, i, 12, '$value',
-          selected: isSel, fontSize: 15.5, ringAlpha: outerAlpha);
+      _paintTextAt(canvas, _posAt(center, outerR, i, 12), '$value', 15.5, isSel,
+          Colors.white.withValues(alpha: contentAlpha));
     }
-
-    // Anel interno: 00, 13 … 23
     for (int i = 0; i < 12; i++) {
       final value = i == 0 ? 0 : i + 12;
       final isSel = isInner && i == selPos;
-      _drawNumberNode(
-          canvas, center, innerR, i, 12, value.toString().padLeft(2, '0'),
-          selected: isSel, fontSize: 11.5, ringAlpha: innerAlpha);
+      _paintTextAt(
+          canvas,
+          _posAt(center, innerR, i, 12),
+          value.toString().padLeft(2, '0'),
+          11.5,
+          isSel,
+          Colors.white.withValues(alpha: contentAlpha));
     }
+    canvas.restore();
   }
 
   // Minutos
 
-  void _paintMinutes(
-      Canvas canvas, Offset center, double radius, double outerR) {
+  void _paintMinutes(Canvas canvas, Offset center, double radius, double outerR,
+      Offset tip, double bubbleR) {
+    // Passagem 1: cores normais
     for (int i = 0; i < 12; i++) {
       final m = i * 5;
-      final isSel = minute == m;
       _drawNumberNode(
           canvas, center, outerR, i, 12, m.toString().padLeft(2, '0'),
-          selected: isSel, fontSize: 14, ringAlpha: contentAlpha);
+          selected: minute == m, fontSize: 14, ringAlpha: contentAlpha);
     }
 
-    // Dot para minutos não múltiplos de 5 (a bolinha principal vem do _drawHand)
+    // Passagem 2: branco clippado à bolinha
+    canvas.save();
+    canvas.clipPath(
+        Path()..addOval(Rect.fromCircle(center: tip, radius: bubbleR)));
+    for (int i = 0; i < 12; i++) {
+      final m = i * 5;
+      _paintTextAt(
+          canvas,
+          _posAt(center, outerR, i, 12),
+          m.toString().padLeft(2, '0'),
+          14,
+          minute == m,
+          Colors.white.withValues(alpha: contentAlpha));
+    }
+    // Dot para minutos não múltiplos de 5 — desenhado em tip para seguir a animação
     if (minute % 5 != 0) {
-      final angle = minute * 2 * pi / 60 - pi / 2;
-      final pt = Offset(
-        center.dx + outerR * cos(angle),
-        center.dy + outerR * sin(angle),
-      );
-      canvas.drawCircle(pt, 3.5,
+      canvas.drawCircle(tip, 4.0,
           Paint()..color = Colors.white.withValues(alpha: contentAlpha));
     }
+    canvas.restore();
   }
 
   // Helpers
 
-  void _drawHand(Canvas canvas, Offset center, double angle, double r) {
+  void _drawHand(
+      Canvas canvas, Offset center, double angle, double r, double bubbleR) {
     final tip = Offset(center.dx + r * cos(angle), center.dy + r * sin(angle));
     final a = contentAlpha;
 
@@ -728,14 +768,35 @@ class _ClockPainter extends CustomPainter {
         ..strokeWidth = 2.5
         ..strokeCap = StrokeCap.round,
     );
-    // Bolinha na ponta — sempre presente, faz parte do ponteiro
-    // Tamanho interpolado entre anel externo (20) e interno (17)
-    final nodeR = lerpDouble(20.0, 17.0, selectingHour ? ringT : 0.0)!;
+    // Bolinha na ponta (raio já calculado e animado pelo caller)
     canvas.drawCircle(
-        tip, nodeR, Paint()..color = AppColors.primary.withValues(alpha: a));
+        tip, bubbleR, Paint()..color = AppColors.primary.withValues(alpha: a));
     // Hub central
     canvas.drawCircle(
         center, 5, Paint()..color = AppColors.primary.withValues(alpha: a));
+  }
+
+  /// Posição cartesiana de um nó no anel.
+  Offset _posAt(Offset center, double r, int pos, int divisions) {
+    final angle = pos * 2 * pi / divisions - pi / 2;
+    return Offset(center.dx + r * cos(angle), center.dy + r * sin(angle));
+  }
+
+  /// Desenha apenas o texto de um nó (sem glow) — usado na passagem branca.
+  void _paintTextAt(Canvas canvas, Offset pt, String text, double fontSize,
+      bool bold, Color color) {
+    final tp = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: TextStyle(
+          fontSize: fontSize,
+          color: color,
+          fontWeight: bold ? FontWeight.w700 : FontWeight.w400,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    tp.paint(canvas, Offset(pt.dx - tp.width / 2, pt.dy - tp.height / 2));
   }
 
   void _drawNumberNode(
