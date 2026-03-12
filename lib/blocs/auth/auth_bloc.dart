@@ -284,7 +284,13 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     emit(_fieldsState);
   }
 
-  /// Handler for resetting the auth state
+  /// Handler for resetting the auth state.
+  ///
+  /// Apenas reseta o estado interno dos campos de formulário.
+  /// Se o usuário já está autenticado (UserAuthenticated / AdminAuthenticated),
+  /// NÃO emite AuthFieldsState — isso evita que o dispose de páginas de login/
+  /// registro acione acidentalmente o listener de logout em main.dart, que limparia
+  /// todos os blocs (SolicitationBloc, PontoTodayCubit, ProfileBloc, etc.).
   Future<void> _onAuthReset(
     AuthReset event,
     Emitter<AuthState> emit,
@@ -309,7 +315,12 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         isLoading: false,
       );
     }
-    emit(_fieldsState);
+
+    // Só emite se NÃO estiver autenticado; caso contrário, apenas limpa o
+    // cache interno (_fieldsState) sem alterar o estado público do bloc.
+    if (state is! UserAuthenticated && state is! AdminAuthenticated) {
+      emit(_fieldsState);
+    }
   }
 
   /// Handler for logout

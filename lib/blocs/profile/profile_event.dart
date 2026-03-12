@@ -37,3 +37,8 @@ class UpdateProfileNameEvent extends ProfileEvent {
   @override
   List<Object?> get props => [newName];
 }
+
+/// Reseta o perfil para o estado inicial (logout).
+class ResetProfileEvent extends ProfileEvent {
+  const ResetProfileEvent();
+}

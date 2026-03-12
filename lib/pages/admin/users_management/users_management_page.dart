@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/user_management/user_management_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/user_management/user_management_state.dart';
 import 'package:flutter_application_appdeponto/blocs/user_management/user_management_event.dart';
+import 'package:flutter_application_appdeponto/blocs/global_loading/global_loading_cubit.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
 import 'widgets/tabs/registered_users_tab.dart';
@@ -14,7 +15,9 @@ class UsersManagementPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => UserManagementBloc(),
+      create: (context) => UserManagementBloc(
+        globalLoading: context.read<GlobalLoadingCubit>(),
+      ),
       child: BlocListener<UserManagementBloc, UserManagementState>(
         listener: (context, state) {
           // Centraliza exibição de snackbar em um único lugar

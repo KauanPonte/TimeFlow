@@ -1,10 +1,26 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_application_appdeponto/firebase_options.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/auth/auth_bloc.dart';
+import 'package:flutter_application_appdeponto/blocs/auth/auth_state.dart';
+import 'package:flutter_application_appdeponto/blocs/global_loading/global_loading_cubit.dart';
+import 'package:flutter_application_appdeponto/blocs/global_loading/global_loading_state.dart';
+import 'package:flutter_application_appdeponto/blocs/ponto_data/ponto_data_changed_cubit.dart';
+import 'package:flutter_application_appdeponto/blocs/ponto_today/ponto_today_cubit.dart';
+import 'package:flutter_application_appdeponto/blocs/ponto_history/ponto_history_bloc.dart';
+import 'package:flutter_application_appdeponto/blocs/profile/profile_bloc.dart';
+import 'package:flutter_application_appdeponto/blocs/admin_home/admin_home_bloc.dart';
+import 'package:flutter_application_appdeponto/blocs/solicitations/solicitation_bloc.dart';
+import 'package:flutter_application_appdeponto/blocs/solicitations/solicitation_event.dart';
+import 'package:flutter_application_appdeponto/blocs/solicitations/solicitation_state.dart';
 import 'package:flutter_application_appdeponto/repositories/auth_repository.dart';
+import 'package:flutter_application_appdeponto/repositories/ponto_history_repository.dart';
+import 'package:flutter_application_appdeponto/repositories/profile_repository.dart';
+import 'package:flutter_application_appdeponto/repositories/solicitation_repository.dart';
+import 'package:flutter_application_appdeponto/widgets/action_loading_overlay.dart';
 import 'pages/splash/splash_page.dart';
 import 'services/notification_service.dart';
 import 'pages/auth/welcome/welcome_page.dart';
@@ -17,12 +33,13 @@ import 'pages/admin/users_management/users_management_page.dart';
 import 'pages/ponto_page/ponto_page.dart';
 import 'pages/profile_page/profile_page.dart';
 import 'pages/history_page/history_page.dart';
-// import 'pages/admin/admin_dashboard_page.dart';
-// import 'package:flutter_application_appdeponto/blocs/admin/admin_bloc.dart';
-// import 'package:flutter_application_appdeponto/repositories/admin_repository.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+  ]);
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await initializeDateFormatting('pt_BR');
   await NotificationService.init();
@@ -56,14 +73,91 @@ class TimeFlow extends StatelessWidget {
             authRepository: AuthRepository(),
           ),
         ),
-        // BlocProvider<AdminBloc>(
-        //   create: (context) => AdminBloc(
-        //     repository: AdminRepository(),
-        //   ),
-        // ),
+        BlocProvider<GlobalLoadingCubit>(
+          create: (_) => GlobalLoadingCubit(),
+        ),
+        BlocProvider<PontoDataChangedCubit>(
+          create: (_) => PontoDataChangedCubit(),
+        ),
+        BlocProvider<PontoTodayCubit>(
+          create: (context) => PontoTodayCubit(
+            dataChangedCubit: context.read<PontoDataChangedCubit>(),
+          ),
+        ),
+        BlocProvider<PontoHistoryBloc>(
+          create: (context) => PontoHistoryBloc(
+            repository: PontoHistoryRepository(),
+            globalLoading: context.read<GlobalLoadingCubit>(),
+            dataChangedCubit: context.read<PontoDataChangedCubit>(),
+          ),
+        ),
+        BlocProvider<ProfileBloc>(
+          create: (context) => ProfileBloc(
+            profileRepository: ProfileRepository(),
+            globalLoading: context.read<GlobalLoadingCubit>(),
+          ),
+        ),
+        BlocProvider<AdminHomeBloc>(
+          create: (_) => AdminHomeBloc(),
+        ),
+        BlocProvider<SolicitationBloc>(
+          create: (context) => SolicitationBloc(
+            repository: SolicitationRepository(),
+            globalLoading: context.read<GlobalLoadingCubit>(),
+          ),
+        ),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
+        builder: (context, child) {
+          return BlocListener<AuthBloc, AuthState>(
+            // Logout: limpa todos os dados ao sair de qualquer conta
+            listenWhen: (previous, current) =>
+                (previous is UserAuthenticated ||
+                    previous is AdminAuthenticated) &&
+                current is AuthFieldsState,
+            listener: (context, _) {
+              context.read<PontoTodayCubit>().clear();
+              context.read<PontoHistoryBloc>().reset();
+              context.read<ProfileBloc>().reset();
+              context.read<AdminHomeBloc>().reset();
+              context.read<SolicitationBloc>().reset();
+            },
+            child: BlocListener<AuthBloc, AuthState>(
+              // Login direto (ex: tela de login, sem passar pelo splash):
+              // garante que as notificações sejam carregadas mesmo nesse caminho.
+              listenWhen: (previous, current) =>
+                  (current is UserAuthenticated ||
+                      current is AdminAuthenticated) &&
+                  previous is! UserAuthenticated &&
+                  previous is! AdminAuthenticated,
+              listener: (context, state) {
+                // Só dispara se o bloc ainda não tem dados (splash já cuida do caso normal)
+                final solState = context.read<SolicitationBloc>().state;
+                if (solState is! SolicitationLoaded &&
+                    solState is! SolicitationLoading) {
+                  bool isAdmin = state is AdminAuthenticated;
+                  if (!isAdmin && state is UserAuthenticated) {
+                    final r = (state.userData['role'] ?? '').toString();
+                    isAdmin = r.toUpperCase().contains('ADM');
+                  }
+                  context
+                      .read<SolicitationBloc>()
+                      .add(LoadSolicitationsEvent(isAdmin: isAdmin));
+                }
+              },
+              child: BlocBuilder<GlobalLoadingCubit, GlobalLoadingState>(
+                builder: (context, loadingState) {
+                  return ActionLoadingOverlay(
+                    isProcessing: loadingState.isLoading,
+                    message: loadingState.message,
+                    child: child ?? const SizedBox.shrink(),
+                  );
+                },
+              ),
+            ),
+          );
+        },
         theme: ThemeData(
           pageTransitionsTheme: const PageTransitionsTheme(
             builders: {
@@ -97,6 +191,7 @@ class TimeFlow extends StatelessWidget {
                 employeeName: args["employeeName"] ?? "",
                 profileImageUrl: args["profileImageUrl"] ?? "",
                 employeeRole: args["employeeRole"] ?? "",
+                initialHistoryDate: args["initialHistoryDate"] as String?,
               ),
             );
           }
@@ -109,15 +204,10 @@ class TimeFlow extends StatelessWidget {
                 employeeName: args["employeeName"] ?? "",
                 profileImageUrl: args["profileImageUrl"] ?? "",
                 employeeRole: args["employeeRole"] ?? "",
+                initialHistoryDate: args["initialHistoryDate"] as String?,
               ),
             );
           }
-
-          // if (settings.name == "/admin") {
-          //   return MaterialPageRoute(
-          //     builder: (context) => const AdminDashboardPage(),
-          //   );
-          // }
 
           return null;
         },

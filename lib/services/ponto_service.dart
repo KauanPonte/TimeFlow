@@ -1,8 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:flutter_application_appdeponto/widgets/custom_snackbar.dart';
+
+class PontoResult {
+  final bool success;
+  final String message;
+  const PontoResult({required this.success, required this.message});
+}
 
 class PontoService {
   static const String _root = 'pontos';
@@ -65,31 +69,34 @@ static Future<int> getCargaHorariaUsuarioAtual() async {
 
   static String _mensagemErroTransicao(String? ultimo, String novo) {
     if (ultimo == null) return 'O primeiro ponto do dia precisa ser "entrada".';
-    if (ultimo == 'pausa')
+    if (ultimo == 'pausa') {
       return 'Após "pausa", é obrigatório registrar "retorno" antes de qualquer outro ponto.';
+    }
     return 'Não é possível registrar "$novo" agora. Último ponto foi "$ultimo".';
   }
 
-  static Future<void> registrarPonto(BuildContext context, String tipo) async {
+  static Future<PontoResult> registrarPonto(String tipo) async {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
-        CustomSnackbar.showError(context, 'Você precisa estar logado.');
-        return;
+        return const PontoResult(
+            success: false, message: 'Você precisa estar logado.');
       }
 
       if (!['entrada', 'pausa', 'retorno', 'saida'].contains(tipo)) {
-        CustomSnackbar.showError(context, 'Tipo inválido: $tipo.');
-        return;
+        return PontoResult(success: false, message: 'Tipo inválido: $tipo.');
       }
 
       final uid = user.uid;
       final diaId = _hojeId();
       final refDia = _refDia(uid, diaId);
       final refEventos = _refEventos(uid, diaId);
-      final now = Timestamp.now();
+      // Registra sem segundos (truncado ao minuto).
+      final nowRaw = DateTime.now();
+      final now = Timestamp.fromDate(DateTime(
+          nowRaw.year, nowRaw.month, nowRaw.day, nowRaw.hour, nowRaw.minute));
 
-      // ── Validação antes da transação ────────────────────────────────────
+      //  Validação antes da transação
       // Lemos o documento do dia fora da transação para evitar o erro
       // "Bad state: Future already completed" que ocorre ao lançar exceções
       // dentro do callback de runTransaction no cloud_firestore.
@@ -117,7 +124,7 @@ static Future<int> getCargaHorariaUsuarioAtual() async {
         }
       }
 
-      // ── Escrita atômica (sem throws dentro da transação) ────────────────
+      //  Escrita atômica (sem throws dentro da transação)
       await FirebaseFirestore.instance.runTransaction((tx) async {
         final newDoc = refEventos.doc();
         tx.set(newDoc, {'tipo': tipo, 'at': now});
@@ -143,11 +150,13 @@ static Future<int> getCargaHorariaUsuarioAtual() async {
       await recalcularBancoDeHorasDoDia(uid: uid, diaId: diaId);
 
       final horas = DateFormat('HH:mm').format(DateTime.now());
-      CustomSnackbar.showSuccess(
-          context, 'Ponto "$tipo" registrado ás $horas.');
+      return PontoResult(
+          success: true, message: 'Ponto "$tipo" registrado às $horas.');
     } catch (e) {
-      CustomSnackbar.showError(
-          context, e.toString().replaceAll('Exception: ', ''));
+      return PontoResult(
+        success: false,
+        message: e.toString().replaceAll('Exception: ', ''),
+      );
     }
   }
 
@@ -362,9 +371,11 @@ static Future<int> getCargaHorariaUsuarioAtual() async {
     final uid = user.uid;
     final mesId = DateFormat('yyyy-MM').format(DateTime.now());
 
-    final snap = await _refMes(uid, mesId).get();
+    final snap = await _refMes(uid, newMethod(mesId)).get();
     final minutes = (snap.data()?['balanceMinutes'] as int?) ?? 0;
 
     return minutes / 60.0;
   }
+
+  static String newMethod(String mesId) => mesId;
 }

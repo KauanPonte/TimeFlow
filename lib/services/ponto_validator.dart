@@ -131,7 +131,7 @@ class PontoValidator {
       case 'retorno':
         return {'pausa', 'saida'};
       case 'saida':
-        return {}; // expediente encerrado
+        return {'entrada'}; // novo ciclo permitido após saída
       default:
         return {};
     }

@@ -28,7 +28,7 @@ abstract class AuthField {
   String toString() => key;
 }
 
-// ==================== Login Fields ====================
+// Login Fields
 
 /// Email field for login form
 class EmailLoginField extends AuthField {
@@ -58,7 +58,7 @@ class PasswordLoginField extends AuthField {
   String get context => 'login';
 }
 
-// ==================== Register Fields ====================
+// Register Fields
 
 /// Name field for register form
 class NameField extends AuthField {
@@ -116,7 +116,7 @@ class RoleField extends AuthField {
   String get context => 'register';
 }
 
-// ==================== Forgot Password Fields ====================
+// Forgot Password Fields
 
 /// Email field for forgot password form
 class ResetEmailField extends AuthField {
@@ -132,7 +132,7 @@ class ResetEmailField extends AuthField {
   String get context => 'forgot_password';
 }
 
-// ==================== Field Collections ====================
+// Field Collections
 
 /// Centralized access to all authentication fields
 class AuthFields {

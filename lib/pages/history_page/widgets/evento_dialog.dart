@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter_application_appdeponto/widgets/time_picker.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
 
@@ -26,7 +27,7 @@ class _EventoDialogState extends State<EventoDialog> {
   late DateTime _date;
   late TimeOfDay _time;
 
-  final _tipos = ['entrada', 'pausa', 'retorno', 'saida'];
+  static const _tipos = ['entrada', 'pausa', 'retorno', 'saida'];
 
   @override
   void initState() {
@@ -52,169 +53,253 @@ class _EventoDialogState extends State<EventoDialog> {
     }
   }
 
-  Future<void> _pickDate() async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _date,
-      firstDate: DateTime(2020),
-      lastDate: DateTime.now(),
-      builder: (context, child) => Theme(
-        data: Theme.of(context).copyWith(
-          colorScheme: const ColorScheme.light(primary: AppColors.primary),
-        ),
-        child: child!,
-      ),
-    );
-    if (picked != null) setState(() => _date = picked);
+  IconData _iconForTipo(String tipo) {
+    switch (tipo) {
+      case 'entrada':
+        return Icons.login_rounded;
+      case 'pausa':
+        return Icons.coffee_rounded;
+      case 'retorno':
+        return Icons.replay_rounded;
+      case 'saida':
+        return Icons.logout_rounded;
+      default:
+        return Icons.access_time;
+    }
+  }
+
+  Color _colorForTipo(String tipo) {
+    switch (tipo) {
+      case 'entrada':
+        return AppColors.success;
+      case 'pausa':
+        return const Color(0xFF3DB2FF);
+      case 'retorno':
+        return AppColors.warning;
+      case 'saida':
+        return AppColors.error;
+      default:
+        return AppColors.primary;
+    }
   }
 
   Future<void> _pickTime() async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: _time,
-      builder: (context, child) => Theme(
-        data: Theme.of(context).copyWith(
-          colorScheme: const ColorScheme.light(primary: AppColors.primary),
-        ),
-        child: child!,
-      ),
-    );
+    final picked = await showTimePicker24h(context, _time);
     if (picked != null) setState(() => _time = picked);
   }
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      title: Row(
-        children: [
-          const Icon(Icons.access_time, color: AppColors.primary, size: 20),
-          const SizedBox(width: 12),
-          Text(widget.title, style: AppTextStyles.h3),
-        ],
-      ),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Tipo
-          DropdownButtonFormField<String>(
-            value: _tipo,
-            decoration: InputDecoration(
-              labelText: 'Tipo',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppColors.textSecondary),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide:
-                    const BorderSide(color: AppColors.primary, width: 2),
-              ),
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            ),
-            items: _tipos
-                .map((t) => DropdownMenuItem(
-                      value: t,
-                      child: Text(_labelForTipo(t)),
-                    ))
-                .toList(),
-            onChanged: (v) {
-              if (v != null) setState(() => _tipo = v);
-            },
-          ),
-          const SizedBox(height: 16),
+    final selectedColor = _colorForTipo(_tipo);
+    final timeStr =
+        '${_time.hour.toString().padLeft(2, '0')}:${_time.minute.toString().padLeft(2, '0')}';
+    final dateStr = DateFormat("EEE, dd 'de' MMM", 'pt_BR').format(_date);
 
-          // Data
-          InkWell(
-            onTap: widget.fixedDate != null ? null : _pickDate,
-            borderRadius: BorderRadius.circular(12),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              decoration: BoxDecoration(
-                border: Border.all(color: AppColors.textSecondary),
-                borderRadius: BorderRadius.circular(12),
-                color: widget.fixedDate != null
-                    ? AppColors.textSecondary.withValues(alpha: 0.2)
-                    : Colors.transparent,
-              ),
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Cabeçalho
+            Row(
+              children: [
+                const Icon(Icons.edit_calendar_rounded,
+                    color: AppColors.primary, size: 20),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(widget.title, style: AppTextStyles.h3),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 4),
+
+            // Data
+            Padding(
+              padding: const EdgeInsets.only(left: 2),
               child: Row(
                 children: [
-                  const Icon(Icons.calendar_today,
-                      size: 18, color: AppColors.primary),
-                  const SizedBox(width: 12),
+                  const Icon(Icons.calendar_today_rounded,
+                      size: 13, color: AppColors.textSecondary),
+                  const SizedBox(width: 5),
                   Text(
-                    DateFormat('dd/MM/yyyy').format(_date),
-                    style: AppTextStyles.bodyMedium,
+                    dateStr[0].toUpperCase() + dateStr.substring(1),
+                    style: AppTextStyles.bodySmall
+                        .copyWith(color: AppColors.textSecondary),
                   ),
                 ],
               ),
             ),
-          ),
-          const SizedBox(height: 16),
 
-          // Hora
-          InkWell(
-            onTap: _pickTime,
-            borderRadius: BorderRadius.circular(12),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              decoration: BoxDecoration(
-                border: Border.all(color: AppColors.textSecondary),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.schedule,
-                      size: 18, color: AppColors.primary),
-                  const SizedBox(width: 12),
-                  Text(
-                    '${_time.hour.toString().padLeft(2, '0')}:${_time.minute.toString().padLeft(2, '0')}',
-                    style: AppTextStyles.bodyMedium,
-                  ),
-                ],
+            const SizedBox(height: 20),
+
+            // Seletor de tipo
+            Text(
+              'Tipo de registro',
+              style: AppTextStyles.bodySmall.copyWith(
+                color: AppColors.textSecondary,
+                fontWeight: FontWeight.w600,
               ),
             ),
-          ),
-        ],
+            const SizedBox(height: 8),
+            Row(
+              children: _tipos.map((t) {
+                final isSelected = _tipo == t;
+                final color = _colorForTipo(t);
+                return Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: GestureDetector(
+                      onTap: () => setState(() => _tipo = t),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 180),
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? color.withValues(alpha: 0.12)
+                              : AppColors.bgLight,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: isSelected ? color : AppColors.borderLight,
+                            width: isSelected ? 1.5 : 1,
+                          ),
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              _iconForTipo(t),
+                              size: 18,
+                              color:
+                                  isSelected ? color : AppColors.textSecondary,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              _labelForTipo(t),
+                              style: AppTextStyles.bodySmall.copyWith(
+                                fontSize: 10,
+                                fontWeight: isSelected
+                                    ? FontWeight.w700
+                                    : FontWeight.w400,
+                                color: isSelected
+                                    ? color
+                                    : AppColors.textSecondary,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+
+            const SizedBox(height: 20),
+
+            // Seletor de hora
+            Text(
+              'Horário',
+              style: AppTextStyles.bodySmall.copyWith(
+                color: AppColors.textSecondary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            InkWell(
+              onTap: _pickTime,
+              borderRadius: BorderRadius.circular(14),
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                decoration: BoxDecoration(
+                  color: selectedColor.withValues(alpha: 0.06),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                      color: selectedColor.withValues(alpha: 0.4), width: 1.5),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.schedule_rounded,
+                        color: selectedColor, size: 22),
+                    const SizedBox(width: 12),
+                    Text(
+                      timeStr,
+                      style: AppTextStyles.h2.copyWith(
+                        color: selectedColor,
+                        letterSpacing: 1.5,
+                      ),
+                    ),
+                    const Spacer(),
+                    Icon(Icons.expand_more_rounded,
+                        color: selectedColor.withValues(alpha: 0.6), size: 20),
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            // Ações
+            Row(
+              children: [
+                Expanded(
+                  child: TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        side: const BorderSide(color: AppColors.borderLight),
+                      ),
+                    ),
+                    child: Text(
+                      'Cancelar',
+                      style: AppTextStyles.bodyMedium
+                          .copyWith(color: AppColors.textSecondary),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      final dt = DateTime(
+                        _date.year,
+                        _date.month,
+                        _date.day,
+                        _time.hour,
+                        _time.minute,
+                      );
+                      final diaId = DateFormat('yyyy-MM-dd').format(_date);
+                      Navigator.pop(context, {
+                        'tipo': _tipo,
+                        'horario': dt,
+                        'diaId': diaId,
+                      });
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: selectedColor,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    child: const Text('Salvar'),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text(
-            'Cancelar',
-            style: AppTextStyles.bodyMedium
-                .copyWith(color: AppColors.textSecondary),
-          ),
-        ),
-        ElevatedButton(
-          onPressed: () {
-            final dt = DateTime(
-              _date.year,
-              _date.month,
-              _date.day,
-              _time.hour,
-              _time.minute,
-            );
-            final diaId = DateFormat('yyyy-MM-dd').format(_date);
-            Navigator.pop(context, {
-              'tipo': _tipo,
-              'horario': dt,
-              'diaId': diaId,
-            });
-          },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primary,
-            foregroundColor: Colors.white,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          ),
-          child: const Text('Salvar'),
-        ),
-      ],
     );
   }
 }

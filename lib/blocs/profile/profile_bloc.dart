@@ -1,19 +1,26 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_application_appdeponto/blocs/global_loading/global_loading_cubit.dart';
 import 'package:flutter_application_appdeponto/repositories/profile_repository.dart';
 import 'profile_event.dart';
 import 'profile_state.dart';
 
 class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
   final ProfileRepository _profileRepository;
+  final GlobalLoadingCubit? globalLoading;
 
-  ProfileBloc({required ProfileRepository profileRepository})
+  ProfileBloc(
+      {required ProfileRepository profileRepository, this.globalLoading})
       : _profileRepository = profileRepository,
         super(const ProfileInitial()) {
     on<LoadProfileEvent>(_onLoadProfile);
     on<UploadProfileImageEvent>(_onUploadProfileImage);
     on<RemoveProfileImageEvent>(_onRemoveProfileImage);
     on<UpdateProfileNameEvent>(_onUpdateProfileName);
+    on<ResetProfileEvent>((_, emit) => emit(const ProfileInitial()));
   }
+
+  /// Limpa o estado (chamado no logout).
+  void reset() => add(const ResetProfileEvent());
 
   /// Carrega os dados do perfil
   Future<void> _onLoadProfile(
@@ -48,6 +55,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     final previousData = state is ProfileLoaded ? state as ProfileLoaded : null;
 
     try {
+      globalLoading?.show('Enviando foto...');
       if (previousData != null) {
         emit(ProfileImageUploading(previousData: previousData));
       }
@@ -65,6 +73,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
                 profileImageUrl: downloadUrl,
               );
 
+      globalLoading?.hide();
       emit(ProfileActionSuccess(
         message: 'Foto atualizada com sucesso!',
         updatedData: updatedData,
@@ -74,6 +83,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
       await Future.delayed(const Duration(milliseconds: 100));
       emit(updatedData);
     } catch (e) {
+      globalLoading?.hide();
       emit(ProfileError(
         message:
             'Erro ao enviar foto: ${e.toString().replaceAll('Exception: ', '')}',
@@ -96,6 +106,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     final previousData = state is ProfileLoaded ? state as ProfileLoaded : null;
 
     try {
+      globalLoading?.show('Removendo foto...');
       if (previousData != null) {
         emit(ProfileImageUploading(previousData: previousData));
       }
@@ -111,6 +122,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
             profileImageUrl: '',
           );
 
+      globalLoading?.hide();
       emit(ProfileActionSuccess(
         message: 'Foto removida com sucesso!',
         updatedData: updatedData,
@@ -119,6 +131,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
       await Future.delayed(const Duration(milliseconds: 100));
       emit(updatedData);
     } catch (e) {
+      globalLoading?.hide();
       emit(ProfileError(
         message:
             'Erro ao remover foto: ${e.toString().replaceAll('Exception: ', '')}',
@@ -140,6 +153,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     final previousData = state is ProfileLoaded ? state as ProfileLoaded : null;
 
     try {
+      globalLoading?.show('Atualizando nome...');
       await _profileRepository.updateProfileName(event.newName);
 
       final updatedData = previousData?.copyWith(name: event.newName.trim()) ??
@@ -151,6 +165,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
             profileImageUrl: '',
           );
 
+      globalLoading?.hide();
       emit(ProfileActionSuccess(
         message: 'Nome atualizado com sucesso!',
         updatedData: updatedData,
@@ -159,6 +174,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
       await Future.delayed(const Duration(milliseconds: 100));
       emit(updatedData);
     } catch (e) {
+      globalLoading?.hide();
       emit(ProfileError(
         message:
             'Erro ao atualizar nome: ${e.toString().replaceAll('Exception: ', '')}',

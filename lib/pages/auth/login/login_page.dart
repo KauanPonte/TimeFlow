@@ -4,6 +4,7 @@ import 'package:flutter_application_appdeponto/blocs/auth/auth_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/auth/auth_event.dart';
 import 'package:flutter_application_appdeponto/models/auth_field.dart';
 import 'package:flutter_application_appdeponto/blocs/auth/auth_state.dart';
+import 'package:flutter_application_appdeponto/blocs/ponto_today/ponto_today_cubit.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
 import 'package:flutter_application_appdeponto/widgets/custom_snackbar.dart';
@@ -51,6 +52,7 @@ class _LoginPageState extends State<LoginPage> {
         },
         listener: (context, state) {
           if (state is AdminAuthenticated) {
+            context.read<PontoTodayCubit>().load();
             Navigator.pushNamedAndRemoveUntil(
               context,
               "/admin",
@@ -59,6 +61,7 @@ class _LoginPageState extends State<LoginPage> {
           }
 
           if (state is UserAuthenticated) {
+            context.read<PontoTodayCubit>().load();
             Navigator.pushNamedAndRemoveUntil(
               context,
               "/home",

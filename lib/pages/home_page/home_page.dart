@@ -4,20 +4,21 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/ponto_history/ponto_history_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/ponto_history/ponto_history_event.dart';
 import 'package:flutter_application_appdeponto/blocs/ponto_history/ponto_history_state.dart';
-import 'package:flutter_application_appdeponto/repositories/ponto_history_repository.dart';
+import 'package:flutter_application_appdeponto/blocs/ponto_today/ponto_today_cubit.dart';
+import 'package:flutter_application_appdeponto/blocs/solicitations/solicitation_bloc.dart';
+import 'package:flutter_application_appdeponto/blocs/solicitations/solicitation_event.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
-import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
 import 'package:flutter_application_appdeponto/widgets/main_app_bar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
-import '../../services/ponto_service.dart';
 import '../../widgets/bottom_nav.dart';
-import '../history_page/widgets/day_card.dart';
-import '../history_page/widgets/month_selector.dart';
 import 'widgets/status_card.dart';
 import 'widgets/balance_card.dart';
 import 'widgets/punch_button.dart';
+import 'widgets/home_greeting.dart';
+import 'widgets/home_history_section.dart';
 
 class HomePage extends StatefulWidget {
   final String employeeName;
@@ -25,12 +26,16 @@ class HomePage extends StatefulWidget {
   final String logoAsset;
   final String employeeRole;
 
+  /// Quando fornecido (ISO 8601), abre o histórico no mês dessa data.
+  final String? initialHistoryDate;
+
   const HomePage({
     super.key,
     required this.employeeName,
     required this.profileImageUrl,
     required this.employeeRole,
     this.logoAsset = 'assets/app_icon/timeflow_background.png',
+    this.initialHistoryDate,
   });
 
   @override
@@ -38,21 +43,24 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  //Map<String, Map<String, String>> registros = {};
-  List<Map<String, dynamic>> eventosHoje = [];
-  String statusLabel = 'Fora do expediente';
-  String? ultimoTipoHoje;
-  double monthBalance = 0.0;
   String employeeName = '';
   String profileImageUrl = '';
-  String todayWorkedDisplay = '0h 0m';
-  bool loading = true;
+  String? _uid;
   Timer? _tickTimer;
+  Timer? _solTimer;
   int _targetMinutesPerDay = 8 * 60; // 8 horas por dia
-  double workProgress = 0.0;
+    double workProgress = 0.0;
 
   late DateTime _currentMonth;
-  late PontoHistoryBloc _historyBloc;
+
+  /// Controlador do ListView principal para scroll programático.
+  final ScrollController _scrollController = ScrollController();
+
+  /// GlobalKey do widget HomeHistorySection para calcular posição de scroll.
+  final GlobalKey _historySectionKey = GlobalKey();
+
+  /// Dia que deve receber destaque após scroll (ISO 'yyyy-MM-dd').
+  String? _highlightDayId;
 
   bool get _isAdmin => widget.employeeRole.toUpperCase().contains('ADM');
 
@@ -62,17 +70,81 @@ class _HomePageState extends State<HomePage> {
     employeeName = widget.employeeName;
     profileImageUrl = widget.profileImageUrl;
     final now = DateTime.now();
-    _currentMonth = DateTime(now.year, now.month);
-    _historyBloc = PontoHistoryBloc(repository: PontoHistoryRepository())
-      ..add(LoadHistoryEvent(month: _currentMonth));
-    _loadAll();
+
+    // Se recebeu uma data inicial (navegação de outra tela), usa o mês dela.
+    final initDate = widget.initialHistoryDate != null
+        ? DateTime.tryParse(widget.initialHistoryDate!)
+        : null;
+    if (initDate != null) {
+      _currentMonth = DateTime(initDate.year, initDate.month);
+      // Aplica o highlight no próximo frame (null → valor), igual ao caminho
+      // de _goToDay, para que didUpdateWidget em HomeHistorySection veja sempre
+      // a mesma sequência null→null / null→valor independente da tela de origem.
+      final newDayId = DateFormat('yyyy-MM-dd').format(initDate);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) setState(() => _highlightDayId = newDayId);
+      });
+    } else {
+      _currentMonth = DateTime(now.year, now.month);
+    }
+
+    // Timer que força rebuild a cada 30 s para atualizar tempo trabalhado.
+    _tickTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (mounted) setState(() {});
+    });
+
+    _resolveUserData();
+
+    // Dispara carregamento dos dados do dia (cubit persiste entre telas).
+    context.read<PontoTodayCubit>().load();
+
+    // Garante que o histórico esteja carregado para o mês selecionado.
+    final historyBloc = context.read<PontoHistoryBloc>();
+    if (historyBloc.state is PontoHistoryInitial ||
+        historyBloc.currentMonth.year != _currentMonth.year ||
+        historyBloc.currentMonth.month != _currentMonth.month) {
+      historyBloc.add(LoadHistoryEvent(month: _currentMonth));
+    }
+
+    // O scroll até o DayCard é gerenciado por HomeHistorySection
+    // (via BlocConsumer.listener quando o histórico terminar de carregar).
+
+    // Atualiza silenciosamente as solicitações (já carregadas desde o splash).
+    context.read<SolicitationBloc>().add(
+          SilentReloadSolicitationsEvent(isAdmin: _isAdmin),
+        );
+    // Atualização periódica das notificações a cada 2 minutos.
+    _solTimer = Timer.periodic(const Duration(minutes: 2), (_) {
+      if (mounted) {
+        context.read<SolicitationBloc>().add(
+              SilentReloadSolicitationsEvent(isAdmin: _isAdmin),
+            );
+      }
+    });
+  }
+
+  /// Resolve nome, foto e UID do SharedPreferences / FirebaseAuth.
+  Future<void> _resolveUserData() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (employeeName.isEmpty) {
+      employeeName = prefs.getString('employee_name') ?? '';
+    }
+    if (profileImageUrl.isEmpty) {
+      profileImageUrl = prefs.getString('profile_image_path') ?? '';
+    }
+    _uid = FirebaseAuth.instance.currentUser?.uid;
+    _uid ??= prefs.getString('userUid');
+    if ((_uid ?? '').isEmpty) _uid = null;
+    if (mounted) setState(() {});
   }
 
   void _goToPreviousMonth() {
     setState(() {
       _currentMonth = DateTime(_currentMonth.year, _currentMonth.month - 1);
     });
-    _historyBloc.add(LoadHistoryEvent(month: _currentMonth));
+    context
+        .read<PontoHistoryBloc>()
+        .add(LoadHistoryEvent(month: _currentMonth));
   }
 
   void _goToNextMonth() {
@@ -85,7 +157,9 @@ class _HomePageState extends State<HomePage> {
     setState(() {
       _currentMonth = nextMonth;
     });
-    _historyBloc.add(LoadHistoryEvent(month: _currentMonth));
+    context
+        .read<PontoHistoryBloc>()
+        .add(LoadHistoryEvent(month: _currentMonth));
   }
 
   List<String> _generateMonthDays() {
@@ -103,54 +177,7 @@ class _HomePageState extends State<HomePage> {
     return days;
   }
 
-  Future<void> _loadAll() async {
-    setState(() => loading = true);
-    //registros = await PontoService.loadRegistros();
-
-    eventosHoje = await PontoService.loadEventosHoje();
-    ultimoTipoHoje = await PontoService.getUltimoTipoHoje();
-    _targetMinutesPerDay = await PontoService.getCargaHorariaUsuarioAtual();
-
-    final now = DateTime.now();
-    statusLabel = _labelFromUltimoTipo(ultimoTipoHoje);
-    todayWorkedDisplay = _computeWorkedFromEventos(eventosHoje, now: now);
-
-    final minutesNow = _computeWorkedMinutesFromEventos(eventosHoje, now: now);
-    workProgress = (_targetMinutesPerDay == 0)
-      ? 0.0
-      : (minutesNow / _targetMinutesPerDay).clamp(0.0, 1.0);
-
-    final prefs = await SharedPreferences.getInstance();
-    monthBalance = await PontoService.getSaldoMesAtualHoras();
-
-    if (employeeName.isEmpty) {
-      employeeName = prefs.getString('employee_name') ?? '';
-    }
-    if (profileImageUrl.isEmpty) {
-      profileImageUrl = prefs.getString('profile_image_path') ?? '';
-    }
-
-    _tickTimer?.cancel();
-    _tickTimer = Timer.periodic(const Duration(seconds: 30), (_) {
-      if (!mounted) return;
-
-      final now2 = DateTime.now();
-      final minutes2 = _computeWorkedMinutesFromEventos(eventosHoje, now: now2);
-      final display2 = _computeWorkedFromEventos(eventosHoje, now: now2);
-
-      setState(() {
-        todayWorkedDisplay = display2;
-        workProgress = (_targetMinutesPerDay == 0)
-            ? 0.0
-            : (minutes2 / _targetMinutesPerDay).clamp(0.0, 1.0);
-      });
-    });
-
-    setState(() => loading = false);
-
-    // Recarrega o histórico embutido após atualizar os dados do dia.
-    _historyBloc.add(LoadHistoryEvent(month: _currentMonth));
-  }
+ 
 
   String _labelFromUltimoTipo(String? ultimo) {
     switch (ultimo) {
@@ -165,15 +192,13 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  String _computeWorkedFromEventos(List<Map<String, dynamic>> eventos,
-      {required DateTime now}) {
-    final totalMin = _computeWorkedMinutesFromEventos(eventos, now: now);
+  String _formatMinutes(int totalMin) {
     final h = totalMin ~/ 60;
     final m = totalMin % 60;
     return '${h}h ${m}m';
   }
 
-  int _computeWorkedMinutesFromEventos(List<Map<String, dynamic>> eventos,
+  int _computeWorkedMinutes(List<Map<String, dynamic>> eventos,
       {required DateTime now}) {
     DateTime? openWork;
     Duration total = Duration.zero;
@@ -208,17 +233,66 @@ class _HomePageState extends State<HomePage> {
   @override
   void dispose() {
     _tickTimer?.cancel();
-    _historyBloc.close();
+    _solTimer?.cancel();
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  //  Navegação de notificação para dia específico
+
+  /// Chamado pelo botão de notificação na AppBar quando já estamos na home.
+  /// Troca o mês, carrega o histórico e scrolla até a seção.
+  void _goToDay(DateTime date) {
+    final targetMonth = DateTime(date.year, date.month);
+    final needsReload = _currentMonth.year != targetMonth.year ||
+        _currentMonth.month != targetMonth.month;
+    final newDayId = DateFormat('yyyy-MM-dd').format(date);
+
+    // Zera o highlight primeiro — garante que didUpdateWidget detecte sempre
+    // a mudança (null → valor), inclusive quando o mesmo dia é selecionado
+    // repetidamente sem sair da tela.
+    setState(() {
+      _currentMonth = targetMonth;
+      _highlightDayId = null;
+    });
+
+    // Define o destaque e dispara o reload (se necessário) no próximo frame,
+    // após o rebuild com highlight=null ter sido confirmado pela UI.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      setState(() => _highlightDayId = newDayId);
+      if (needsReload) {
+        context
+            .read<PontoHistoryBloc>()
+            .add(LoadHistoryEvent(month: targetMonth));
+      }
+      // O scroll é gerenciado por HomeHistorySection:
+      //  • já carregado → didUpdateWidget → _scrollToHighlightedDay()
+      //  • carregando    → BlocConsumer.listener quando PontoHistoryLoaded
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     final isAdmin = _isAdmin;
+    final pontoState = context.watch<PontoTodayCubit>().state;
 
-    final scaffold = Scaffold(
+    // Valores derivados do estado global do cubit + hora atual.
+    final now = DateTime.now();
+    final statusLabel = _labelFromUltimoTipo(pontoState.ultimoTipo);
+    final workedMinutes =
+        _computeWorkedMinutes(pontoState.eventosHoje, now: now);
+    final todayWorkedDisplay = _formatMinutes(workedMinutes);
+    final workProgress = _targetMinutesPerDay == 0
+        ? 0.0
+        : (workedMinutes / _targetMinutesPerDay).clamp(0.0, 1.0);
+
+    return Scaffold(
       backgroundColor: AppColors.bgLight,
-      appBar: const MainAppBar(subtitle: 'Meu Ponto'),
+      appBar: MainAppBar(
+        subtitle: 'Meu Ponto',
+        onNotificationDayTap: _goToDay,
+      ),
       bottomNavigationBar: BottomNav(
         index: isAdmin ? 1 : 0,
         isAdmin: isAdmin,
@@ -228,145 +302,67 @@ class _HomePageState extends State<HomePage> {
           'employeeRole': widget.employeeRole,
         },
       ),
-      body: loading
+      body: pontoState.loading
           ? const Center(
               child: CircularProgressIndicator(
                 valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
               ),
             )
           : RefreshIndicator(
-              onRefresh: _loadAll,
+              onRefresh: () async {
+                context.read<PontoTodayCubit>().refresh();
+                context
+                    .read<PontoHistoryBloc>()
+                    .add(const SilentReloadHistoryEvent());
+              },
               color: AppColors.primary,
               child: ListView(
+                controller: _scrollController,
                 padding: const EdgeInsets.all(20),
                 children: [
-                  // Saudação
-                  Text(
-                    'Olá, ${employeeName.isNotEmpty ? employeeName : 'Colaborador'}!',
-                    style:
-                        AppTextStyles.h2.copyWith(color: AppColors.textPrimary),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Aqui está seu resumo de hoje',
-                    style: AppTextStyles.bodyMedium
-                        .copyWith(color: AppColors.textSecondary),
-                  ),
+                  HomeGreeting(employeeName: employeeName),
                   const SizedBox(height: 24),
-
                   StatusCard(
                     statusLabel: statusLabel,
                     todayWorkedDisplay: todayWorkedDisplay,
                     workProgress: workProgress,
                   ),
-
                   const SizedBox(height: 16),
-
-                  BalanceCard(monthBalance: monthBalance),
-
+                  BalanceCard(monthBalance: pontoState.monthBalance),
                   const SizedBox(height: 24),
-
                   PunchButton(
-                    onPressed: () => Navigator.pushNamed(
-                      context,
-                      '/ponto',
-                      arguments: {
-                        'employeeName': employeeName,
-                        'profileImageUrl': profileImageUrl,
-                        'employeeRole': widget.employeeRole,
-                      },
-                    ).then((_) => _loadAll()),
+                    onPressed: () async {
+                      await Navigator.pushNamed(
+                        context,
+                        '/ponto',
+                        arguments: {
+                          'employeeName': employeeName,
+                          'profileImageUrl': profileImageUrl,
+                          'employeeRole': widget.employeeRole,
+                        },
+                      );
+                      // PontoTodayCubit e PontoHistoryBloc atualizam-se
+                      // automaticamente via PontoDataChangedCubit.
+                    },
                   ),
-
-                  // Histórico embutido
-                  ...[
-                    const SizedBox(height: 32),
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: AppColors.primaryLight10,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: const Icon(Icons.history,
-                              color: AppColors.primary, size: 20),
-                        ),
-                        const SizedBox(width: 12),
-                        Text(
-                          'Meu Histórico',
-                          style: AppTextStyles.h3
-                              .copyWith(color: AppColors.textPrimary),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    MonthSelector(
-                      currentMonth: _currentMonth,
-                      onPrevious: _goToPreviousMonth,
-                      onNext: _goToNextMonth,
-                    ),
-                    const SizedBox(height: 8),
-                    _buildHistoryList(),
-                  ],
+                  HomeHistorySection(
+                    key: _historySectionKey,
+                    currentMonth: _currentMonth,
+                    highlightDayId: _highlightDayId,
+                    onPrevious: _goToPreviousMonth,
+                    onNext: _goToNextMonth,
+                    isAdmin: isAdmin,
+                    uid: _uid,
+                    generateMonthDays: _generateMonthDays,
+                    onActionSuccess: () {
+                      // Após editar/adicionar/remover ponto pelo histórico embutido,
+                      // atualiza os dados do dia (saldo, status, etc.).
+                      context.read<PontoTodayCubit>().refresh();
+                    },
+                  ),
                 ],
               ),
             ),
-    );
-
-    return BlocProvider.value(
-      value: _historyBloc,
-      child: scaffold,
-    );
-  }
-
-  Widget _buildHistoryList() {
-    return BlocBuilder<PontoHistoryBloc, PontoHistoryState>(
-      builder: (context, state) {
-        if (state is PontoHistoryLoading) {
-          return const Padding(
-            padding: EdgeInsets.symmetric(vertical: 32),
-            child: Center(
-              child: CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
-              ),
-            ),
-          );
-        }
-
-        Map<String, List<Map<String, dynamic>>> daysMap = {};
-        if (state is PontoHistoryLoaded) {
-          daysMap = state.daysMap;
-        } else if (state is PontoHistoryActionSuccess) {
-          daysMap = state.daysMap;
-        }
-
-        final allDays = _generateMonthDays();
-
-        if (allDays.isEmpty) {
-          return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 24),
-            child: Center(
-              child: Text(
-                'Nenhum dia para exibir',
-                style: AppTextStyles.bodyMedium
-                    .copyWith(color: AppColors.textSecondary),
-              ),
-            ),
-          );
-        }
-
-        return Column(
-          children: allDays.map((diaId) {
-            final eventos = daysMap[diaId] ?? [];
-            return DayCard(
-              diaId: diaId,
-              eventos: eventos,
-              isAdmin: _isAdmin,
-            );
-          }).toList(),
-        );
-      },
     );
   }
 }
