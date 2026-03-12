@@ -4,7 +4,6 @@ import 'package:flutter_application_appdeponto/repositories/user_repository.dart
 import 'package:shared_preferences/shared_preferences.dart';
 import 'user_management_event.dart';
 import 'user_management_state.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class UserManagementBloc
     extends Bloc<UserManagementEvent, UserManagementState> {
@@ -184,36 +183,37 @@ class UserManagementBloc
     }
   }
 
-Future<void> _onUpdateUserWorkload(
-  UpdateUserWorkloadEvent event,
-  Emitter<UserManagementState> emit,
-) async {
-  try {
-    await FirebaseFirestore.instance
-        .collection('users')
-        .doc(event.userId)
-        .update({
-      'cargaHorariaMinutos': event.cargaHorariaMinutos,
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
+  Future<void> _onUpdateUserWorkload(
+    UpdateUserWorkloadEvent event,
+    Emitter<UserManagementState> emit,
+  ) async {
+    try {
+      final success = await UserRepository.updateUserWorkload(
+        event.userId,
+        event.cargaHorariaMinutos,
+      );
 
-    emit(
-      UserManagementActionSuccess(
-        message: 'Carga horária de ${event.userName} atualizada com sucesso',
-        previousState: state,
-      ),
-    );
+      if (!success) {
+        throw Exception('Falha ao atualizar carga horária do usuário.');
+      }
 
-    add(const LoadUsersEvent());
-  } catch (e) {
-    emit(
-      UserManagementError(
-        message: 'Erro ao atualizar carga horária',
-        details: e.toString(),
-      ),
-    );
+      emit(
+        UserManagementActionSuccess(
+          message: 'Carga horária de ${event.userName} atualizada com sucesso',
+          previousState: state,
+        ),
+      );
+
+      add(const LoadUsersEvent());
+    } catch (e) {
+      emit(
+        UserManagementError(
+          message: 'Erro ao atualizar carga horária',
+          details: e.toString(),
+        ),
+      );
+    }
   }
-}
 
   /// Remove um usuário do sistema
   Future<void> _onDeleteUser(
