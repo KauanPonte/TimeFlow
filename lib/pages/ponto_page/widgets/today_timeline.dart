@@ -3,7 +3,7 @@ import '../../../theme/app_colors.dart';
 import '../../../theme/app_text_styles.dart';
 
 class TodayTimeline extends StatelessWidget {
-  /// Lista ordenada de eventos do dia: cada item é {'tipo': String, 'hora': String}.
+  /// Lista ordenada de eventos do dia: cada item é {'tipo': String, 'hora': String, 'origin'?: String}.
   final List<Map<String, String>> eventos;
   const TodayTimeline({super.key, required this.eventos});
 
@@ -26,6 +26,17 @@ class TodayTimeline extends StatelessWidget {
     'saida': Color(0xFFE53935),
   };
 
+  static const _originLabels = {
+    'registrado': 'Registrado',
+    'solicitado': 'Solicitado',
+    'ajustado': 'Ajustado',
+  };
+  static const _originColors = {
+    'registrado': AppColors.success,
+    'solicitado': AppColors.info,
+    'ajustado': AppColors.warning,
+  };
+
   @override
   Widget build(BuildContext context) {
     if (eventos.isEmpty) return const SizedBox.shrink();
@@ -45,10 +56,13 @@ class TodayTimeline extends StatelessWidget {
           final ev = eventos[i];
           final tipo = ev['tipo'] ?? '';
           final hora = ev['hora'] ?? '--:--';
+          final origin = ev['origin'] ?? 'registrado';
           final color = _colors[tipo] ?? AppColors.textSecondary;
           final icon = _icons[tipo] ?? Icons.access_time;
           final label = _labels[tipo] ?? tipo;
           final isLast = i == eventos.length - 1;
+          final originLabel = _originLabels[origin] ?? origin;
+          final originColor = _originColors[origin] ?? AppColors.textSecondary;
           return IntrinsicHeight(
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -92,13 +106,41 @@ class TodayTimeline extends StatelessWidget {
                       right: 16,
                     ),
                     child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          label,
-                          style: AppTextStyles.bodyLarge.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textPrimary,
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                label,
+                                style: AppTextStyles.bodyLarge.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                              Container(
+                                margin: const EdgeInsets.only(top: 2),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 1),
+                                decoration: BoxDecoration(
+                                  color: originColor.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(
+                                    color: originColor.withValues(alpha: 0.3),
+                                    width: 0.5,
+                                  ),
+                                ),
+                                child: Text(
+                                  originLabel,
+                                  style: AppTextStyles.bodySmall.copyWith(
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w600,
+                                    color: originColor,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                         Container(

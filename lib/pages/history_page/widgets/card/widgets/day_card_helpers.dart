@@ -150,3 +150,55 @@ String computeWorked(List<Map<String, dynamic>> eventos) {
   final m = total.inMinutes % 60;
   return '${h}h ${m}m';
 }
+
+// Origin helpers
+
+String labelForOrigin(String origin) {
+  switch (origin) {
+    case 'registrado':
+      return 'Registrado';
+    case 'solicitado':
+      return 'Solicitado';
+    case 'ajustado':
+      return 'Ajustado';
+    default:
+      return origin;
+  }
+}
+
+Color colorForOrigin(String origin) {
+  switch (origin) {
+    case 'registrado':
+      return AppColors.success;
+    case 'solicitado':
+      return AppColors.info;
+    case 'ajustado':
+      return AppColors.warning;
+    default:
+      return AppColors.textSecondary;
+  }
+}
+
+// WorkMode helpers
+
+String labelForWorkMode(String workMode) {
+  switch (workMode) {
+    case 'presencial':
+      return 'Presencial';
+    case 'remoto':
+      return 'Remoto';
+    default:
+      return workMode;
+  }
+}
+
+IconData iconForWorkMode(String workMode) {
+  switch (workMode) {
+    case 'presencial':
+      return Icons.business_rounded;
+    case 'remoto':
+      return Icons.home_rounded;
+    default:
+      return Icons.work_outline;
+  }
+}

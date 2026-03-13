@@ -42,6 +42,8 @@ class PontoHistoryRepository {
           'id': e.id,
           'tipo': (data['tipo'] ?? '').toString(),
           'at': ts?.toDate(),
+          'workMode': (data['workMode'] ?? '').toString(),
+          'origin': (data['origin'] ?? 'registrado').toString(),
         };
       }).toList();
 
@@ -98,6 +100,8 @@ class PontoHistoryRepository {
           'id': e.id,
           'tipo': (data['tipo'] ?? '').toString(),
           'at': ts?.toDate(),
+          'workMode': (data['workMode'] ?? '').toString(),
+          'origin': (data['origin'] ?? 'registrado').toString(),
         };
       }).toList();
 
@@ -153,7 +157,11 @@ class PontoHistoryRepository {
       });
     }
 
-    await refEventos.add({'tipo': tipo, 'at': ts});
+    await refEventos.add({
+      'tipo': tipo,
+      'at': ts,
+      'origin': 'ajustado',
+    });
     await _updateDayMeta(uid: uid, diaId: diaId);
   }
 
@@ -194,7 +202,11 @@ class PontoHistoryRepository {
 
     final ts = Timestamp.fromDate(horario);
 
-    await refEventos.doc(eventoId).update({'tipo': tipo, 'at': ts});
+    await refEventos.doc(eventoId).update({
+      'tipo': tipo,
+      'at': ts,
+      'origin': 'ajustado',
+    });
 
     await _updateDayMeta(uid: uid, diaId: diaId);
   }
@@ -403,15 +415,21 @@ class PontoHistoryRepository {
     // Atualizações
     for (final u in updates) {
       final ts = Timestamp.fromDate(u['horario'] as DateTime);
-      await refEventos
-          .doc(u['id'] as String)
-          .update({'tipo': u['tipo'], 'at': ts});
+      await refEventos.doc(u['id'] as String).update({
+        'tipo': u['tipo'],
+        'at': ts,
+        'origin': 'ajustado',
+      });
     }
 
     // Adições
     for (final a in adds) {
       final ts = Timestamp.fromDate(a['horario'] as DateTime);
-      await refEventos.add({'tipo': a['tipo'] as String, 'at': ts});
+      await refEventos.add({
+        'tipo': a['tipo'] as String,
+        'at': ts,
+        'origin': 'ajustado',
+      });
     }
 
     // 4. Verifica se ainda há eventos no dia.
