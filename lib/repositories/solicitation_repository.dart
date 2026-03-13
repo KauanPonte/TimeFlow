@@ -25,7 +25,7 @@ class SolicitationRepository {
     final uid = user.uid;
 
     // Busca nome do funcionário
-    final userDoc = await _firestore.collection('users').doc(uid).get();
+    final userDoc = await _firestore.collection('usuarios').doc(uid).get();
     final employeeName = (userDoc.data()?['name'] ?? '').toString();
 
     // Carrega eventos reais do dia
@@ -75,6 +75,63 @@ class SolicitationRepository {
 
     await docRef.set(solicitation.toMap());
     return solicitation;
+  }
+
+  //  Funcionário: atualizar solicitação (edição in-place)
+
+  /// Atualiza os itens e a observação de uma solicitação pendente existente.
+  /// Valida a sequência resultante antes de persistir.
+  Future<void> updateSolicitation({
+    required String existingSolicitationId,
+    required String diaId,
+    required List<SolicitationItem> items,
+    String? reason,
+  }) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) throw Exception('Usuário não autenticado.');
+    final uid = user.uid;
+
+    // Carrega eventos reais do dia
+    final eventosReais = await _loadEventosDoDia(uid, diaId);
+
+    // Outras solicitações pendentes do mesmo dia (excluindo a atual)
+    final todasPendentes = await _loadPendingForDay(uid, diaId);
+    final outrasPendentes =
+        todasPendentes.where((s) => s.id != existingSolicitationId).toList();
+
+    // Compõe estado virtual sem a solicitação atual
+    final virtualEventos = _buildVirtualEventos(eventosReais, outrasPendentes);
+
+    // Aplica os novos itens para validação
+    final novosVirtual = List<Map<String, dynamic>>.from(virtualEventos);
+    for (final item in items) {
+      if (item.action == SolicitationAction.add) {
+        novosVirtual.add({'tipo': item.tipo, 'at': item.horario});
+      } else if (item.action == SolicitationAction.edit) {
+        final idx = novosVirtual.indexWhere((e) => e['id'] == item.eventoId);
+        if (idx >= 0) {
+          novosVirtual[idx] = {
+            'id': item.eventoId,
+            'tipo': item.tipo,
+            'at': item.horario,
+          };
+        }
+      } else if (item.action == SolicitationAction.delete) {
+        novosVirtual.removeWhere((e) => e['id'] == item.eventoId);
+      }
+    }
+
+    final erro = PontoValidator.validarSequenciaCompleta(novosVirtual);
+    if (erro != null) throw Exception(erro);
+
+    // Atualiza o documento existente
+    await _firestore
+        .collection(_collection)
+        .doc(existingSolicitationId)
+        .update({
+      'items': items.map((i) => i.toMap()).toList(),
+      'reason': reason,
+    });
   }
 
   //  Funcionário: cancelar solicitação
@@ -221,12 +278,14 @@ class SolicitationRepository {
         await refEventos.add({
           'tipo': item.tipo,
           'at': Timestamp.fromDate(item.horario),
+          'origin': 'solicitado',
         });
       } else if (item.action == SolicitationAction.edit &&
           item.eventoId != null) {
         await refEventos.doc(item.eventoId).update({
           'tipo': item.tipo,
           'at': Timestamp.fromDate(item.horario),
+          'origin': 'solicitado',
         });
       } else if (item.action == SolicitationAction.delete &&
           item.eventoId != null) {

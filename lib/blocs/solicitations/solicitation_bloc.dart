@@ -19,6 +19,7 @@ class SolicitationBloc extends Bloc<SolicitationEvent, SolicitationState> {
     on<LoadSolicitationsEvent>(_onLoad);
     on<SilentReloadSolicitationsEvent>(_onSilentReload);
     on<CreateSolicitationEvent>(_onCreate);
+    on<UpdateSolicitationEvent>(_onUpdate);
     on<CancelSolicitationEvent>(_onCancel);
     on<ProcessSolicitationEvent>(_onProcess);
     on<DismissReviewedSolicitationEvent>(_onDismiss);
@@ -114,6 +115,41 @@ class SolicitationBloc extends Bloc<SolicitationEvent, SolicitationState> {
       // Revisadas NÃO mudam ao criar nova solicitação — reutiliza _lastReviewed.
       emit(SolicitationActionSuccess(
         message: 'Solicitação enviada com sucesso!',
+        solicitations: list,
+        reviewedSolicitations: _visibleReviewed(),
+      ));
+    } catch (e) {
+      globalLoading?.hide();
+      emit(SolicitationError(
+        message: e.toString().replaceAll('Exception: ', ''),
+        solicitations: _lastList,
+      ));
+    }
+  }
+
+  Future<void> _onUpdate(
+    UpdateSolicitationEvent event,
+    Emitter<SolicitationState> emit,
+  ) async {
+    globalLoading?.show('Atualizando solicitação...');
+    emit(SolicitationActionProcessing(
+      message: 'Atualizando solicitação...',
+      solicitations: _lastList,
+    ));
+    try {
+      await repository.updateSolicitation(
+        existingSolicitationId: event.existingSolicitationId,
+        diaId: event.diaId,
+        items: event.items,
+        reason: event.reason,
+      );
+      final list = _isAdmin
+          ? await repository.getAllPendingSolicitations()
+          : await repository.getMyPendingSolicitations();
+      _lastList = list;
+      globalLoading?.hide();
+      emit(SolicitationActionSuccess(
+        message: 'Solicitação atualizada com sucesso!',
         solicitations: list,
         reviewedSolicitations: _visibleReviewed(),
       ));

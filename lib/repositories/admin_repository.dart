@@ -5,9 +5,9 @@ class AdminRepository {
 
   /// Buscar todos os usuários (exceto admins)
   Future<List<Map<String, dynamic>>> getEmployees() async {
-    // Busca na coleção 'users' onde o campo 'role' não é 'ADM'
+    // Busca na coleção 'usuarios' onde o campo 'role' não é 'ADM'
     final snapshot = await _firestore
-        .collection('users')
+        .collection('usuarios')
         .where('role', isNotEqualTo: 'ADM')
         .get();
 
@@ -21,7 +21,7 @@ class AdminRepository {
 
   /// Buscar funcionário específico
   Future<Map<String, dynamic>?> getEmployeeById(String id) async {
-    final doc = await _firestore.collection('users').doc(id).get();
+    final doc = await _firestore.collection('usuarios').doc(id).get();
 
     if (!doc.exists) return null;
 

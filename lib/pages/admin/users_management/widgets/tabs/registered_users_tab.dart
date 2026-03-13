@@ -8,7 +8,7 @@ import 'package:flutter_application_appdeponto/pages/history_page/history_page.d
 import '../user_card.dart';
 import '../empty_users_state.dart';
 import '../error_loading_state.dart';
-import '../dialogs/edit_role_dialog.dart';
+import '../dialogs/edit_user_dialog.dart';
 import '../dialogs/delete_user_dialog.dart';
 
 class RegisteredUsersTab extends StatefulWidget {
@@ -222,11 +222,7 @@ class _RegisteredUsersTabState extends State<RegisteredUsersTab>
                                     ),
                                   );
                                 },
-                                onEditRole: () => _showEditRoleDialog(
-                                  user['id'],
-                                  user['name'],
-                                  user['role'],
-                                ),
+                                onEdit: () => _showEditUserDialog(user),
                                 onDelete: () => _showDeleteUserDialog(
                                   user['id'],
                                   user['name'],
@@ -242,25 +238,21 @@ class _RegisteredUsersTabState extends State<RegisteredUsersTab>
     );
   }
 
-  Future<void> _showEditRoleDialog(
-    String userId,
-    String userName,
-    String currentRole,
-  ) async {
+  Future<void> _showEditUserDialog(Map<String, dynamic> user) async {
     final bloc = context.read<UserManagementBloc>();
     await showDialog(
       context: context,
-      builder: (_) => EditRoleDialog(
-        userName: userName,
-        currentRole: currentRole,
-        onSave: (newRole) {
-          bloc.add(
-            UpdateUserRoleEvent(
-              userId: userId,
-              userName: userName,
-              newRole: newRole,
-            ),
-          );
+      builder: (_) => EditUserDialog(
+        userName: user['name'] as String,
+        currentRole: user['role'] as String,
+        currentWorkloadMinutes: user['workloadMinutes'] as int?,
+        onSave: (newRole, workloadMinutes) {
+          bloc.add(UpdateUserProfileEvent(
+            userId: user['id'] as String,
+            userName: user['name'] as String,
+            newRole: newRole,
+            workloadMinutes: workloadMinutes,
+          ));
         },
       ),
     );

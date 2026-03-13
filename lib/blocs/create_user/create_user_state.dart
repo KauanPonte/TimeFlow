@@ -18,12 +18,14 @@ class CreateUserFormState extends CreateUserState {
   final String? emailError;
   final String? passwordError;
   final String? confirmPasswordError;
+  final String? cargaHorariaError;
   final String? roleError;
 
   final bool nameValid;
   final bool emailValid;
   final bool passwordValid;
   final bool confirmPasswordValid;
+  final bool cargaHorariaValid;
   final bool roleValid;
 
   const CreateUserFormState({
@@ -31,11 +33,13 @@ class CreateUserFormState extends CreateUserState {
     this.emailError,
     this.passwordError,
     this.confirmPasswordError,
+    this.cargaHorariaError,
     this.roleError,
     this.nameValid = false,
     this.emailValid = false,
     this.passwordValid = false,
     this.confirmPasswordValid = false,
+    this.cargaHorariaValid = false,
     this.roleValid = false,
   });
 
@@ -44,6 +48,7 @@ class CreateUserFormState extends CreateUserState {
       emailValid &&
       passwordValid &&
       confirmPasswordValid &&
+      cargaHorariaValid &&
       roleValid;
 
   @override
@@ -52,11 +57,13 @@ class CreateUserFormState extends CreateUserState {
         emailError,
         passwordError,
         confirmPasswordError,
+        cargaHorariaError,
         roleError,
         nameValid,
         emailValid,
         passwordValid,
         confirmPasswordValid,
+        cargaHorariaValid,
         roleValid,
       ];
 
@@ -65,33 +72,41 @@ class CreateUserFormState extends CreateUserState {
     String? emailError,
     String? passwordError,
     String? confirmPasswordError,
+    String? cargaHorariaError,
     String? roleError,
     bool? nameValid,
     bool? emailValid,
     bool? passwordValid,
     bool? confirmPasswordValid,
+    bool? cargaHorariaValid,
     bool? roleValid,
     bool clearNameError = false,
     bool clearEmailError = false,
     bool clearPasswordError = false,
     bool clearConfirmPasswordError = false,
+    bool clearCargaHorariaError = false,
     bool clearRoleError = false,
   }) {
     return CreateUserFormState(
-      nameError: clearNameError ? null : (nameError ?? this.nameError),
-      emailError: clearEmailError ? null : (emailError ?? this.emailError),
-      passwordError:
-          clearPasswordError ? null : (passwordError ?? this.passwordError),
-      confirmPasswordError: clearConfirmPasswordError
-          ? null
-          : (confirmPasswordError ?? this.confirmPasswordError),
-      roleError: clearRoleError ? null : (roleError ?? this.roleError),
-      nameValid: nameValid ?? this.nameValid,
-      emailValid: emailValid ?? this.emailValid,
-      passwordValid: passwordValid ?? this.passwordValid,
-      confirmPasswordValid: confirmPasswordValid ?? this.confirmPasswordValid,
-      roleValid: roleValid ?? this.roleValid,
-    );
+    nameError: clearNameError ? null : (nameError ?? this.nameError),
+    nameValid: nameValid ?? this.nameValid,
+    emailError: clearEmailError ? null : (emailError ?? this.emailError),
+    emailValid: emailValid ?? this.emailValid,
+    passwordError:
+        clearPasswordError ? null : (passwordError ?? this.passwordError),
+    passwordValid: passwordValid ?? this.passwordValid,
+    confirmPasswordError: clearConfirmPasswordError
+        ? null
+        : (confirmPasswordError ?? this.confirmPasswordError),
+    confirmPasswordValid:
+        confirmPasswordValid ?? this.confirmPasswordValid,
+    cargaHorariaError: clearCargaHorariaError
+        ? null
+        : (cargaHorariaError ?? this.cargaHorariaError),
+    cargaHorariaValid: cargaHorariaValid ?? this.cargaHorariaValid,
+    roleError: clearRoleError ? null : (roleError ?? this.roleError),
+    roleValid: roleValid ?? this.roleValid,
+  );
   }
 }
 

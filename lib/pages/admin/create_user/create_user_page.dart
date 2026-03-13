@@ -37,6 +37,7 @@ class _CreateUserViewState extends State<CreateUserView> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  final TextEditingController _cargaHorariaController = TextEditingController();
   final _roleController = TextEditingController();
 
   bool _obscurePassword = true;
@@ -48,6 +49,7 @@ class _CreateUserViewState extends State<CreateUserView> {
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
+    _cargaHorariaController.dispose();
     _roleController.dispose();
     super.dispose();
   }
@@ -59,6 +61,7 @@ class _CreateUserViewState extends State<CreateUserView> {
             email: _emailController.text,
             password: _passwordController.text,
             confirmPassword: _confirmPasswordController.text,
+            cargaHoraria: _cargaHorariaController.text,
             role: _roleController.text,
           ),
         );
@@ -241,6 +244,33 @@ class _CreateUserViewState extends State<CreateUserView> {
                     ),
                   ),
                   const SizedBox(height: 16),
+
+                  CustomTextField(
+                    controller: _cargaHorariaController,
+                    labelText: 'Carga Horária',
+                    prefixIcon: Icons.access_time_outlined,
+                    errorText: formState?.cargaHorariaError,
+                    isValid: formState?.cargaHorariaValid ?? false,
+                    onChanged: (value) {
+                       context.read<CreateUserBloc>().add(
+                         ValidateFieldEvent(fieldName: 'cargaHoraria', value: value),
+                       );
+                     },
+                  ),
+                  const SizedBox(height: 8),
+
+                  Padding(
+                    padding: const EdgeInsets.only(left: 16),
+                    child: Text(
+                      'Ex: 8 ou 8:30 ',
+                      style: AppTextStyles.bodySmall.copyWith(
+                        color: AppColors.textSecondary,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
 
                   CustomTextField(
                     controller: _roleController,

@@ -27,12 +27,17 @@ class ProfileRepository {
       throw Exception('Perfil não encontrado');
     }
 
+    final workloadMinutes = (data['workloadMinutes'] ??
+        data['cargaHorariaMinutos'] ??
+        data['cargaHorairaMinutos']) as int?;
+
     return {
       'uid': uid,
       'name': data['name'] ?? '',
       'email': data['email'] ?? '',
       'role': data['role'] ?? '',
       'profileImage': data['profileImage'] ?? '',
+      'workloadMinutes': workloadMinutes,
     };
   }
 
@@ -95,7 +100,7 @@ class ProfileRepository {
   }
 
   /// Atualiza o nome do perfil
-  Future<void> updateProfileName(String newName) async {
+  Future<void> updateProfileName(String newName, {int? workloadMinutes}) async {
     final prefs = await SharedPreferences.getInstance();
     final uid = prefs.getString('userUid') ?? '';
 
@@ -103,9 +108,15 @@ class ProfileRepository {
       throw Exception('Usuário não autenticado');
     }
 
-    await _db.collection(_usersCollection).doc(uid).update({
+    final payload = <String, dynamic>{
       'name': newName.trim(),
-    });
+    };
+
+    if (workloadMinutes != null) {
+      payload['workloadMinutes'] = workloadMinutes;
+    }
+
+    await _db.collection(_usersCollection).doc(uid).update(payload);
 
     // Atualizar FirebaseAuth displayName
     await _auth.currentUser?.updateDisplayName(newName.trim());

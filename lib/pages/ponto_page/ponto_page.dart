@@ -8,6 +8,7 @@ import '../../widgets/bottom_nav.dart';
 import '../../widgets/custom_snackbar.dart';
 import '../../services/notification_service.dart';
 import '../../services/ponto_validator.dart';
+import '../../services/location_service.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_text_styles.dart';
 import 'widgets/clock_card.dart';
@@ -24,9 +25,19 @@ class PontoPage extends StatefulWidget {
 
 class _PontoPageState extends State<PontoPage> {
   bool registering = false;
+  bool _validatingLocation = false;
   late DateTime _now;
   Timer? _clockTimer;
-  String? _workMode;
+  String? _selectedWorkMode;
+
+  /// Modo efetivo: usa o lock do cubit se existir, senão a seleção local.
+  String? _effectiveWorkMode(PontoTodayState state) {
+    return state.lockedWorkMode ?? _selectedWorkMode;
+  }
+
+  bool _isLocked(PontoTodayState state) {
+    return state.lockedWorkMode != null;
+  }
 
   @override
   void initState() {
@@ -53,17 +64,46 @@ class _PontoPageState extends State<PontoPage> {
     super.dispose();
   }
 
-  Future<void> _registrar(String status) async {
+  Future<void> _onWorkModeSelected(String mode) async {
+    final firestoreValue = mode == 'Presencial' ? 'presencial' : 'remoto';
+
+    if (mode == 'Presencial') {
+      setState(() => _validatingLocation = true);
+      try {
+        final result = await LocationService.validatePresencialLocation();
+        if (!mounted) return;
+        setState(() => _validatingLocation = false);
+
+        if (!result.success) {
+          CustomSnackbar.showError(context, result.message);
+          return;
+        }
+      } catch (_) {
+        if (!mounted) return;
+        setState(() => _validatingLocation = false);
+        CustomSnackbar.showError(
+            context, 'Erro ao validar localização. Tente novamente.');
+        return;
+      }
+    }
+
+    setState(() => _selectedWorkMode = firestoreValue);
+  }
+
+  Future<void> _registrar(String status, PontoTodayState state) async {
+    final workMode = _effectiveWorkMode(state);
+    if (workMode == null) return;
+
     setState(() => registering = true);
     final globalLoading = context.read<GlobalLoadingCubit>();
     final cubit = context.read<PontoTodayCubit>();
     globalLoading.show('Registrando ponto...');
     try {
-      final pontoResult = await cubit.registrar(status);
+      final pontoResult = await cubit.registrar(status, workMode: workMode);
       globalLoading.hide();
       if (mounted) {
         if (status == 'saida') {
-          _workMode = null;
+          _selectedWorkMode = null;
         }
 
         setState(() => registering = false);
@@ -131,26 +171,58 @@ class _PontoPageState extends State<PontoPage> {
     return PontoValidator.proximosPermitidos(state.ultimoTipo);
   }
 
-  Widget _buildWorkModeButton(String mode) {
-    final isSelected = _workMode == mode;
+  Widget _buildWorkModeButton(
+      String label, String value, PontoTodayState state) {
+    final effective = _effectiveWorkMode(state);
+    final isSelected = effective == value;
+    final locked = _isLocked(state);
+    final isDisabled = locked && !isSelected;
+
     return Expanded(
       child: InkWell(
-        onTap: () => setState(() => _workMode = mode),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          decoration: BoxDecoration(
-            color: isSelected ? AppColors.primary : Colors.white,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: isSelected ? AppColors.primary : AppColors.borderLight,
+        onTap: (locked || _validatingLocation)
+            ? null
+            : () => _onWorkModeSelected(label),
+        child: Opacity(
+          opacity: isDisabled ? 0.4 : 1.0,
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            decoration: BoxDecoration(
+              color: isSelected ? AppColors.primary : Colors.white,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: isSelected ? AppColors.primary : AppColors.borderLight,
+              ),
             ),
-          ),
-          child: Text(
-            mode,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: isSelected ? Colors.white : AppColors.textPrimary,
-              fontWeight: FontWeight.bold,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (locked && isSelected) ...[
+                  Icon(Icons.lock,
+                      size: 14,
+                      color: isSelected ? Colors.white : AppColors.textPrimary),
+                  const SizedBox(width: 6),
+                ],
+                if (_validatingLocation && label == 'Presencial') ...[
+                  SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: isSelected ? Colors.white : AppColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                ],
+                Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: isSelected ? Colors.white : AppColors.textPrimary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -168,7 +240,8 @@ class _PontoPageState extends State<PontoPage> {
     final pontoState = context.watch<PontoTodayCubit>().state;
     final hoje = _hojeMapComputed(pontoState);
     final proximas = _proximasAcoes(pontoState);
-    final bool isPanelAccessible = _workMode != null;
+    final effectiveMode = _effectiveWorkMode(pontoState);
+    final bool isPanelAccessible = effectiveMode != null;
 
     return Scaffold(
       backgroundColor: AppColors.bgLight,
@@ -223,9 +296,11 @@ class _PontoPageState extends State<PontoPage> {
                     const SizedBox(height: 12),
                     Row(
                       children: [
-                        _buildWorkModeButton('Presencial'),
+                        _buildWorkModeButton(
+                            'Presencial', 'presencial', pontoState),
                         const SizedBox(width: 12),
-                        _buildWorkModeButton('Home Office'),
+                        _buildWorkModeButton(
+                            'Home Office', 'remoto', pontoState),
                       ],
                     ),
                     const SizedBox(height: 24),
@@ -271,7 +346,7 @@ class _PontoPageState extends State<PontoPage> {
                                 time: hoje['entrada'],
                                 isRegistering: registering,
                                 isLast: false,
-                                onTap: () => _registrar('entrada'),
+                                onTap: () => _registrar('entrada', pontoState),
                               ),
                               ActionRow(
                                 label: 'Pausa',
@@ -283,7 +358,7 @@ class _PontoPageState extends State<PontoPage> {
                                 time: hoje['pausa'],
                                 isRegistering: registering,
                                 isLast: false,
-                                onTap: () => _registrar('pausa'),
+                                onTap: () => _registrar('pausa', pontoState),
                               ),
                               ActionRow(
                                 label: 'Retorno',
@@ -294,7 +369,7 @@ class _PontoPageState extends State<PontoPage> {
                                 time: hoje['retorno'],
                                 isRegistering: registering,
                                 isLast: false,
-                                onTap: () => _registrar('retorno'),
+                                onTap: () => _registrar('retorno', pontoState),
                               ),
                               ActionRow(
                                 label: 'Saída',
@@ -305,7 +380,7 @@ class _PontoPageState extends State<PontoPage> {
                                 time: hoje['saida'],
                                 isRegistering: registering,
                                 isLast: true,
-                                onTap: () => _registrar('saida'),
+                                onTap: () => _registrar('saida', pontoState),
                               ),
                             ],
                           ),

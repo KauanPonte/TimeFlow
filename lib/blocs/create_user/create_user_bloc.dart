@@ -37,6 +37,9 @@ class CreateUserBloc extends Bloc<CreateUserEvent, CreateUserState> {
       case 'password':
         emit(_validatePassword(currentState, event.value));
         break;
+      case 'cargaHoraria':
+        emit(_validateCargaHoraria(currentState, event.value));
+        break;
       case 'role':
         emit(_validateRole(currentState, event.value));
         break;
@@ -83,6 +86,7 @@ class CreateUserBloc extends Bloc<CreateUserEvent, CreateUserState> {
     formState = _validateName(formState, event.name);
     formState = _validateEmail(formState, event.email);
     formState = _validatePassword(formState, event.password);
+    formState = _validateCargaHoraria(formState, event.cargaHoraria);
     formState = _validateRole(formState, event.role);
 
     // Valida confirmação de senha
@@ -118,6 +122,7 @@ class CreateUserBloc extends Bloc<CreateUserEvent, CreateUserState> {
         name: event.name,
         email: event.email,
         password: event.password,
+        cargaHoraria: event.cargaHoraria,
         role: event.role,
       );
 
@@ -195,6 +200,28 @@ class CreateUserBloc extends Bloc<CreateUserEvent, CreateUserState> {
       return state.copyWith(
         clearPasswordError: true,
         passwordValid: true,
+      );
+    }
+  }
+
+  CreateUserFormState _validateCargaHoraria(
+    CreateUserFormState state, String value,) {
+    final regex = RegExp(r'^\d{1,2}(:\d{1,2})?$');
+    if(value.trim().isEmpty){
+      return state.copyWith(
+        cargaHorariaError: 'Por favor, informe a carga horária',
+        cargaHorariaValid: false,
+      );
+    }else if(!regex.hasMatch(value.trim())){
+    return state.copyWith(
+      cargaHorariaError: 'Formato inválido.',
+      cargaHorariaValid: false,
+     );
+    }
+    else{
+      return state.copyWith(
+        clearCargaHorariaError: true,
+        cargaHorariaValid: true,
       );
     }
   }

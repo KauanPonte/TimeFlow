@@ -10,10 +10,28 @@ class PontoResult {
 
 class PontoService {
   static const String _root = 'pontos';
-  static const int _targetMinutesPerDay = 8 * 60;
   static String _mesIdFromDiaId(String diaId) => diaId.substring(0, 7);
 
   static String _hojeId() => DateFormat('yyyy-MM-dd').format(DateTime.now());
+
+  static Future<int> _getWorkloadMinutes(String uid) async {
+    final userSnap =
+        await FirebaseFirestore.instance.collection('usuarios').doc(uid).get();
+
+    return (userSnap.data()?['workloadMinutes'] as int?) ?? (8 * 60);
+  }
+
+  static Future<int> getCargaHorariaUsuarioAtual() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return 8 * 60;
+
+    final userSnap = await FirebaseFirestore.instance
+        .collection('usuarios')
+        .doc(user.uid)
+        .get();
+
+    return (userSnap.data()?['workloadMinutes'] as int?) ?? (8 * 60);
+  }
 
   static DocumentReference<Map<String, dynamic>> _refDia(
       String uid, String diaId) {
@@ -55,7 +73,8 @@ class PontoService {
     return 'Não é possível registrar "$novo" agora. Último ponto foi "$ultimo".';
   }
 
-  static Future<PontoResult> registrarPonto(String tipo) async {
+  static Future<PontoResult> registrarPonto(String tipo,
+      {required String workMode}) async {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
@@ -71,7 +90,10 @@ class PontoService {
       final diaId = _hojeId();
       final refDia = _refDia(uid, diaId);
       final refEventos = _refEventos(uid, diaId);
-      final now = Timestamp.now();
+      // Registra sem segundos (truncado ao minuto).
+      final nowRaw = DateTime.now();
+      final now = Timestamp.fromDate(DateTime(
+          nowRaw.year, nowRaw.month, nowRaw.day, nowRaw.hour, nowRaw.minute));
 
       //  Validação antes da transação
       // Lemos o documento do dia fora da transação para evitar o erro
@@ -104,7 +126,12 @@ class PontoService {
       //  Escrita atômica (sem throws dentro da transação)
       await FirebaseFirestore.instance.runTransaction((tx) async {
         final newDoc = refEventos.doc();
-        tx.set(newDoc, {'tipo': tipo, 'at': now});
+        tx.set(newDoc, {
+          'tipo': tipo,
+          'at': now,
+          'workMode': workMode,
+          'origin': 'registrado',
+        });
 
         if (!diaSnapPre.exists) {
           tx.set(refDia, {
@@ -149,6 +176,35 @@ class PontoService {
     return data?['lastTipo']?.toString();
   }
 
+  /// Retorna o workMode travado para o dia de hoje, se houver sessão aberta.
+  /// Retorna null se não houver lock (sem eventos ou último tipo é 'saida').
+  static Future<String?> getLockedWorkModeHoje() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return null;
+
+    final uid = user.uid;
+    final diaId = _hojeId();
+
+    final diaDoc = await _refDia(uid, diaId).get();
+    if (!diaDoc.exists) return null;
+
+    final lastTipo = diaDoc.data()?['lastTipo']?.toString();
+    if (lastTipo == null || lastTipo == 'saida') return null;
+
+    // Busca o último evento 'entrada' para obter o workMode da sessão
+    final eventosSnap =
+        await _refEventos(uid, diaId).orderBy('at', descending: true).get();
+
+    for (final doc in eventosSnap.docs) {
+      final data = doc.data();
+      if (data['tipo'] == 'entrada') {
+        final wm = (data['workMode'] ?? '').toString();
+        return wm.isEmpty ? null : wm;
+      }
+    }
+    return null;
+  }
+
   static Future<List<Map<String, dynamic>>> loadEventosHoje() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return [];
@@ -164,6 +220,8 @@ class PontoService {
       return {
         'tipo': (m['tipo'] ?? '').toString(),
         'at': m['at'],
+        'workMode': (m['workMode'] ?? '').toString(),
+        'origin': (m['origin'] ?? 'registrado').toString(),
       };
     }).toList();
   }
@@ -186,7 +244,14 @@ class PontoService {
       final at = m['at'];
       final hora =
           at is Timestamp ? DateFormat('HH:mm').format(at.toDate()) : '';
-      return {'tipo': tipo, 'hora': hora};
+      final workMode = (m['workMode'] ?? '').toString();
+      final origin = (m['origin'] ?? 'registrado').toString();
+      return {
+        'tipo': tipo,
+        'hora': hora,
+        'workMode': workMode,
+        'origin': origin,
+      };
     }).toList();
   }
 
@@ -263,6 +328,7 @@ class PontoService {
     final eventos = eventosSnap.docs.map((d) => d.data()).toList();
 
     final workedMinutes = _computeWorkedMinutesFromEventosFechado(eventos);
+    final workloadMinutes = await _getWorkloadMinutes(uid);
 
     final String? ultimoTipoEvento =
         eventos.isNotEmpty ? (eventos.last['tipo'] ?? '').toString() : null;
@@ -277,8 +343,8 @@ class PontoService {
     final bool emAberto = !diaFechado && eventos.isNotEmpty;
 
     final int deltaMinutes = falta
-        ? -_targetMinutesPerDay
-        : (diaFechado ? (workedMinutes - _targetMinutesPerDay) : 0);
+        ? -workloadMinutes
+        : (diaFechado ? (workedMinutes - workloadMinutes) : 0);
 
     await FirebaseFirestore.instance.runTransaction((tx) async {
       final diaSnap = await tx.get(refDia);
@@ -295,8 +361,9 @@ class PontoService {
           {
             'workedMinutes': workedMinutes,
             'deltaMinutes': deltaMinutes,
+            'workloadMinutes': workloadMinutes,
             'isClosed': diaFechado,
-            'isToday': emAberto,
+            'isOpen': emAberto,
             'isAbsent': falta,
             'updatedAt': Timestamp.now(),
           },

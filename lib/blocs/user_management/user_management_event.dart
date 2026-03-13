@@ -21,16 +21,18 @@ class LoadPendingRequestsEvent extends UserManagementEvent {
 class ApproveRequestEvent extends UserManagementEvent {
   final String requestId;
   final String userName;
+  final String cargaHoraria;
   final String role;
 
   const ApproveRequestEvent({
     required this.requestId,
     required this.userName,
+    required this.cargaHoraria,
     required this.role,
   });
 
   @override
-  List<Object?> get props => [requestId, userName, role];
+  List<Object?> get props => [requestId, userName, cargaHoraria, role];
 }
 
 /// Rejeita uma solicitação de cadastro
@@ -61,6 +63,40 @@ class UpdateUserRoleEvent extends UserManagementEvent {
 
   @override
   List<Object?> get props => [userId, userName, newRole];
+}
+
+// Editar a carga horária do usuário
+class UpdateUserWorkloadEvent extends UserManagementEvent {
+  final String userId;
+  final String userName;
+  final int workloadMinutes;
+
+  const UpdateUserWorkloadEvent({
+    required this.userId,
+    required this.userName,
+    required this.workloadMinutes,
+  });
+
+  @override
+  List<Object> get props => [userId, userName, workloadMinutes];
+}
+
+/// Editar cargo e carga horária do usuário em uma única operação
+class UpdateUserProfileEvent extends UserManagementEvent {
+  final String userId;
+  final String userName;
+  final String newRole;
+  final int workloadMinutes;
+
+  const UpdateUserProfileEvent({
+    required this.userId,
+    required this.userName,
+    required this.newRole,
+    required this.workloadMinutes,
+  });
+
+  @override
+  List<Object> get props => [userId, userName, newRole, workloadMinutes];
 }
 
 /// Remove um usuário do sistema

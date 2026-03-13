@@ -7,6 +7,30 @@ class UserRepository {
   static final FirebaseFirestore _db = FirebaseFirestore.instance;
   static const String _usersCollection = 'usuarios';
 
+//conversor de cargaHoraria
+  static int _parseCargaHoraria(String input) {
+    input = input.trim();
+
+    if (input.contains(':')) {
+      final parts = input.split(':');
+
+      if (parts.length != 2) {
+        throw Exception('Formato inválido. Use 8 ou 8:30');
+      }
+
+      final horas = int.parse(parts[0]);
+      final minutos = int.parse(parts[1]);
+
+      if (minutos >= 60) {
+        throw Exception('Minutos inválidos');
+      }
+
+      return horas * 60 + minutos;
+    }
+
+    return int.parse(input) * 60;
+  }
+
   /// Get all registered users (status == 'active'), excluding [excludeUid],
   /// sorted alphabetically by role.
   static Future<List<Map<String, dynamic>>> getUsers({
@@ -21,12 +45,14 @@ class UserRepository {
         .where((doc) => excludeUid == null || doc.id != excludeUid)
         .map((doc) {
       final data = doc.data();
+
       return {
         'id': doc.id,
         'name': data['name'] ?? '',
         'email': data['email'] ?? '',
         'role': data['role'] ?? '',
         'status': data['status'] ?? '',
+        'workloadMinutes': data['workloadMinutes'] ?? 0,
         'registeredAt': _formatTimestamp(data['createdAt']),
         'profileImage': data['profileImage'] ?? '',
       };
@@ -87,14 +113,17 @@ class UserRepository {
     return snapshot.count ?? 0;
   }
 
-  /// Approve registration request with role
+  /// Approve registration request with role e cargaHoraria
   static Future<bool> approveRequest({
     required String requestId,
+    required String cargaHoraria,
     required String role,
   }) async {
     try {
+      final workloadMinutes = _parseCargaHoraria(cargaHoraria);
       await _db.collection(_usersCollection).doc(requestId).update({
         'status': 'active',
+        'workloadMinutes': workloadMinutes,
         'role': role,
       });
       return true;
@@ -130,6 +159,23 @@ class UserRepository {
       await _db.collection(_usersCollection).doc(userId).update({
         'role': newRole,
       });
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Update user workload in minutes.
+  /// Uses merge to avoid NOT_FOUND when the document does not exist yet.
+  static Future<bool> updateUserWorkload(
+    String userId,
+    int workloadMinutes,
+  ) async {
+    try {
+      await _db.collection(_usersCollection).doc(userId).set({
+        'workloadMinutes': workloadMinutes,
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
       return true;
     } catch (e) {
       return false;

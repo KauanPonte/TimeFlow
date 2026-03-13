@@ -20,7 +20,6 @@ import 'widgets/punch_button.dart';
 
 import 'widgets/home_greeting.dart';
 import 'widgets/home_history_section.dart';
-import 'pages/calendar_page.dart';
 
 class HomePage extends StatefulWidget {
   final String employeeName;
@@ -49,7 +48,8 @@ class _HomePageState extends State<HomePage> {
   String? _uid;
   Timer? _tickTimer;
   Timer? _solTimer;
-  static const int _targetMinutesPerDay = 8 * 60;
+  final int _targetMinutesPerDay = 8 * 60; // 8 horas por dia
+    double workProgress = 0.0;
 
   late DateTime _currentMonth;
   final ScrollController _scrollController = ScrollController();
@@ -159,6 +159,8 @@ class _HomePageState extends State<HomePage> {
     }
     return days;
   }
+
+ 
 
   String _labelFromUltimoTipo(String? ultimo) {
     switch (ultimo) {

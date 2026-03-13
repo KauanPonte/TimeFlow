@@ -42,6 +42,8 @@ class PontoHistoryRepository {
           'id': e.id,
           'tipo': (data['tipo'] ?? '').toString(),
           'at': ts?.toDate(),
+          'workMode': (data['workMode'] ?? '').toString(),
+          'origin': (data['origin'] ?? 'registrado').toString(),
         };
       }).toList();
 
@@ -98,6 +100,8 @@ class PontoHistoryRepository {
           'id': e.id,
           'tipo': (data['tipo'] ?? '').toString(),
           'at': ts?.toDate(),
+          'workMode': (data['workMode'] ?? '').toString(),
+          'origin': (data['origin'] ?? 'registrado').toString(),
         };
       }).toList();
 
@@ -153,7 +157,11 @@ class PontoHistoryRepository {
       });
     }
 
-    await refEventos.add({'tipo': tipo, 'at': ts});
+    await refEventos.add({
+      'tipo': tipo,
+      'at': ts,
+      'origin': 'ajustado',
+    });
     await _updateDayMeta(uid: uid, diaId: diaId);
   }
 
@@ -194,7 +202,11 @@ class PontoHistoryRepository {
 
     final ts = Timestamp.fromDate(horario);
 
-    await refEventos.doc(eventoId).update({'tipo': tipo, 'at': ts});
+    await refEventos.doc(eventoId).update({
+      'tipo': tipo,
+      'at': ts,
+      'origin': 'ajustado',
+    });
 
     await _updateDayMeta(uid: uid, diaId: diaId);
   }
@@ -334,5 +346,108 @@ class PontoHistoryRepository {
       }
     }
     return total.inMinutes;
+  }
+
+  /// Aplica edições, adições e exclusões em lote para um dia.
+  Future<void> batchUpdateDay({
+    required String uid,
+    required String diaId,
+    required List<Map<String, dynamic>> updates,
+    required List<String> deletes,
+    required List<Map<String, dynamic>> adds,
+  }) async {
+    final refDia =
+        _firestore.collection(_root).doc(uid).collection('dias').doc(diaId);
+    final refEventos = refDia.collection('eventos');
+
+    // 1. Carrega eventos existentes para simular o estado final e validar.
+    final eventosSnap = await refEventos.orderBy('at', descending: false).get();
+    final eventosExistentes = eventosSnap.docs.map((e) {
+      final data = e.data();
+      final evTs = data['at'] as Timestamp?;
+      return {
+        'id': e.id,
+        'tipo': (data['tipo'] ?? '').toString(),
+        'at': evTs?.toDate(),
+      };
+    }).toList();
+
+    // 2. Simula o estado final para validação.
+    final estadoFinal = <Map<String, dynamic>>[];
+    final updateMap = <String, Map<String, dynamic>>{};
+    for (final u in updates) {
+      updateMap[u['id'] as String] = u;
+    }
+    final deleteSet = deletes.toSet();
+
+    for (final ev in eventosExistentes) {
+      final id = ev['id'] as String;
+      if (deleteSet.contains(id)) continue;
+      if (updateMap.containsKey(id)) {
+        estadoFinal.add({
+          'id': id,
+          'tipo': updateMap[id]!['tipo'],
+          'at': updateMap[id]!['horario'],
+        });
+      } else {
+        estadoFinal.add(ev);
+      }
+    }
+    for (final a in adds) {
+      estadoFinal.add({
+        'tipo': a['tipo'],
+        'at': a['horario'],
+      });
+    }
+
+    // Validação da sequência final
+    if (estadoFinal.isNotEmpty) {
+      final error = PontoValidator.validarSequenciaCompleta(estadoFinal);
+      if (error != null) throw Exception(error);
+    }
+
+    // 3. Executa todas as operações.
+    // Exclusões
+    for (final id in deletes) {
+      await refEventos.doc(id).delete();
+    }
+
+    // Atualizações
+    for (final u in updates) {
+      final ts = Timestamp.fromDate(u['horario'] as DateTime);
+      await refEventos.doc(u['id'] as String).update({
+        'tipo': u['tipo'],
+        'at': ts,
+        'origin': 'ajustado',
+      });
+    }
+
+    // Adições
+    for (final a in adds) {
+      final ts = Timestamp.fromDate(a['horario'] as DateTime);
+      await refEventos.add({
+        'tipo': a['tipo'] as String,
+        'at': ts,
+        'origin': 'ajustado',
+      });
+    }
+
+    // 4. Verifica se ainda há eventos no dia.
+    final remaining = await refEventos.get();
+    if (remaining.docs.isEmpty) {
+      await refDia.delete();
+    } else {
+      // Cria o doc do dia se necessário (pode ser dia novo).
+      final diaSnap = await refDia.get();
+      if (!diaSnap.exists) {
+        await refDia.set({
+          'uid': uid,
+          'date': diaId,
+          'createdAt': Timestamp.now(),
+          'updatedAt': Timestamp.now(),
+        });
+      }
+      await _updateDayMeta(uid: uid, diaId: diaId);
+    }
   }
 }

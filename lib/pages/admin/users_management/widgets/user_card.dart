@@ -6,14 +6,14 @@ import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
 
 class UserCard extends StatelessWidget {
   final Map<String, dynamic> user;
-  final VoidCallback onEditRole;
+  final VoidCallback onEdit;
   final VoidCallback onDelete;
   final VoidCallback? onTap;
 
   const UserCard({
     super.key,
     required this.user,
-    required this.onEditRole,
+    required this.onEdit,
     required this.onDelete,
     this.onTap,
   });
@@ -200,16 +200,16 @@ class UserCard extends StatelessWidget {
                       child: const Row(
                         children: [
                           Icon(
-                            Icons.edit,
+                            Icons.manage_accounts_rounded,
                             size: 16,
                             color: AppColors.primary,
                           ),
                           SizedBox(width: 12),
-                          Text('Editar Cargo'),
+                          Text('Editar'),
                         ],
                       ),
                       onTap: () {
-                        Future.delayed(Duration.zero, onEditRole);
+                        Future.delayed(Duration.zero, onEdit);
                       },
                     ),
                     const PopupMenuDivider(),

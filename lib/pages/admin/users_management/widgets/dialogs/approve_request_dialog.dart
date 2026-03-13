@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_application_appdeponto/theme/app_colors.dart';
-import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
+import 'package:flutter_application_appdeponto/widgets/app_dialog_components.dart';
 
-class ApproveRequestDialog extends StatelessWidget {
+class ApproveRequestDialog extends StatefulWidget {
   final String userName;
-  final Function(String role) onApprove;
+  final Function(String role, String cargaHoraria) onApprove;
 
   const ApproveRequestDialog({
     super.key,
@@ -13,104 +12,90 @@ class ApproveRequestDialog extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    final roleController = TextEditingController();
+  State<ApproveRequestDialog> createState() => _ApproveRequestDialogState();
+}
 
-    return AlertDialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
-      title: const Row(
-        children: [
-          Icon(
-            Icons.check_circle,
-            color: AppColors.success,
-            size: 20,
-          ),
-          SizedBox(width: 12),
-          Text('Aprovar Solicitação', style: AppTextStyles.h3),
-        ],
-      ),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Aprovar cadastro de $userName?',
-            style: AppTextStyles.bodyMedium.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Defina o cargo do usuário:',
-            style: AppTextStyles.bodySmall.copyWith(
-              color: AppColors.textSecondary,
-            ),
-          ),
-          const SizedBox(height: 8),
-          TextField(
-            controller: roleController,
-            decoration: InputDecoration(
-              hintText: 'Ex: Funcionário, Gerente, Administrador',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(
-                  color: AppColors.success,
-                  width: 2,
-                ),
-              ),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 14,
-              ),
-            ),
-            autofocus: true,
-          ),
-        ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text(
-            'Cancelar',
-            style: AppTextStyles.bodyMedium.copyWith(
-              color: AppColors.textSecondary,
-            ),
-          ),
-        ),
-        ElevatedButton(
-          onPressed: () {
-            if (roleController.text.trim().isEmpty) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: const Text('Por favor, defina um cargo'),
-                  backgroundColor: AppColors.error,
-                  behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-              );
-              return;
-            }
-            onApprove(roleController.text.trim());
+class _ApproveRequestDialogState extends State<ApproveRequestDialog> {
+  late final TextEditingController _roleController;
+  late final TextEditingController _workloadController;
+  String? _roleError;
+  String? _workloadError;
+
+  @override
+  void initState() {
+    super.initState();
+    _roleController = TextEditingController();
+    _workloadController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _roleController.dispose();
+    _workloadController.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final role = _roleController.text.trim();
+    final workload = _workloadController.text.trim();
+
+    var valid = true;
+
+    if (role.isEmpty) {
+      _roleError = 'Informe o cargo';
+      valid = false;
+    } else {
+      _roleError = null;
+    }
+
+    if (workload.isEmpty) {
+      _workloadError = 'Informe a carga horária';
+      valid = false;
+    } else {
+      _workloadError = null;
+    }
+
+    if (!valid) {
+      setState(() {});
+      return;
+    }
+
+    Navigator.pop(context);
+    widget.onApprove(role, workload);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AppDialogScaffold(
+      title: 'Aprovar usuário',
+      subtitle: widget.userName,
+      icon: Icons.check_circle,
+      confirmLabel: 'Aprovar',
+      onConfirm: _submit,
+      children: [
+        AppDialogField(
+          label: 'Cargo',
+          hintText: 'Ex: Funcionário, Gerente, Administrador',
+          controller: _roleController,
+          errorText: _roleError,
+          icon: Icons.badge_outlined,
+          autofocus: true,
+          onChanged: (_) {
+            if (_roleError != null) setState(() => _roleError = null);
           },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.success,
-            foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-            padding: const EdgeInsets.symmetric(
-              horizontal: 24,
-              vertical: 12,
-            ),
-          ),
-          child: const Text('Aprovar'),
+        ),
+        const SizedBox(height: 16),
+        AppDialogField(
+          label: 'Carga horária diária',
+          hintText: 'Ex: 8 ou 8:30',
+          controller: _workloadController,
+          errorText: _workloadError,
+          icon: Icons.schedule_rounded,
+          onChanged: (_) {
+            if (_workloadError != null) {
+              setState(() => _workloadError = null);
+            }
+          },
         ),
       ],
     );
