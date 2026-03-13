@@ -232,9 +232,20 @@ class _UserReportsPageState extends State<UserReportsPage> {
                         fontSize: 20, fontWeight: pw.FontWeight.bold)),
                 pw.SizedBox(height: 10),
                 pw.Text('Período: ${selectedDate.month}/${selectedDate.year}'),
-                pw.Divider(),
+                //pw.Divider(),
                 pw.SizedBox(height: 10),
 
+                pw.Text('Escala de trabalho: 20 horas/semana',
+                    style: pw.TextStyle(fontSize: 12)),
+                pw.SizedBox(height: 6),
+                pw.Text('Total:72 horas de 120 horas',
+                    style: pw.TextStyle(fontSize: 12)),
+                pw.SizedBox(height: 6),
+                pw.Text('Horas extras:48 horas : 7 dias (4h)',
+                    style: pw.TextStyle(fontSize: 12)),
+                pw.SizedBox(height: 6),
+
+                pw.Divider(),
                 // Tabela de registros
                 pw.TableHelper.fromTextArray(
                   context: context,

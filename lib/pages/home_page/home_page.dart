@@ -1,3 +1,4 @@
+//import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -12,13 +13,14 @@ import 'package:flutter_application_appdeponto/widgets/main_app_bar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:intl/intl.dart';
 import '../../widgets/bottom_nav.dart';
 import 'widgets/status_card.dart';
 import 'widgets/balance_card.dart';
 import 'widgets/punch_button.dart';
+
 import 'widgets/home_greeting.dart';
 import 'widgets/home_history_section.dart';
+import 'pages/calendar_page.dart';
 
 class HomePage extends StatefulWidget {
   final String employeeName;
@@ -26,7 +28,6 @@ class HomePage extends StatefulWidget {
   final String logoAsset;
   final String employeeRole;
 
-  /// Quando fornecido (ISO 8601), abre o histórico no mês dessa data.
   final String? initialHistoryDate;
 
   const HomePage({
@@ -48,17 +49,11 @@ class _HomePageState extends State<HomePage> {
   String? _uid;
   Timer? _tickTimer;
   Timer? _solTimer;
-  static const int _targetMinutesPerDay = 8 * 60; // 8 horas por dia
+  static const int _targetMinutesPerDay = 8 * 60;
 
   late DateTime _currentMonth;
-
-  /// Controlador do ListView principal para scroll programático.
   final ScrollController _scrollController = ScrollController();
-
-  /// GlobalKey do widget HomeHistorySection para calcular posição de scroll.
   final GlobalKey _historySectionKey = GlobalKey();
-
-  /// Dia que deve receber destaque após scroll (ISO 'yyyy-MM-dd').
   String? _highlightDayId;
 
   bool get _isAdmin => widget.employeeRole.toUpperCase().contains('ADM');
@@ -70,16 +65,14 @@ class _HomePageState extends State<HomePage> {
     profileImageUrl = widget.profileImageUrl;
     final now = DateTime.now();
 
-    // Se recebeu uma data inicial (navegação de outra tela), usa o mês dela.
     final initDate = widget.initialHistoryDate != null
         ? DateTime.tryParse(widget.initialHistoryDate!)
         : null;
+
     if (initDate != null) {
       _currentMonth = DateTime(initDate.year, initDate.month);
-      // Aplica o highlight no próximo frame (null → valor), igual ao caminho
-      // de _goToDay, para que didUpdateWidget em HomeHistorySection veja sempre
-      // a mesma sequência null→null / null→valor independente da tela de origem.
-      final newDayId = DateFormat('yyyy-MM-dd').format(initDate);
+      // Alterado para CustomDateFormatter para seguir a lógica da Alteração 2
+      final newDayId = CustomDateFormatter('yyyy-MM-dd').format(initDate);
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) setState(() => _highlightDayId = newDayId);
       });
@@ -87,17 +80,13 @@ class _HomePageState extends State<HomePage> {
       _currentMonth = DateTime(now.year, now.month);
     }
 
-    // Timer que força rebuild a cada 30 s para atualizar tempo trabalhado.
     _tickTimer = Timer.periodic(const Duration(seconds: 30), (_) {
       if (mounted) setState(() {});
     });
 
     _resolveUserData();
-
-    // Dispara carregamento dos dados do dia (cubit persiste entre telas).
     context.read<PontoTodayCubit>().load();
 
-    // Garante que o histórico esteja carregado para o mês selecionado.
     final historyBloc = context.read<PontoHistoryBloc>();
     if (historyBloc.state is PontoHistoryInitial ||
         historyBloc.currentMonth.year != _currentMonth.year ||
@@ -105,14 +94,9 @@ class _HomePageState extends State<HomePage> {
       historyBloc.add(LoadHistoryEvent(month: _currentMonth));
     }
 
-    // O scroll até o DayCard é gerenciado por HomeHistorySection
-    // (via BlocConsumer.listener quando o histórico terminar de carregar).
-
-    // Atualiza silenciosamente as solicitações (já carregadas desde o splash).
     context.read<SolicitationBloc>().add(
           SilentReloadSolicitationsEvent(isAdmin: _isAdmin),
         );
-    // Atualização periódica das notificações a cada 2 minutos.
     _solTimer = Timer.periodic(const Duration(minutes: 2), (_) {
       if (mounted) {
         context.read<SolicitationBloc>().add(
@@ -122,7 +106,6 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-  /// Resolve nome, foto e UID do SharedPreferences / FirebaseAuth.
   Future<void> _resolveUserData() async {
     final prefs = await SharedPreferences.getInstance();
     if (employeeName.isEmpty) {
@@ -171,12 +154,11 @@ class _HomePageState extends State<HomePage> {
     for (int d = lastDay; d >= 1; d--) {
       final date = DateTime(_currentMonth.year, _currentMonth.month, d);
       if (date.isAfter(today)) continue;
-      days.add(DateFormat('yyyy-MM-dd').format(date));
+      // Alterado para CustomDateFormatter
+      days.add(CustomDateFormatter('yyyy-MM-dd').format(date));
     }
     return days;
   }
-
-  //  Helpers de cálculo de horas trabalhadas
 
   String _labelFromUltimoTipo(String? ultimo) {
     switch (ultimo) {
@@ -237,26 +219,18 @@ class _HomePageState extends State<HomePage> {
     super.dispose();
   }
 
-  //  Navegação de notificação para dia específico
-
-  /// Chamado pelo botão de notificação na AppBar quando já estamos na home.
-  /// Troca o mês, carrega o histórico e scrolla até a seção.
   void _goToDay(DateTime date) {
     final targetMonth = DateTime(date.year, date.month);
     final needsReload = _currentMonth.year != targetMonth.year ||
         _currentMonth.month != targetMonth.month;
-    final newDayId = DateFormat('yyyy-MM-dd').format(date);
+    // Alterado para CustomDateFormatter
+    final newDayId = CustomDateFormatter('yyyy-MM-dd').format(date);
 
-    // Zera o highlight primeiro — garante que didUpdateWidget detecte sempre
-    // a mudança (null → valor), inclusive quando o mesmo dia é selecionado
-    // repetidamente sem sair da tela.
     setState(() {
       _currentMonth = targetMonth;
       _highlightDayId = null;
     });
 
-    // Define o destaque e dispara o reload (se necessário) no próximo frame,
-    // após o rebuild com highlight=null ter sido confirmado pela UI.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       setState(() => _highlightDayId = newDayId);
@@ -265,9 +239,6 @@ class _HomePageState extends State<HomePage> {
             .read<PontoHistoryBloc>()
             .add(LoadHistoryEvent(month: targetMonth));
       }
-      // O scroll é gerenciado por HomeHistorySection:
-      //  • já carregado → didUpdateWidget → _scrollToHighlightedDay()
-      //  • carregando    → BlocConsumer.listener quando PontoHistoryLoaded
     });
   }
 
@@ -276,7 +247,6 @@ class _HomePageState extends State<HomePage> {
     final isAdmin = _isAdmin;
     final pontoState = context.watch<PontoTodayCubit>().state;
 
-    // Valores derivados do estado global do cubit + hora atual.
     final now = DateTime.now();
     final statusLabel = _labelFromUltimoTipo(pontoState.ultimoTipo);
     final workedMinutes =
@@ -325,6 +295,8 @@ class _HomePageState extends State<HomePage> {
                     statusLabel: statusLabel,
                     todayWorkedDisplay: todayWorkedDisplay,
                     workProgress: workProgress,
+                    workedMinutes:
+                        workedMinutes, // Passando o valor para o novo StatusCard
                   ),
                   const SizedBox(height: 16),
                   BalanceCard(monthBalance: pontoState.monthBalance),
@@ -340,8 +312,6 @@ class _HomePageState extends State<HomePage> {
                           'employeeRole': widget.employeeRole,
                         },
                       );
-                      // PontoTodayCubit e PontoHistoryBloc atualizam-se
-                      // automaticamente via PontoDataChangedCubit.
                     },
                   ),
                   HomeHistorySection(
@@ -354,8 +324,6 @@ class _HomePageState extends State<HomePage> {
                     uid: _uid,
                     generateMonthDays: _generateMonthDays,
                     onActionSuccess: () {
-                      // Após editar/adicionar/remover ponto pelo histórico embutido,
-                      // atualiza os dados do dia (saldo, status, etc.).
                       context.read<PontoTodayCubit>().refresh();
                     },
                   ),
@@ -363,5 +331,20 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
     );
+  }
+}
+
+class CustomDateFormatter {
+  final String pattern;
+  CustomDateFormatter(this.pattern);
+
+  String format(DateTime date) {
+    if (pattern == 'yyyy-MM-dd') {
+      return "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+    }
+    final day = date.day.toString().padLeft(2, '0');
+    final month = date.month.toString().padLeft(2, '0');
+    final year = date.year.toString();
+    return '${day}_${month}_$year';
   }
 }

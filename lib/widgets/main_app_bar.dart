@@ -17,6 +17,7 @@ import 'package:flutter_application_appdeponto/repositories/solicitation_reposit
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
 import '../pages/solicitacoes_page/solicitacoes_page.dart';
+import '../pages/home_page/pages/calendar_page.dart';
 
 /// AppBar padrão para as telas principais (Painel, Meu Ponto, Perfil).
 /// Logo + subtítulo configurável + menu com "Sair" (e "Configurações" opcional).
@@ -849,6 +850,11 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
           onSelected: (value) {
             if (value == 'settings') {
               onSettingsTap?.call();
+            } else if (value == 'calendario') {
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => const CalendarPage()));
             } else if (value == 'solicitacoes') {
               Navigator.push(
                   context,
@@ -872,6 +878,16 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                 ]),
               ),
             if (showSettings) const PopupMenuDivider(),
+            PopupMenuItem<String>(
+              value: 'calendario',
+              child: Row(children: [
+                const Icon(Icons.calendar_month_outlined,
+                    color: AppColors.primary, size: 20),
+                const SizedBox(width: 12),
+                Text('Calendário', style: AppTextStyles.bodyMedium),
+              ]),
+            ),
+            const PopupMenuDivider(),
             PopupMenuItem<String>(
               value: 'solicitacoes',
               child: Row(children: [
