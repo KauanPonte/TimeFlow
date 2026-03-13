@@ -4,10 +4,12 @@ import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
 
 class SettingsHeaderCard extends StatelessWidget {
   final bool hasSavedLocation;
+  final int savedLocationsCount;
 
   const SettingsHeaderCard({
     super.key,
     required this.hasSavedLocation,
+    required this.savedLocationsCount,
   });
 
   @override
@@ -40,7 +42,9 @@ class SettingsHeaderCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(999),
             ),
             child: Text(
-              hasSavedLocation ? 'Local configurado' : 'Configuração pendente',
+              hasSavedLocation
+                  ? '$savedLocationsCount loca${savedLocationsCount == 1 ? 'l' : 'is'} configurado${savedLocationsCount == 1 ? '' : 's'}'
+                  : 'Configuração pendente',
               style: AppTextStyles.bodySmall.copyWith(
                 color: Colors.white,
                 fontWeight: FontWeight.w700,
@@ -50,7 +54,7 @@ class SettingsHeaderCard extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           Text(
-            'Defina o local oficial direto no mapa',
+            'Defina os locais oficiais direto no mapa',
             style: AppTextStyles.h3.copyWith(
               color: Colors.white,
               height: 1.1,
@@ -58,7 +62,7 @@ class SettingsHeaderCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Posicione o pin no mapa para definir a referência oficial do ponto presencial.',
+            'Adicione quantos pontos forem necessários. O presencial será aceito quando o usuário estiver perto de pelo menos um deles.',
             style: AppTextStyles.bodyMedium.copyWith(
               color: Colors.white.withValues(alpha: 0.88),
             ),

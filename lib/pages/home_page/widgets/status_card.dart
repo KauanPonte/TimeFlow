@@ -33,7 +33,6 @@ class StatusCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final now = DateTime.now();
-    final customFormat = CustomDateFormatter('yyyy-MM-dd');
 
     // Calcula o primeiro e último dia do mês conforme sua lógica
     final firstDayOfMonth = DateTime(now.year, now.month, 1);
@@ -42,9 +41,6 @@ class StatusCard extends StatelessWidget {
     final lastDayOfMonth = DateTime(now.year, now.month + 1, 0);
     final String formattedLastDay =
         DateFormat('dd/MM/yyyy').format(lastDayOfMonth);
-
-    //final String formattedFirstDay = customFormat.format(firstDayOfMonth);
-    //final String formattedLastDay = customFormat.format(lastDayOfMonth);
 
     // Texto fixo solicitado
     const String monthlyProgress = "72 horas de 124 horas/mês";
