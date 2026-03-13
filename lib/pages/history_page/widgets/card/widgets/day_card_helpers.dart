@@ -187,6 +187,8 @@ String labelForWorkMode(String workMode) {
       return 'Presencial';
     case 'remoto':
       return 'Remoto';
+    case 'outro':
+      return 'Outro';
     default:
       return workMode;
   }
@@ -198,6 +200,8 @@ IconData iconForWorkMode(String workMode) {
       return Icons.business_rounded;
     case 'remoto':
       return Icons.home_rounded;
+    case 'outro':
+      return Icons.work_outline;
     default:
       return Icons.work_outline;
   }

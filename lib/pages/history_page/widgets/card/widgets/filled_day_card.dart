@@ -121,13 +121,6 @@ class FilledDayCard extends StatelessWidget {
   // Sub-builders
 
   Widget _buildSubtitle(bool incomplete, bool hasPending, int count) {
-    // Determina modo de trabalho predominante
-    final modes = eventos
-        .map((e) => (e['workMode'] ?? '').toString())
-        .where((m) => m.isNotEmpty)
-        .toSet();
-    final singleMode = modes.length == 1 ? modes.first : null;
-
     return Wrap(
       spacing: 6,
       runSpacing: 4,
@@ -161,37 +154,6 @@ class FilledDayCard extends StatelessWidget {
             ),
           ),
         ),
-        if (singleMode != null)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-            decoration: BoxDecoration(
-              color: singleMode == 'presencial'
-                  ? AppColors.primaryLight10
-                  : AppColors.successLight10,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(iconForWorkMode(singleMode),
-                    size: 11,
-                    color: singleMode == 'presencial'
-                        ? AppColors.primary
-                        : AppColors.success),
-                const SizedBox(width: 3),
-                Text(
-                  labelForWorkMode(singleMode),
-                  style: AppTextStyles.bodySmall.copyWith(
-                    color: singleMode == 'presencial'
-                        ? AppColors.primary
-                        : AppColors.success,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 11,
-                  ),
-                ),
-              ],
-            ),
-          ),
         if (incomplete)
           _badge(
             Icons.warning_amber_rounded,
@@ -237,59 +199,176 @@ class FilledDayCard extends StatelessWidget {
   }
 
   List<Widget> _buildEventoRows() {
-    // Separa eventos por workMode
-    final presencial =
-        eventos.where((e) => e['workMode'] == 'presencial').toList();
-    final remoto = eventos.where((e) => e['workMode'] == 'remoto').toList();
-    final semModo = eventos.where((e) {
-      final wm = (e['workMode'] ?? '').toString();
-      return wm != 'presencial' && wm != 'remoto';
-    }).toList();
+    final orderedEventos = List<Map<String, dynamic>>.from(eventos)
+      ..sort((a, b) {
+        final atA = a['at'] as DateTime?;
+        final atB = b['at'] as DateTime?;
+        if (atA == null && atB == null) return 0;
+        if (atA == null) return 1;
+        if (atB == null) return -1;
+        return atA.compareTo(atB);
+      });
 
-    final hasMultipleModes = (presencial.isNotEmpty && remoto.isNotEmpty) ||
-        (semModo.isNotEmpty && (presencial.isNotEmpty || remoto.isNotEmpty));
+    final groups = <_ModeGroup>[];
+
+    for (var i = 0; i < orderedEventos.length; i++) {
+      final evento = orderedEventos[i];
+      final explicitMode = _explicitWorkMode(evento);
+      final mode = explicitMode ?? _inferModeForUntypedEvent(orderedEventos, i);
+
+      if (groups.isEmpty || groups.last.mode != mode) {
+        groups.add(_ModeGroup(mode: mode, events: [evento]));
+      } else {
+        groups.last.events.add(evento);
+      }
+    }
 
     final widgets = <Widget>[];
+    final showHeaders = groups.isNotEmpty;
 
-    if (hasMultipleModes) {
-      if (presencial.isNotEmpty) {
-        widgets.add(_buildModeHeader('presencial'));
-        widgets.addAll(presencial.map(_buildEventoRow));
+    for (final group in groups) {
+      if (showHeaders) {
+        widgets.add(_buildModeHeader(group.mode));
       }
-      if (remoto.isNotEmpty) {
-        widgets.add(_buildModeHeader('remoto'));
-        widgets.addAll(remoto.map(_buildEventoRow));
-      }
-      if (semModo.isNotEmpty) {
-        widgets.addAll(semModo.map(_buildEventoRow));
-      }
-    } else {
-      widgets.addAll(eventos.map(_buildEventoRow));
+      widgets.addAll([
+        Container(
+            decoration: const BoxDecoration(
+              border: Border(
+                left: BorderSide(color: AppColors.borderLight, width: 3),
+              ),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.only(left: 8, top: 8),
+              child:
+                  Column(children: group.events.map(_buildEventoRow).toList()),
+            ))
+      ]);
     }
 
     return widgets;
   }
 
   Widget _buildModeHeader(String workMode) {
+    final color = _colorForWorkMode(workMode);
+
     return Padding(
       padding: const EdgeInsets.only(top: 8, bottom: 4),
       child: Row(
         children: [
-          Icon(iconForWorkMode(workMode), size: 16, color: AppColors.primary),
+          Icon(iconForWorkMode(workMode), size: 16, color: color),
           const SizedBox(width: 6),
           Text(
             labelForWorkMode(workMode),
             style: AppTextStyles.bodySmall.copyWith(
               fontWeight: FontWeight.w700,
-              color: AppColors.primary,
+              color: color,
               fontSize: 12,
             ),
           ),
-          const SizedBox(width: 8),
-          const Expanded(child: Divider()),
         ],
       ),
     );
+  }
+
+  Color _colorForWorkMode(String workMode) {
+    switch (workMode) {
+      case 'presencial':
+        return AppColors.primary;
+      case 'remoto':
+        return AppColors.primary;
+      default:
+        return AppColors.textSecondary;
+    }
+  }
+
+  String? _explicitWorkMode(Map<String, dynamic> evento) {
+    final workMode = (evento['workMode'] ?? '').toString();
+    if (workMode == 'presencial' || workMode == 'remoto') {
+      return workMode;
+    }
+    return null;
+  }
+
+  String _inferModeForUntypedEvent(
+      List<Map<String, dynamic>> orderedEventos, int index) {
+    final tipo = (orderedEventos[index]['tipo'] ?? '').toString();
+    final inPresencialGroup = _belongsToModeForUntypedEvent(
+        orderedEventos, index, 'presencial', tipo);
+    final inRemotoGroup =
+        _belongsToModeForUntypedEvent(orderedEventos, index, 'remoto', tipo);
+
+    if (inPresencialGroup && !inRemotoGroup) return 'presencial';
+    if (inRemotoGroup && !inPresencialGroup) return 'remoto';
+    return 'outro';
+  }
+
+  bool _belongsToModeForUntypedEvent(
+    List<Map<String, dynamic>> orderedEventos,
+    int index,
+    String mode,
+    String tipo,
+  ) {
+    if (tipo == 'entrada') {
+      return _hasClosingSaidaAfterIndex(orderedEventos, index, mode);
+    }
+    if (tipo == 'saida') {
+      return _hasOpenEntradaBeforeIndex(orderedEventos, index, mode);
+    }
+    return _isInsideClosedGroupWindow(orderedEventos, index, mode);
+  }
+
+  bool _isInsideClosedGroupWindow(
+    List<Map<String, dynamic>> orderedEventos,
+    int index,
+    String mode,
+  ) {
+    if (!_hasOpenEntradaBeforeIndex(orderedEventos, index, mode)) {
+      return false;
+    }
+    return _hasClosingSaidaAfterIndex(orderedEventos, index, mode);
+  }
+
+  bool _hasOpenEntradaBeforeIndex(
+    List<Map<String, dynamic>> orderedEventos,
+    int index,
+    String mode,
+  ) {
+    var hasOpenEntrada = false;
+
+    for (var i = 0; i < index; i++) {
+      final evento = orderedEventos[i];
+      if (_explicitWorkMode(evento) != mode) continue;
+
+      final tipo = (evento['tipo'] ?? '').toString();
+      if (tipo == 'entrada') {
+        hasOpenEntrada = true;
+      } else if (tipo == 'saida') {
+        hasOpenEntrada = false;
+      }
+    }
+
+    return hasOpenEntrada;
+  }
+
+  bool _hasClosingSaidaAfterIndex(
+    List<Map<String, dynamic>> orderedEventos,
+    int index,
+    String mode,
+  ) {
+    for (var i = index + 1; i < orderedEventos.length; i++) {
+      final evento = orderedEventos[i];
+      if (_explicitWorkMode(evento) != mode) continue;
+
+      final tipo = (evento['tipo'] ?? '').toString();
+      if (tipo == 'saida') {
+        return true;
+      }
+      if (tipo == 'entrada') {
+        return false;
+      }
+    }
+
+    return false;
   }
 
   Widget _buildEventoRow(Map<String, dynamic> ev) {
@@ -304,10 +383,24 @@ class FilledDayCard extends StatelessWidget {
       child: Row(
         children: [
           Container(
+            width: 4,
+            height: 40,
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: const BorderRadius.only(
+                topRight: Radius.circular(2),
+                bottomRight: Radius.circular(2),
+              ),
+            ),
+          ),
+          Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: color.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: const BorderRadius.only(
+                topRight: Radius.circular(8),
+                bottomRight: Radius.circular(8),
+              ),
             ),
             child: Icon(iconForTipo(tipo), size: 18, color: color),
           ),
@@ -324,6 +417,7 @@ class FilledDayCard extends StatelessWidget {
                   ),
                 ),
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
                       formatTime(at),
@@ -480,4 +574,11 @@ class FilledDayCard extends StatelessWidget {
       ),
     );
   }
+}
+
+class _ModeGroup {
+  final String mode;
+  final List<Map<String, dynamic>> events;
+
+  _ModeGroup({required this.mode, required this.events});
 }
