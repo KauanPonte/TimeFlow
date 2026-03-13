@@ -1,3 +1,4 @@
+import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:lottie/lottie.dart';
@@ -8,12 +9,14 @@ class StatusCard extends StatelessWidget {
   final String statusLabel;
   final String todayWorkedDisplay;
   final double workProgress;
+  final int workedMinutes;
 
   const StatusCard({
     super.key,
     required this.statusLabel,
     required this.todayWorkedDisplay,
     required this.workProgress,
+    required this.workedMinutes,
   });
 
   Color get _statusColor {
@@ -29,6 +32,23 @@ class StatusCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final customFormat = CustomDateFormatter('yyyy-MM-dd');
+
+    // Calcula o primeiro e último dia do mês conforme sua lógica
+    final firstDayOfMonth = DateTime(now.year, now.month, 1);
+    final String formattedFirstDay =
+        DateFormat('dd/MM/yyyy').format(firstDayOfMonth);
+    final lastDayOfMonth = DateTime(now.year, now.month + 1, 0);
+    final String formattedLastDay =
+        DateFormat('dd/MM/yyyy').format(lastDayOfMonth);
+
+    //final String formattedFirstDay = customFormat.format(firstDayOfMonth);
+    //final String formattedLastDay = customFormat.format(lastDayOfMonth);
+
+    // Texto fixo solicitado
+    const String monthlyProgress = "72 horas de 124 horas/mês";
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -44,6 +64,7 @@ class StatusCard extends StatelessWidget {
         ],
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
             child: Column(
@@ -87,21 +108,39 @@ class StatusCard extends StatelessWidget {
                     value: workProgress,
                     minHeight: 8,
                     backgroundColor: AppColors.borderLight,
-                    valueColor: const AlwaysStoppedAnimation<Color>(
-                      AppColors.primary,
-                    ),
+                    valueColor:
+                        const AlwaysStoppedAnimation<Color>(AppColors.primary),
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 6),
                 Text(
                   '${(workProgress * 100).toStringAsFixed(0)}% da jornada diária',
                   style: AppTextStyles.bodySmall
                       .copyWith(color: AppColors.textSecondary),
                 ),
+
+                // --- SEÇÃO DE DATAS E MÊS ---
+                const SizedBox(height: 12),
+                Text(
+                  '$formattedFirstDay à $formattedLastDay',
+                  style: AppTextStyles.bodySmall.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  monthlyProgress,
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: AppColors.textSecondary,
+                    fontSize: 11,
+                  ),
+                ),
               ],
             ),
           ),
           const SizedBox(width: 16),
+          // Bloco da animação Lottie mantido
           SizedBox(
             width: 72,
             height: 72,
@@ -111,29 +150,28 @@ class StatusCard extends StatelessWidget {
                   .catchError((_) => ''),
               builder: (context, snapshot) {
                 if (!snapshot.hasData || (snapshot.data ?? '').isEmpty) {
-                  return const Icon(
-                    Icons.timer_outlined,
-                    size: 40,
-                    color: AppColors.primary,
-                  );
+                  return const Icon(Icons.timer_outlined,
+                      size: 40, color: AppColors.primary);
                 }
-                try {
-                  return Lottie.asset(
-                    'assets/lottie/gears.json',
-                    fit: BoxFit.contain,
-                  );
-                } catch (_) {
-                  return const Icon(
-                    Icons.timer_outlined,
-                    size: 40,
-                    color: AppColors.primary,
-                  );
-                }
+                return Lottie.asset('assets/lottie/gears.json',
+                    fit: BoxFit.contain);
               },
             ),
           ),
         ],
       ),
     );
+  }
+}
+
+// Renomeei para evitar conflito com a biblioteca intl se você decidir usá-la no futuro
+class CustomDateFormatter {
+  CustomDateFormatter(String s);
+
+  String format(DateTime date) {
+    final day = date.day.toString().padLeft(2, '0');
+    final month = date.month.toString().padLeft(2, '0');
+    final year = date.year.toString();
+    return '${day}_${month}_$year';
   }
 }
