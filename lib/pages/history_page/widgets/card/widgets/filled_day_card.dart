@@ -55,64 +55,79 @@ class FilledDayCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color: incomplete ? AppColors.warningLight8 : AppColors.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: incomplete ? AppColors.warningLight30 : AppColors.borderLight,
-        ),
-        boxShadow: const [
-          BoxShadow(
-            color: AppColors.shadow,
-            blurRadius: 8,
-            offset: Offset(0, 2),
-          ),
-        ],
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(14),
       ),
-      child: Theme(
-        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-        child: ExpansionTile(
-          tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-          childrenPadding:
-              const EdgeInsets.only(left: 16, right: 16, bottom: 12),
-          leading: Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: incomplete
-                  ? AppColors.warningLight20
-                  : AppColors.primaryLight10,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(
-              incomplete ? Icons.warning_amber_rounded : Icons.calendar_today,
-              color: incomplete ? AppColors.warning : AppColors.primary,
-              size: 20,
-            ),
+      child: Container(
+        decoration: BoxDecoration(
+          color: incomplete
+              ? AppColors.warning.withValues(alpha: 0.05)
+              : AppColors.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color:
+                incomplete ? AppColors.warningLight30 : AppColors.borderLight,
           ),
-          title: Text(
-            formatDate(diaId),
-            style: AppTextStyles.bodyLarge.copyWith(
-              fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary,
+          boxShadow: const [
+            BoxShadow(
+              color: AppColors.shadow,
+              blurRadius: 8,
+              offset: Offset(0, 2),
             ),
-          ),
-          subtitle: _buildSubtitle(incomplete, hasPending, count),
-          children: [
-            const Divider(height: 1),
-            const SizedBox(height: 8),
-            ..._buildEventoRows(),
-            if (incomplete) _buildIncompleteWarning(),
-            if (isAdmin && onBatchEdit != null) _buildBatchEditButton(),
-            if (!isAdmin && onAddEvento != null) _buildAddButton(),
-            if (hasPending) ...[
-              PendingSolicitationsSection(
-                solicitations: pendingSolicitations,
-                isAdmin: isAdmin,
-                onCancel: onCancelSolicitation,
-              ),
-            ],
-            if (!isAdmin && onRequestSolicitation != null)
-              SolicitationButton(onTap: onRequestSolicitation!),
           ],
+        ),
+        child: Theme(
+          data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+          child: ExpansionTile(
+            tilePadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            childrenPadding:
+                const EdgeInsets.only(left: 16, right: 16, bottom: 12),
+            leading: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: incomplete
+                    ? AppColors.warning.withValues(alpha: 0.05)
+                    : AppColors.primaryLight10,
+                border: Border.all(
+                  color: incomplete
+                      ? AppColors.warningLight30
+                      : AppColors.primary.withValues(alpha: 0.3),
+                ),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                incomplete ? Icons.warning_amber_rounded : Icons.calendar_today,
+                color: incomplete ? AppColors.warning : AppColors.primary,
+                size: 20,
+              ),
+            ),
+            title: Text(
+              formatDate(diaId),
+              style: AppTextStyles.bodyLarge.copyWith(
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            subtitle: _buildSubtitle(incomplete, hasPending, count),
+            children: [
+              const Divider(height: 1),
+              const SizedBox(height: 8),
+              ..._buildEventoRows(incomplete),
+              if (incomplete) _buildIncompleteWarning(),
+              if (isAdmin && onBatchEdit != null) _buildBatchEditButton(),
+              if (!isAdmin && onAddEvento != null) _buildAddButton(),
+              if (hasPending) ...[
+                PendingSolicitationsSection(
+                  solicitations: pendingSolicitations,
+                  isAdmin: isAdmin,
+                  onCancel: onCancelSolicitation,
+                ),
+              ],
+              if (!isAdmin && onRequestSolicitation != null)
+                SolicitationButton(onTap: onRequestSolicitation!),
+            ],
+          ),
         ),
       ),
     );
@@ -174,7 +189,7 @@ class FilledDayCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
       decoration: BoxDecoration(
-        color: AppColors.warningLight20,
+        color: AppColors.warning.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: AppColors.warningLight30, width: 0.5),
       ),
@@ -198,7 +213,7 @@ class FilledDayCard extends StatelessWidget {
     );
   }
 
-  List<Widget> _buildEventoRows() {
+  List<Widget> _buildEventoRows(bool incomplete) {
     final orderedEventos = List<Map<String, dynamic>>.from(eventos)
       ..sort((a, b) {
         final atA = a['at'] as DateTime?;
@@ -232,9 +247,13 @@ class FilledDayCard extends StatelessWidget {
       }
       widgets.addAll([
         Container(
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               border: Border(
-                left: BorderSide(color: AppColors.borderLight, width: 3),
+                left: BorderSide(
+                    color: incomplete
+                        ? AppColors.warning.withValues(alpha: 0.45)
+                        : AppColors.borderLight,
+                    width: 3),
               ),
             ),
             child: Padding(
@@ -482,7 +501,7 @@ class FilledDayCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: AppColors.warningLight10,
+              color: AppColors.warning.withValues(alpha: 0.05),
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: AppColors.warningLight30, width: 0.5),
             ),

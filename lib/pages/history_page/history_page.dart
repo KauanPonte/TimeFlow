@@ -5,6 +5,7 @@ import 'package:flutter_application_appdeponto/blocs/ponto_history/ponto_history
 import 'package:flutter_application_appdeponto/blocs/ponto_history/ponto_history_state.dart';
 import 'package:flutter_application_appdeponto/blocs/global_loading/global_loading_cubit.dart';
 import 'package:flutter_application_appdeponto/repositories/ponto_history_repository.dart';
+import 'package:flutter_application_appdeponto/repositories/history_view_preference_repository.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
 import 'package:flutter_application_appdeponto/widgets/custom_snackbar.dart';
@@ -12,6 +13,8 @@ import 'package:flutter_application_appdeponto/services/ponto_edit_dialogs.dart'
 import 'package:intl/intl.dart';
 import 'widgets/card/day_card.dart';
 import 'widgets/empty_history_state.dart';
+import 'widgets/history_mode_calendar_view.dart';
+import 'widgets/history_mode_list_view.dart';
 import 'widgets/month_selector.dart';
 
 class HistoryPage extends StatelessWidget {
@@ -61,7 +64,11 @@ class _HistoryView extends StatefulWidget {
 }
 
 class _HistoryViewState extends State<_HistoryView> {
+  final _viewPreferenceRepository = HistoryViewPreferenceRepository();
+
   late DateTime _currentMonth;
+  late DateTime _selectedCalendarDay;
+  HistoryViewPreference _viewPreference = HistoryViewPreference.list;
 
   bool get isAdmin => widget.targetUid != null;
 
@@ -72,11 +79,51 @@ class _HistoryViewState extends State<_HistoryView> {
     _currentMonth = widget.initialDate != null
         ? DateTime(widget.initialDate!.year, widget.initialDate!.month)
         : DateTime(now.year, now.month);
+    _selectedCalendarDay = _defaultSelectedDayForMonth(_currentMonth);
+    _loadPreferredView();
+  }
+
+  Future<void> _loadPreferredView() async {
+    final preferred = await _viewPreferenceRepository.loadPreferredMode();
+    if (!mounted) return;
+    setState(() => _viewPreference = preferred);
+  }
+
+  Future<void> _setPreferredView(HistoryViewPreference value) async {
+    if (_viewPreference == value) return;
+    setState(() => _viewPreference = value);
+
+    try {
+      await _viewPreferenceRepository.savePreferredMode(value);
+    } catch (_) {
+      // Mantém a UI responsiva mesmo sem persistência temporária.
+    }
+  }
+
+  DateTime _defaultSelectedDayForMonth(DateTime month) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final lastDay = DateTime(month.year, month.month + 1, 0);
+    return lastDay.isAfter(today) ? today : lastDay;
+  }
+
+  String _toDayId(DateTime day) {
+    return DateFormat('yyyy-MM-dd').format(
+      DateTime(day.year, day.month, day.day),
+    );
+  }
+
+  bool _isFutureDate(DateTime day) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final normalized = DateTime(day.year, day.month, day.day);
+    return normalized.isAfter(today);
   }
 
   void _goToPreviousMonth() {
     setState(() {
       _currentMonth = DateTime(_currentMonth.year, _currentMonth.month - 1);
+      _selectedCalendarDay = _defaultSelectedDayForMonth(_currentMonth);
     });
     context.read<PontoHistoryBloc>().add(
           LoadHistoryEvent(uid: widget.targetUid, month: _currentMonth),
@@ -92,6 +139,7 @@ class _HistoryViewState extends State<_HistoryView> {
     }
     setState(() {
       _currentMonth = nextMonth;
+      _selectedCalendarDay = _defaultSelectedDayForMonth(_currentMonth);
     });
     context.read<PontoHistoryBloc>().add(
           LoadHistoryEvent(uid: widget.targetUid, month: _currentMonth),
@@ -139,6 +187,50 @@ class _HistoryViewState extends State<_HistoryView> {
         diaId: diaId,
         evento: evento,
       );
+
+  Map<String, List<Map<String, dynamic>>> _daysMapFromState(
+      PontoHistoryState state) {
+    if (state is PontoHistoryLoaded) return state.daysMap;
+    if (state is PontoHistoryActionSuccess) return state.daysMap;
+    if (state is PontoHistoryActionError) return state.daysMap;
+    if (state is PontoHistoryActionProcessing) return state.daysMap;
+    return {};
+  }
+
+  Widget _buildSingleDayCard(
+    BuildContext context,
+    String diaId,
+    List<Map<String, dynamic>> eventos,
+  ) {
+    return DayCard(
+      diaId: diaId,
+      eventos: eventos,
+      isAdmin: isAdmin,
+      onBatchEdit: isAdmin
+          ? (d, evs) => showBatchEditDayDialog(
+                context: context,
+                uid: widget.targetUid!,
+                diaId: d,
+                eventos: evs,
+              )
+          : null,
+      onAddEvento: isAdmin ? () => _showAddDialogForDay(context, diaId) : null,
+      onEditEvento:
+          isAdmin ? (evento) => _showEditDialog(context, diaId, evento) : null,
+      onDeleteEvento: isAdmin
+          ? (evento) => _showDeleteConfirm(context, diaId, evento)
+          : null,
+    );
+  }
+
+  Future<void> _refreshHistory() async {
+    context.read<PontoHistoryBloc>().add(
+          LoadHistoryEvent(
+            uid: widget.targetUid,
+            month: _currentMonth,
+          ),
+        );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -189,6 +281,21 @@ class _HistoryViewState extends State<_HistoryView> {
             ),
           ],
         ),
+        actions: [
+          _ViewModeIconButton(
+            icon: Icons.view_agenda_outlined,
+            selected: _viewPreference == HistoryViewPreference.list,
+            tooltip: 'Visualização em lista',
+            onTap: () => _setPreferredView(HistoryViewPreference.list),
+          ),
+          _ViewModeIconButton(
+            icon: Icons.calendar_month_outlined,
+            selected: _viewPreference == HistoryViewPreference.calendar,
+            tooltip: 'Visualização em calendário',
+            onTap: () => _setPreferredView(HistoryViewPreference.calendar),
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: BlocConsumer<PontoHistoryBloc, PontoHistoryState>(
         listener: (context, state) {
@@ -227,16 +334,7 @@ class _HistoryViewState extends State<_HistoryView> {
       );
     }
 
-    Map<String, List<Map<String, dynamic>>> daysMap = {};
-    if (state is PontoHistoryLoaded) {
-      daysMap = state.daysMap;
-    } else if (state is PontoHistoryActionSuccess) {
-      daysMap = state.daysMap;
-    } else if (state is PontoHistoryActionError) {
-      daysMap = state.daysMap;
-    } else if (state is PontoHistoryActionProcessing) {
-      daysMap = state.daysMap;
-    }
+    final daysMap = _daysMapFromState(state);
 
     if (state is PontoHistoryError && daysMap.isEmpty) {
       return Center(
@@ -274,45 +372,53 @@ class _HistoryViewState extends State<_HistoryView> {
       return const EmptyHistoryState();
     }
 
-    return RefreshIndicator(
-      onRefresh: () async {
-        context.read<PontoHistoryBloc>().add(
-              LoadHistoryEvent(
-                uid: widget.targetUid,
-                month: _currentMonth,
-              ),
-            );
-      },
-      color: AppColors.primary,
-      child: ListView.builder(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        itemCount: allDays.length,
-        itemBuilder: (context, index) {
-          final diaId = allDays[index];
-          final eventos = daysMap[diaId] ?? [];
+    Widget buildDayCardById(String diaId) {
+      final eventos = daysMap[diaId] ?? [];
+      return _buildSingleDayCard(context, diaId, eventos);
+    }
 
-          return DayCard(
-            diaId: diaId,
-            eventos: eventos,
-            isAdmin: isAdmin,
-            onBatchEdit: isAdmin
-                ? (d, evs) => showBatchEditDayDialog(
-                      context: context,
-                      uid: widget.targetUid!,
-                      diaId: d,
-                      eventos: evs,
-                    )
-                : null,
-            onAddEvento:
-                isAdmin ? () => _showAddDialogForDay(context, diaId) : null,
-            onEditEvento: isAdmin
-                ? (evento) => _showEditDialog(context, diaId, evento)
-                : null,
-            onDeleteEvento: isAdmin
-                ? (evento) => _showDeleteConfirm(context, diaId, evento)
-                : null,
-          );
-        },
+    if (_viewPreference == HistoryViewPreference.calendar) {
+      return HistoryModeCalendarView(
+        month: _currentMonth,
+        selectedDay: _selectedCalendarDay,
+        daysMap: daysMap,
+        dayIdFor: _toDayId,
+        isFutureDate: _isFutureDate,
+        onDaySelected: (day) => setState(() => _selectedCalendarDay = day),
+        dayBuilder: buildDayCardById,
+        onRefresh: _refreshHistory,
+      );
+    }
+
+    return HistoryModeListView(
+      dayIds: allDays,
+      dayBuilder: buildDayCardById,
+      onRefresh: _refreshHistory,
+    );
+  }
+}
+
+class _ViewModeIconButton extends StatelessWidget {
+  final IconData icon;
+  final bool selected;
+  final String tooltip;
+  final VoidCallback onTap;
+
+  const _ViewModeIconButton({
+    required this.icon,
+    required this.selected,
+    required this.tooltip,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      onPressed: onTap,
+      tooltip: tooltip,
+      icon: Icon(
+        icon,
+        color: selected ? AppColors.primary : AppColors.textSecondary,
       ),
     );
   }
