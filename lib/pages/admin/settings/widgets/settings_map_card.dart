@@ -87,8 +87,8 @@ class SettingsMapCard extends StatelessWidget {
                     const SizedBox(width: 8),
                     Text(
                       hasPendingChange
-                          ? 'Pin pronto para confirmar'
-                          : 'Local salvo',
+                          ? 'Pin pronto para adicionar'
+                          : 'Local já adicionado',
                       style: AppTextStyles.bodySmall.copyWith(
                         color: AppColors.textPrimary,
                         fontWeight: FontWeight.w700,

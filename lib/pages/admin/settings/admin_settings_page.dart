@@ -1,20 +1,22 @@
 import 'dart:async';
-import 'dart:convert';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_appdeponto/models/place_result.dart';
+import 'package:flutter_application_appdeponto/models/saved_workplace.dart';
+import 'package:flutter_application_appdeponto/services/admin_settings_firestore_service.dart';
+import 'package:flutter_application_appdeponto/services/admin_settings_geocoding_service.dart';
 import 'package:flutter_application_appdeponto/pages/admin/settings/widgets/settings_bottom_card.dart';
 import 'package:flutter_application_appdeponto/pages/admin/settings/widgets/settings_header_card.dart';
+import 'package:flutter_application_appdeponto/pages/admin/settings/widgets/settings_app_bar.dart';
 import 'package:flutter_application_appdeponto/pages/admin/settings/widgets/settings_map_card.dart';
+import 'package:flutter_application_appdeponto/pages/admin/settings/widgets/settings_map_with_suggestions_overlay.dart';
+import 'package:flutter_application_appdeponto/pages/admin/settings/widgets/settings_page_content.dart';
 import 'package:flutter_application_appdeponto/pages/admin/settings/widgets/settings_search_field.dart';
 import 'package:flutter_application_appdeponto/pages/admin/settings/widgets/settings_suggestions_card.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
-import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
 import 'package:flutter_application_appdeponto/widgets/custom_snackbar.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 
 // Settings Page
@@ -38,32 +40,37 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
   bool _loadingSuggestions = false;
   bool _showSuggestions = false;
 
-  double? _lat;
-  double? _lng;
-  String _address = '';
+  List<SavedWorkplace> _savedWorkplaces = [];
 
   late final MapController _mapController;
   final _searchController = TextEditingController();
   final _searchFocusNode = FocusNode();
-  final _firestore = FirebaseFirestore.instance;
+  final _settingsService = AdminSettingsFirestoreService();
+  final _geocodingService = AdminSettingsGeocodingService();
 
   LatLng _center = const LatLng(_defaultLat, _defaultLng);
   List<PlaceResult> _suggestions = [];
   Timer? _debounce;
 
-  bool get _hasSavedLocation => _lat != null && _lng != null;
+  bool get _hasSavedLocation => _savedWorkplaces.isNotEmpty;
+
+  int get _savedLocationsCount => _savedWorkplaces.length;
+
+  SavedWorkplace? get _selectedSavedWorkplace {
+    return _settingsService.findNearbyWorkplace(
+      workplaces: _savedWorkplaces,
+      lat: _center.latitude,
+      lng: _center.longitude,
+    );
+  }
 
   bool get _hasPendingChange {
     if (!_hasSavedLocation) {
       return true;
     }
 
-    return (_lat! - _center.latitude).abs() > 0.00001 ||
-        (_lng! - _center.longitude).abs() > 0.00001;
+    return _selectedSavedWorkplace == null;
   }
-
-  String get _coordinateLabel =>
-      '${_center.latitude.toStringAsFixed(5)}, ${_center.longitude.toStringAsFixed(5)}';
 
   @override
   void initState() {
@@ -88,18 +95,11 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
 
   Future<void> _loadSettings() async {
     try {
-      final doc = await _firestore.collection('settings').doc('company').get();
-      if (doc.exists) {
-        final data = doc.data()!;
-        final lat = (data['workplaceLat'] as num?)?.toDouble();
-        final lng = (data['workplaceLng'] as num?)?.toDouble();
-        _address = (data['workplaceName'] ?? '').toString();
-
-        if (lat != null && lng != null) {
-          _lat = lat;
-          _lng = lng;
-          _center = LatLng(lat, lng);
-        }
+      final workplaces = await _settingsService.loadWorkplaces();
+      if (workplaces.isNotEmpty) {
+        _savedWorkplaces = workplaces;
+        final last = workplaces.last;
+        _center = LatLng(last.lat, last.lng);
       }
     } catch (_) {}
     if (mounted) setState(() => _loading = false);
@@ -124,31 +124,16 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
     setState(() => _loadingSuggestions = true);
 
     try {
-      final uri = Uri.https('nominatim.openstreetmap.org', '/search', {
-        'q': query,
-        'format': 'jsonv2',
-        'limit': '6',
-        'accept-language': 'pt-BR,pt',
-        'addressdetails': '1',
-      });
-
-      final response = await http.get(uri, headers: {
-        'User-Agent': 'TimeFlowApp/1.0 (timeflow@app)',
-      });
+      final suggestions = await _geocodingService.fetchSuggestions(query);
 
       if (!mounted || _searchController.text.trim() != query) {
         return;
       }
 
-      if (response.statusCode == 200) {
-        final List<dynamic> data = jsonDecode(response.body);
-        setState(() {
-          _suggestions = data
-              .map((item) => PlaceResult.fromJson(item as Map<String, dynamic>))
-              .toList();
-          _showSuggestions = _suggestions.isNotEmpty;
-        });
-      }
+      setState(() {
+        _suggestions = suggestions;
+        _showSuggestions = _suggestions.isNotEmpty;
+      });
     } catch (_) {
       if (mounted && _searchController.text.trim() == query) {
         setState(() {
@@ -224,31 +209,6 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
     }
   }
 
-  Future<String> _reverseGeocode(LatLng point) async {
-    try {
-      final uri = Uri.https('nominatim.openstreetmap.org', '/reverse', {
-        'lat': point.latitude.toString(),
-        'lon': point.longitude.toString(),
-        'format': 'jsonv2',
-        'accept-language': 'pt-BR,pt',
-      });
-
-      final response = await http.get(uri, headers: {
-        'User-Agent': 'TimeFlowApp/1.0 (timeflow@app)',
-      });
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body) as Map<String, dynamic>;
-        final displayName = (data['display_name'] as String? ?? '').trim();
-        if (displayName.isNotEmpty) {
-          return displayName.split(', ').take(3).join(', ');
-        }
-      }
-    } catch (_) {}
-
-    return '${point.latitude.toStringAsFixed(5)}, ${point.longitude.toStringAsFixed(5)}';
-  }
-
   Future<void> _confirmLocation() async {
     if (_saving) {
       return;
@@ -263,26 +223,44 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
     final point = _center;
 
     try {
-      final address = await _reverseGeocode(point);
-      await _firestore.collection('settings').doc('company').set({
-        'workplaceLat': point.latitude,
-        'workplaceLng': point.longitude,
-        'workplaceName': address,
-        'maxDistanceMeters': 100,
-        'updatedAt': Timestamp.now(),
-      }, SetOptions(merge: true));
+      final duplicate = _settingsService.findNearbyWorkplace(
+        workplaces: _savedWorkplaces,
+        lat: point.latitude,
+        lng: point.longitude,
+        withinMeters: 10,
+      );
+      if (duplicate != null) {
+        if (mounted) {
+          CustomSnackbar.showInfo(
+            context,
+            'Este local já está na lista de locais presenciais.',
+          );
+        }
+        return;
+      }
+
+      final address = await _geocodingService.reverseGeocode(
+        point.latitude,
+        point.longitude,
+      );
+      final updatedWorkplaces = await _settingsService.addWorkplace(
+        currentWorkplaces: _savedWorkplaces,
+        workplace: SavedWorkplace(
+          lat: point.latitude,
+          lng: point.longitude,
+          name: address,
+        ),
+      );
 
       if (!mounted) {
         return;
       }
 
       setState(() {
-        _lat = point.latitude;
-        _lng = point.longitude;
-        _address = address;
+        _savedWorkplaces = updatedWorkplaces;
       });
 
-      CustomSnackbar.showSuccess(context, 'Local salvo com sucesso.');
+      CustomSnackbar.showSuccess(context, 'Local adicionado com sucesso.');
     } catch (_) {
       if (mounted) {
         CustomSnackbar.showError(
@@ -295,9 +273,98 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
     }
   }
 
+  Future<void> _removeLocation(int index) async {
+    if (_saving || index < 0 || index >= _savedWorkplaces.length) {
+      return;
+    }
+
+    final location = _savedWorkplaces[index];
+    final label = location.name.isNotEmpty
+        ? location.name
+        : '${location.lat.toStringAsFixed(5)}, ${location.lng.toStringAsFixed(5)}';
+
+    final shouldDelete = await showDialog<bool>(
+          context: context,
+          builder: (context) {
+            return AlertDialog(
+              title: const Text('Excluir local?'),
+              content: Text(
+                'Deseja remover este local presencial?\n\n$label',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: const Text('Cancelar'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(true),
+                  child: const Text('Excluir'),
+                ),
+              ],
+            );
+          },
+        ) ??
+        false;
+
+    if (!shouldDelete) {
+      return;
+    }
+
+    setState(() => _saving = true);
+
+    try {
+      final updated = await _settingsService.removeWorkplaceAt(
+        currentWorkplaces: _savedWorkplaces,
+        index: index,
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _savedWorkplaces = updated;
+        if (updated.isNotEmpty) {
+          final last = updated.last;
+          _center = LatLng(last.lat, last.lng);
+        }
+      });
+
+      CustomSnackbar.showSuccess(context, 'Local removido com sucesso.');
+    } catch (_) {
+      if (mounted) {
+        CustomSnackbar.showError(
+          context,
+          'Erro ao remover o local. Tente novamente.',
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _saving = false);
+      }
+    }
+  }
+
+  void _focusSavedLocation(int index) {
+    if (index < 0 || index >= _savedWorkplaces.length) {
+      return;
+    }
+
+    final location = _savedWorkplaces[index];
+    final target = LatLng(location.lat, location.lng);
+
+    setState(() {
+      _center = target;
+      _showSuggestions = false;
+    });
+
+    _mapController.move(target, _focusedZoom);
+  }
+
   Widget _buildHeaderCard() {
     return SettingsHeaderCard(
       hasSavedLocation: _hasSavedLocation,
+      savedLocationsCount: _savedLocationsCount,
     );
   }
 
@@ -341,25 +408,27 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
   }
 
   Widget _buildMapWithSuggestionsOverlay() {
-    return Stack(
-      children: [
-        Positioned.fill(child: _buildMapCard()),
-        if (_showSuggestions && _suggestions.isNotEmpty)
-          Positioned(
-            top: 10,
-            left: 12,
-            right: 12,
-            child: _buildSuggestionsCard(),
-          ),
-      ],
+    return SettingsMapWithSuggestionsOverlay(
+      mapCard: _buildMapCard(),
+      suggestionsCard: _buildSuggestionsCard(),
+      showSuggestions: _showSuggestions && _suggestions.isNotEmpty,
     );
   }
 
   Widget _buildBottomCard() {
     return SettingsBottomCard(
       hasPendingChange: _hasPendingChange,
-      address: _address,
-      coordinateLabel: _coordinateLabel,
+      savedLocationsCount: _savedLocationsCount,
+      address: _selectedSavedWorkplace?.name ?? '',
+      savedLocations: _savedWorkplaces
+          .map(
+            (location) => SettingsSavedLocationItem(
+              title: location.name.isNotEmpty ? location.name : 'Sem nome',
+            ),
+          )
+          .toList(),
+      onSelectLocation: _focusSavedLocation,
+      onDeleteLocation: _saving ? null : _removeLocation,
       saving: _saving,
       onConfirm: _confirmLocation,
     );
@@ -369,51 +438,14 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bgLight,
-      appBar: AppBar(
-        backgroundColor: AppColors.surface,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: AppColors.primaryLight10,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(Icons.settings,
-                  color: AppColors.primary, size: 20),
-            ),
-            const SizedBox(width: 12),
-            Text('Configurações',
-                style: AppTextStyles.h3.copyWith(color: AppColors.textPrimary)),
-          ],
-        ),
+      appBar: const SettingsAppBar(),
+      body: SettingsPageContent(
+        loading: _loading,
+        headerCard: _buildHeaderCard(),
+        searchField: _buildSearchField(),
+        mapWithSuggestions: _buildMapWithSuggestionsOverlay(),
+        bottomCard: _buildBottomCard(),
       ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : GestureDetector(
-              onTap: () => FocusScope.of(context).unfocus(),
-              child: SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-                  child: Column(
-                    children: [
-                      _buildHeaderCard(),
-                      const SizedBox(height: 12),
-                      _buildSearchField(),
-                      const SizedBox(height: 12),
-                      Expanded(child: _buildMapWithSuggestionsOverlay()),
-                      const SizedBox(height: 12),
-                      _buildBottomCard(),
-                    ],
-                  ),
-                ),
-              ),
-            ),
     );
   }
 }
