@@ -6,13 +6,17 @@ import 'package:flutter_application_appdeponto/blocs/solicitations/solicitation_
 import 'package:flutter_application_appdeponto/blocs/solicitations/solicitation_event.dart';
 import 'package:flutter_application_appdeponto/blocs/solicitations/solicitation_state.dart';
 import 'package:flutter_application_appdeponto/models/solicitation_model.dart';
+import 'package:flutter_application_appdeponto/repositories/history_view_preference_repository.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
 import 'package:flutter_application_appdeponto/widgets/custom_snackbar.dart';
 import 'package:flutter_application_appdeponto/services/ponto_edit_dialogs.dart';
+import 'package:intl/intl.dart';
 import '../../history_page/widgets/card/day_card.dart';
 import '../../history_page/widgets/month_selector.dart';
 import '../../history_page/widgets/dialogs/day_edit_dialog.dart';
+import 'home_history_mode_calendar_view.dart';
+import 'home_history_mode_list_view.dart';
 
 class HomeHistorySection extends StatefulWidget {
   final DateTime currentMonth;
@@ -43,8 +47,56 @@ class HomeHistorySection extends StatefulWidget {
 }
 
 class _HomeHistorySectionState extends State<HomeHistorySection> {
+  final _viewPreferenceRepository = HistoryViewPreferenceRepository();
+
   /// GlobalKeys por diaId para `Scrollable.ensureVisible`.
   final Map<String, GlobalKey> _dayKeys = {};
+  HistoryViewPreference _viewPreference = HistoryViewPreference.list;
+  late DateTime _selectedCalendarDay;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedCalendarDay = _defaultSelectedDayForMonth(widget.currentMonth);
+    _loadPreferredView();
+  }
+
+  Future<void> _loadPreferredView() async {
+    final preferred = await _viewPreferenceRepository.loadPreferredMode();
+    if (!mounted) return;
+    setState(() => _viewPreference = preferred);
+  }
+
+  Future<void> _setPreferredView(HistoryViewPreference value) async {
+    if (_viewPreference == value) return;
+    setState(() => _viewPreference = value);
+
+    try {
+      await _viewPreferenceRepository.savePreferredMode(value);
+    } catch (_) {
+      // Evita travar UI se persistência falhar momentaneamente.
+    }
+  }
+
+  DateTime _defaultSelectedDayForMonth(DateTime month) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final lastDay = DateTime(month.year, month.month + 1, 0);
+    return lastDay.isAfter(today) ? today : lastDay;
+  }
+
+  String _toDayId(DateTime day) {
+    return DateFormat('yyyy-MM-dd').format(
+      DateTime(day.year, day.month, day.day),
+    );
+  }
+
+  bool _isFutureDate(DateTime day) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final normalized = DateTime(day.year, day.month, day.day);
+    return normalized.isAfter(today);
+  }
 
   GlobalKey _keyForDay(String diaId) =>
       _dayKeys.putIfAbsent(diaId, () => GlobalKey());
@@ -69,6 +121,16 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
     // Mês mudou → limpa chaves velhas (evita acúmulo desnecessário).
     if (widget.currentMonth != oldWidget.currentMonth) {
       _dayKeys.clear();
+      _selectedCalendarDay = _defaultSelectedDayForMonth(widget.currentMonth);
+    }
+
+    if (widget.highlightDayId != null &&
+        widget.highlightDayId != oldWidget.highlightDayId) {
+      final highlighted = DateTime.tryParse(widget.highlightDayId!);
+      if (highlighted != null) {
+        _selectedCalendarDay =
+            DateTime(highlighted.year, highlighted.month, highlighted.day);
+      }
     }
 
     // Highlight mudou → se o histórico já está carregado, scrolla imediatamente.
@@ -119,6 +181,20 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
               Text(
                 'Meu Histórico',
                 style: AppTextStyles.h3.copyWith(color: AppColors.textPrimary),
+              ),
+              const Spacer(),
+              _HistoryModeIconButton(
+                icon: Icons.view_agenda_outlined,
+                selected: _viewPreference == HistoryViewPreference.list,
+                tooltip: 'Visualização em lista',
+                onTap: () => _setPreferredView(HistoryViewPreference.list),
+              ),
+              const SizedBox(width: 4),
+              _HistoryModeIconButton(
+                icon: Icons.calendar_month_outlined,
+                selected: _viewPreference == HistoryViewPreference.calendar,
+                tooltip: 'Visualização em calendário',
+                onTap: () => _setPreferredView(HistoryViewPreference.calendar),
               ),
             ],
           ),
@@ -202,71 +278,84 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
               } else if (solState is SolicitationError) {
                 allSolicitations.addAll(solState.solicitations);
               }
+              final pendingDayIds =
+                  allSolicitations.map((s) => s.diaId).toSet();
 
-              return Column(
-                children: allDays.map((diaId) {
-                  final eventos = daysMap[diaId] ?? [];
-                  final isHighlight = diaId == widget.highlightDayId;
+              DayCard buildDayCard(String diaId, {bool withKey = false}) {
+                final eventos = daysMap[diaId] ?? [];
+                final isHighlight = diaId == widget.highlightDayId;
+                final daySolicitations = widget.isAdmin
+                    ? <SolicitationModel>[]
+                    : allSolicitations.where((s) => s.diaId == diaId).toList();
 
-                  // Filtra solicitações pendentes para este dia.
-                  // Admin não vê solicitações de outros usuários nos próprios
-                  // day cards — elas pertencem às telas de gestão de solicitações.
-                  final daySolicitations = widget.isAdmin
-                      ? <SolicitationModel>[]
-                      : allSolicitations
-                          .where((s) => s.diaId == diaId)
-                          .toList();
+                return DayCard(
+                  key: withKey && isHighlight ? _keyForDay(diaId) : null,
+                  diaId: diaId,
+                  eventos: eventos,
+                  isAdmin: widget.isAdmin,
+                  pendingSolicitations: daySolicitations,
+                  onBatchEdit: canEdit
+                      ? (d, evs) => showBatchEditDayDialog(
+                            context: context,
+                            uid: widget.uid!,
+                            diaId: d,
+                            eventos: evs,
+                          )
+                      : null,
+                  onAddEvento: canEdit
+                      ? () => showPontoAddDialog(
+                            context: context,
+                            uid: widget.uid!,
+                            diaId: diaId,
+                          )
+                      : null,
+                  onEditEvento: canEdit
+                      ? (ev) => showPontoEditDialog(
+                            context: context,
+                            uid: widget.uid!,
+                            diaId: diaId,
+                            evento: ev,
+                          )
+                      : null,
+                  onDeleteEvento: canEdit
+                      ? (ev) => showPontoDeleteConfirm(
+                            context: context,
+                            uid: widget.uid!,
+                            diaId: diaId,
+                            evento: ev,
+                          )
+                      : null,
+                  onRequestSolicitation: (!widget.isAdmin)
+                      ? () => _showSolicitationDialog(
+                            context,
+                            diaId,
+                            eventos,
+                            daySolicitations,
+                          )
+                      : null,
+                  onCancelSolicitation: (!widget.isAdmin)
+                      ? (solId) => _confirmCancelSolicitation(context, solId)
+                      : null,
+                );
+              }
 
-                  return DayCard(
-                    key: isHighlight ? _keyForDay(diaId) : null,
-                    diaId: diaId,
-                    eventos: eventos,
-                    isAdmin: widget.isAdmin,
-                    pendingSolicitations: daySolicitations,
-                    onBatchEdit: canEdit
-                        ? (d, evs) => showBatchEditDayDialog(
-                              context: context,
-                              uid: widget.uid!,
-                              diaId: d,
-                              eventos: evs,
-                            )
-                        : null,
-                    onAddEvento: canEdit
-                        ? () => showPontoAddDialog(
-                              context: context,
-                              uid: widget.uid!,
-                              diaId: diaId,
-                            )
-                        : null,
-                    onEditEvento: canEdit
-                        ? (ev) => showPontoEditDialog(
-                              context: context,
-                              uid: widget.uid!,
-                              diaId: diaId,
-                              evento: ev,
-                            )
-                        : null,
-                    onDeleteEvento: canEdit
-                        ? (ev) => showPontoDeleteConfirm(
-                              context: context,
-                              uid: widget.uid!,
-                              diaId: diaId,
-                              evento: ev,
-                            )
-                        : null,
-                    onRequestSolicitation: (!widget.isAdmin)
-                        ? () => _showSolicitationDialog(
-                              context,
-                              diaId,
-                              eventos,
-                              daySolicitations,
-                            )
-                        : null,
-                    onCancelSolicitation: (!widget.isAdmin)
-                        ? (solId) => _confirmCancelSolicitation(context, solId)
-                        : null,
-                  );
-                }).toList(),
+              if (_viewPreference == HistoryViewPreference.calendar) {
+                return HomeHistoryModeCalendarView(
+                  month: widget.currentMonth,
+                  selectedDay: _selectedCalendarDay,
+                  daysMap: daysMap,
+                  dayIdFor: _toDayId,
+                  isFutureDate: _isFutureDate,
+                  pendingDayIds: pendingDayIds,
+                  onDaySelected: (day) =>
+                      setState(() => _selectedCalendarDay = day),
+                  dayBuilder: (dayId) => buildDayCard(dayId),
+                );
+              }
+
+              return HomeHistoryModeListView(
+                dayIds: allDays,
+                dayBuilder: (dayId) => buildDayCard(dayId, withKey: true),
               );
             },
           ),
@@ -362,5 +451,31 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
             );
       }
     }
+  }
+}
+
+class _HistoryModeIconButton extends StatelessWidget {
+  final IconData icon;
+  final bool selected;
+  final String tooltip;
+  final VoidCallback onTap;
+
+  const _HistoryModeIconButton({
+    required this.icon,
+    required this.selected,
+    required this.tooltip,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      onPressed: onTap,
+      tooltip: tooltip,
+      icon: Icon(
+        icon,
+        color: selected ? AppColors.primary : AppColors.textSecondary,
+      ),
+    );
   }
 }

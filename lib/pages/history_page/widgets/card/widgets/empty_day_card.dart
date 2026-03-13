@@ -43,7 +43,12 @@ class EmptyDayCard extends StatelessWidget {
             color: disabled
                 ? AppColors.borderLight.withValues(alpha: 0.3)
                 : AppColors.borderLight.withValues(alpha: 0.5),
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: disabled
+                  ? AppColors.borderLight.withValues(alpha: 0.5)
+                  : AppColors.borderLight,
+            ),
           ),
           child: Icon(
             Icons.calendar_today,
