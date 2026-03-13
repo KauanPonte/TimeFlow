@@ -5,6 +5,7 @@ class PontoTodayState extends Equatable {
   final List<Map<String, dynamic>> eventosHoje;
   final List<Map<String, String>> eventosHojeFormatados;
   final String? ultimoTipo;
+  final String? lockedWorkMode;
   final Map<String, Map<String, String>> registros;
   final double monthBalance;
 
@@ -13,6 +14,7 @@ class PontoTodayState extends Equatable {
     this.eventosHoje = const [],
     this.eventosHojeFormatados = const [],
     this.ultimoTipo,
+    this.lockedWorkMode,
     this.registros = const {},
     this.monthBalance = 0.0,
   });
@@ -23,6 +25,8 @@ class PontoTodayState extends Equatable {
     List<Map<String, String>>? eventosHojeFormatados,
     String? ultimoTipo,
     bool clearUltimoTipo = false,
+    String? lockedWorkMode,
+    bool clearLockedWorkMode = false,
     Map<String, Map<String, String>>? registros,
     double? monthBalance,
   }) {
@@ -32,6 +36,8 @@ class PontoTodayState extends Equatable {
       eventosHojeFormatados:
           eventosHojeFormatados ?? this.eventosHojeFormatados,
       ultimoTipo: clearUltimoTipo ? null : (ultimoTipo ?? this.ultimoTipo),
+      lockedWorkMode:
+          clearLockedWorkMode ? null : (lockedWorkMode ?? this.lockedWorkMode),
       registros: registros ?? this.registros,
       monthBalance: monthBalance ?? this.monthBalance,
     );
@@ -43,6 +49,7 @@ class PontoTodayState extends Equatable {
         eventosHoje,
         eventosHojeFormatados,
         ultimoTipo,
+        lockedWorkMode,
         registros,
         monthBalance,
       ];

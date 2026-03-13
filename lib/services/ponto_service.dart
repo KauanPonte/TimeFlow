@@ -73,7 +73,8 @@ class PontoService {
     return 'Não é possível registrar "$novo" agora. Último ponto foi "$ultimo".';
   }
 
-  static Future<PontoResult> registrarPonto(String tipo) async {
+  static Future<PontoResult> registrarPonto(String tipo,
+      {required String workMode}) async {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
@@ -125,7 +126,12 @@ class PontoService {
       //  Escrita atômica (sem throws dentro da transação)
       await FirebaseFirestore.instance.runTransaction((tx) async {
         final newDoc = refEventos.doc();
-        tx.set(newDoc, {'tipo': tipo, 'at': now});
+        tx.set(newDoc, {
+          'tipo': tipo,
+          'at': now,
+          'workMode': workMode,
+          'origin': 'registrado',
+        });
 
         if (!diaSnapPre.exists) {
           tx.set(refDia, {
@@ -170,6 +176,35 @@ class PontoService {
     return data?['lastTipo']?.toString();
   }
 
+  /// Retorna o workMode travado para o dia de hoje, se houver sessão aberta.
+  /// Retorna null se não houver lock (sem eventos ou último tipo é 'saida').
+  static Future<String?> getLockedWorkModeHoje() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return null;
+
+    final uid = user.uid;
+    final diaId = _hojeId();
+
+    final diaDoc = await _refDia(uid, diaId).get();
+    if (!diaDoc.exists) return null;
+
+    final lastTipo = diaDoc.data()?['lastTipo']?.toString();
+    if (lastTipo == null || lastTipo == 'saida') return null;
+
+    // Busca o último evento 'entrada' para obter o workMode da sessão
+    final eventosSnap =
+        await _refEventos(uid, diaId).orderBy('at', descending: true).get();
+
+    for (final doc in eventosSnap.docs) {
+      final data = doc.data();
+      if (data['tipo'] == 'entrada') {
+        final wm = (data['workMode'] ?? '').toString();
+        return wm.isEmpty ? null : wm;
+      }
+    }
+    return null;
+  }
+
   static Future<List<Map<String, dynamic>>> loadEventosHoje() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return [];
@@ -185,6 +220,8 @@ class PontoService {
       return {
         'tipo': (m['tipo'] ?? '').toString(),
         'at': m['at'],
+        'workMode': (m['workMode'] ?? '').toString(),
+        'origin': (m['origin'] ?? 'registrado').toString(),
       };
     }).toList();
   }
@@ -207,7 +244,14 @@ class PontoService {
       final at = m['at'];
       final hora =
           at is Timestamp ? DateFormat('HH:mm').format(at.toDate()) : '';
-      return {'tipo': tipo, 'hora': hora};
+      final workMode = (m['workMode'] ?? '').toString();
+      final origin = (m['origin'] ?? 'registrado').toString();
+      return {
+        'tipo': tipo,
+        'hora': hora,
+        'workMode': workMode,
+        'origin': origin,
+      };
     }).toList();
   }
 

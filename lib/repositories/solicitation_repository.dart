@@ -278,12 +278,14 @@ class SolicitationRepository {
         await refEventos.add({
           'tipo': item.tipo,
           'at': Timestamp.fromDate(item.horario),
+          'origin': 'solicitado',
         });
       } else if (item.action == SolicitationAction.edit &&
           item.eventoId != null) {
         await refEventos.doc(item.eventoId).update({
           'tipo': item.tipo,
           'at': Timestamp.fromDate(item.horario),
+          'origin': 'solicitado',
         });
       } else if (item.action == SolicitationAction.delete &&
           item.eventoId != null) {

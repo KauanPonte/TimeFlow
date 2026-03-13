@@ -199,69 +199,278 @@ class FilledDayCard extends StatelessWidget {
   }
 
   List<Widget> _buildEventoRows() {
-    return eventos.map((ev) {
-      final tipo = (ev['tipo'] ?? '').toString();
-      final at = ev['at'] as DateTime?;
-      final color = colorForTipo(tipo);
+    final orderedEventos = List<Map<String, dynamic>>.from(eventos)
+      ..sort((a, b) {
+        final atA = a['at'] as DateTime?;
+        final atB = b['at'] as DateTime?;
+        if (atA == null && atB == null) return 0;
+        if (atA == null) return 1;
+        if (atB == null) return -1;
+        return atA.compareTo(atB);
+      });
 
-      return Padding(
-        padding: const EdgeInsets.only(bottom: 8),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(iconForTipo(tipo), size: 18, color: color),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    labelForTipo(tipo),
-                    style: AppTextStyles.bodyMedium.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  Text(
-                    formatTime(at),
-                    style: AppTextStyles.bodySmall
-                        .copyWith(color: AppColors.textSecondary),
-                  ),
-                ],
+    final groups = <_ModeGroup>[];
+
+    for (var i = 0; i < orderedEventos.length; i++) {
+      final evento = orderedEventos[i];
+      final explicitMode = _explicitWorkMode(evento);
+      final mode = explicitMode ?? _inferModeForUntypedEvent(orderedEventos, i);
+
+      if (groups.isEmpty || groups.last.mode != mode) {
+        groups.add(_ModeGroup(mode: mode, events: [evento]));
+      } else {
+        groups.last.events.add(evento);
+      }
+    }
+
+    final widgets = <Widget>[];
+    final showHeaders = groups.isNotEmpty;
+
+    for (final group in groups) {
+      if (showHeaders) {
+        widgets.add(_buildModeHeader(group.mode));
+      }
+      widgets.addAll([
+        Container(
+            decoration: const BoxDecoration(
+              border: Border(
+                left: BorderSide(color: AppColors.borderLight, width: 3),
               ),
             ),
-            if (isAdmin) ...[
-              // Botões individuais de editar/excluir omitidos quando
-              // a edição em lote está habilitada.
-              if (onBatchEdit == null) ...[
-                IconButton(
-                  onPressed: () => onEditEvento?.call(ev),
-                  icon: const Icon(Icons.edit_outlined,
-                      size: 18, color: AppColors.primary),
-                  tooltip: 'Editar',
-                  constraints:
-                      const BoxConstraints(minWidth: 36, minHeight: 36),
+            child: Padding(
+              padding: const EdgeInsets.only(left: 8, top: 8),
+              child:
+                  Column(children: group.events.map(_buildEventoRow).toList()),
+            ))
+      ]);
+    }
+
+    return widgets;
+  }
+
+  Widget _buildModeHeader(String workMode) {
+    final color = _colorForWorkMode(workMode);
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 8, bottom: 4),
+      child: Row(
+        children: [
+          Icon(iconForWorkMode(workMode), size: 16, color: color),
+          const SizedBox(width: 6),
+          Text(
+            labelForWorkMode(workMode),
+            style: AppTextStyles.bodySmall.copyWith(
+              fontWeight: FontWeight.w700,
+              color: color,
+              fontSize: 12,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _colorForWorkMode(String workMode) {
+    switch (workMode) {
+      case 'presencial':
+        return AppColors.primary;
+      case 'remoto':
+        return AppColors.primary;
+      default:
+        return AppColors.textSecondary;
+    }
+  }
+
+  String? _explicitWorkMode(Map<String, dynamic> evento) {
+    final workMode = (evento['workMode'] ?? '').toString();
+    if (workMode == 'presencial' || workMode == 'remoto') {
+      return workMode;
+    }
+    return null;
+  }
+
+  String _inferModeForUntypedEvent(
+      List<Map<String, dynamic>> orderedEventos, int index) {
+    final tipo = (orderedEventos[index]['tipo'] ?? '').toString();
+    final inPresencialGroup = _belongsToModeForUntypedEvent(
+        orderedEventos, index, 'presencial', tipo);
+    final inRemotoGroup =
+        _belongsToModeForUntypedEvent(orderedEventos, index, 'remoto', tipo);
+
+    if (inPresencialGroup && !inRemotoGroup) return 'presencial';
+    if (inRemotoGroup && !inPresencialGroup) return 'remoto';
+    return 'outro';
+  }
+
+  bool _belongsToModeForUntypedEvent(
+    List<Map<String, dynamic>> orderedEventos,
+    int index,
+    String mode,
+    String tipo,
+  ) {
+    if (tipo == 'entrada') {
+      return _hasClosingSaidaAfterIndex(orderedEventos, index, mode);
+    }
+    if (tipo == 'saida') {
+      return _hasOpenEntradaBeforeIndex(orderedEventos, index, mode);
+    }
+    return _isInsideClosedGroupWindow(orderedEventos, index, mode);
+  }
+
+  bool _isInsideClosedGroupWindow(
+    List<Map<String, dynamic>> orderedEventos,
+    int index,
+    String mode,
+  ) {
+    if (!_hasOpenEntradaBeforeIndex(orderedEventos, index, mode)) {
+      return false;
+    }
+    return _hasClosingSaidaAfterIndex(orderedEventos, index, mode);
+  }
+
+  bool _hasOpenEntradaBeforeIndex(
+    List<Map<String, dynamic>> orderedEventos,
+    int index,
+    String mode,
+  ) {
+    var hasOpenEntrada = false;
+
+    for (var i = 0; i < index; i++) {
+      final evento = orderedEventos[i];
+      if (_explicitWorkMode(evento) != mode) continue;
+
+      final tipo = (evento['tipo'] ?? '').toString();
+      if (tipo == 'entrada') {
+        hasOpenEntrada = true;
+      } else if (tipo == 'saida') {
+        hasOpenEntrada = false;
+      }
+    }
+
+    return hasOpenEntrada;
+  }
+
+  bool _hasClosingSaidaAfterIndex(
+    List<Map<String, dynamic>> orderedEventos,
+    int index,
+    String mode,
+  ) {
+    for (var i = index + 1; i < orderedEventos.length; i++) {
+      final evento = orderedEventos[i];
+      if (_explicitWorkMode(evento) != mode) continue;
+
+      final tipo = (evento['tipo'] ?? '').toString();
+      if (tipo == 'saida') {
+        return true;
+      }
+      if (tipo == 'entrada') {
+        return false;
+      }
+    }
+
+    return false;
+  }
+
+  Widget _buildEventoRow(Map<String, dynamic> ev) {
+    final tipo = (ev['tipo'] ?? '').toString();
+    final at = ev['at'] as DateTime?;
+    final origin = (ev['origin'] ?? 'registrado').toString();
+    final color = colorForTipo(tipo);
+    final originColor = colorForOrigin(origin);
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          Container(
+            width: 4,
+            height: 40,
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: const BorderRadius.only(
+                topRight: Radius.circular(2),
+                bottomRight: Radius.circular(2),
+              ),
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              borderRadius: const BorderRadius.only(
+                topRight: Radius.circular(8),
+                bottomRight: Radius.circular(8),
+              ),
+            ),
+            child: Icon(iconForTipo(tipo), size: 18, color: color),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  labelForTipo(tipo),
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
-                IconButton(
-                  onPressed: () => onDeleteEvento?.call(ev),
-                  icon: const Icon(Icons.delete_outline,
-                      size: 18, color: AppColors.error),
-                  tooltip: 'Remover',
-                  constraints:
-                      const BoxConstraints(minWidth: 36, minHeight: 36),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      formatTime(at),
+                      style: AppTextStyles.bodySmall
+                          .copyWith(color: AppColors.textSecondary),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 1),
+                      decoration: BoxDecoration(
+                        color: originColor.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(
+                          color: originColor.withValues(alpha: 0.3),
+                          width: 0.5,
+                        ),
+                      ),
+                      child: Text(
+                        labelForOrigin(origin),
+                        style: AppTextStyles.bodySmall.copyWith(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w600,
+                          color: originColor,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
+            ),
+          ),
+          if (isAdmin) ...[
+            if (onBatchEdit == null) ...[
+              IconButton(
+                onPressed: () => onEditEvento?.call(ev),
+                icon: const Icon(Icons.edit_outlined,
+                    size: 18, color: AppColors.primary),
+                tooltip: 'Editar',
+                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+              ),
+              IconButton(
+                onPressed: () => onDeleteEvento?.call(ev),
+                icon: const Icon(Icons.delete_outline,
+                    size: 18, color: AppColors.error),
+                tooltip: 'Remover',
+                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+              ),
             ],
           ],
-        ),
-      );
-    }).toList();
+        ],
+      ),
+    );
   }
 
   Widget _buildIncompleteWarning() {
@@ -365,4 +574,11 @@ class FilledDayCard extends StatelessWidget {
       ),
     );
   }
+}
+
+class _ModeGroup {
+  final String mode;
+  final List<Map<String, dynamic>> events;
+
+  _ModeGroup({required this.mode, required this.events});
 }

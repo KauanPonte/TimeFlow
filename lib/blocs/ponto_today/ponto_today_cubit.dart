@@ -42,6 +42,7 @@ class PontoTodayCubit extends Cubit<PontoTodayState> {
         PontoService.getUltimoTipoHoje(),
         PontoService.loadRegistros(),
         PontoService.getSaldoMesAtualHoras(),
+        PontoService.getLockedWorkModeHoje(),
       ]);
 
       _loadedOnce = true;
@@ -54,6 +55,7 @@ class PontoTodayCubit extends Cubit<PontoTodayState> {
           eventosHoje: results[0] as List<Map<String, dynamic>>,
           eventosHojeFormatados: results[1] as List<Map<String, String>>,
           ultimoTipo: ultimoTipo,
+          lockedWorkMode: results[5] as String?,
           registros: results[3] as Map<String, Map<String, String>>,
           monthBalance: results[4] as double,
         ));
@@ -74,8 +76,8 @@ class PontoTodayCubit extends Cubit<PontoTodayState> {
 
   /// Registra ponto, atualiza dados e notifica outras telas.
   /// Retorna [PontoResult] para exibição de snackbar pelo chamador.
-  Future<PontoResult> registrar(String tipo) async {
-    final result = await PontoService.registrarPonto(tipo);
+  Future<PontoResult> registrar(String tipo, {required String workMode}) async {
+    final result = await PontoService.registrarPonto(tipo, workMode: workMode);
     if (result.success) {
       await _fetchAll();
       _dataChangedCubit.notifyChanged();
