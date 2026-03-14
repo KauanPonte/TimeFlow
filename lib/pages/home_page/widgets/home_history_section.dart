@@ -278,15 +278,21 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
               } else if (solState is SolicitationError) {
                 allSolicitations.addAll(solState.solicitations);
               }
-              final pendingDayIds =
-                  allSolicitations.map((s) => s.diaId).toSet();
+              final pendingSolicitations = allSolicitations
+                  .where((s) => s.status == SolicitationStatus.pending)
+                  .toList(growable: false);
+              final pendingDayIds = widget.isAdmin
+                  ? <String>{}
+                  : pendingSolicitations.map((s) => s.diaId).toSet();
 
               DayCard buildDayCard(String diaId, {bool withKey = false}) {
                 final eventos = daysMap[diaId] ?? [];
                 final isHighlight = diaId == widget.highlightDayId;
                 final daySolicitations = widget.isAdmin
                     ? <SolicitationModel>[]
-                    : allSolicitations.where((s) => s.diaId == diaId).toList();
+                    : pendingSolicitations
+                        .where((s) => s.diaId == diaId)
+                        .toList();
 
                 return DayCard(
                   key: withKey && isHighlight ? _keyForDay(diaId) : null,
