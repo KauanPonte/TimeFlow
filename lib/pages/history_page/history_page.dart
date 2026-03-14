@@ -10,11 +10,12 @@ import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
 import 'package:flutter_application_appdeponto/widgets/custom_snackbar.dart';
 import 'package:flutter_application_appdeponto/services/ponto_edit_dialogs.dart';
-import 'package:intl/intl.dart';
 import 'widgets/card/day_card.dart';
 import 'widgets/empty_history_state.dart';
 import 'widgets/history_mode_calendar_view.dart';
 import 'widgets/history_mode_list_view.dart';
+import 'widgets/history_shared_utils.dart';
+import 'widgets/history_view_mode_icon_button.dart';
 import 'widgets/month_selector.dart';
 
 class HistoryPage extends StatelessWidget {
@@ -79,7 +80,8 @@ class _HistoryViewState extends State<_HistoryView> {
     _currentMonth = widget.initialDate != null
         ? DateTime(widget.initialDate!.year, widget.initialDate!.month)
         : DateTime(now.year, now.month);
-    _selectedCalendarDay = _defaultSelectedDayForMonth(_currentMonth);
+    _selectedCalendarDay =
+        HistorySharedUtils.defaultSelectedDayForMonth(_currentMonth);
     _loadPreferredView();
   }
 
@@ -100,30 +102,11 @@ class _HistoryViewState extends State<_HistoryView> {
     }
   }
 
-  DateTime _defaultSelectedDayForMonth(DateTime month) {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final lastDay = DateTime(month.year, month.month + 1, 0);
-    return lastDay.isAfter(today) ? today : lastDay;
-  }
-
-  String _toDayId(DateTime day) {
-    return DateFormat('yyyy-MM-dd').format(
-      DateTime(day.year, day.month, day.day),
-    );
-  }
-
-  bool _isFutureDate(DateTime day) {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final normalized = DateTime(day.year, day.month, day.day);
-    return normalized.isAfter(today);
-  }
-
   void _goToPreviousMonth() {
     setState(() {
       _currentMonth = DateTime(_currentMonth.year, _currentMonth.month - 1);
-      _selectedCalendarDay = _defaultSelectedDayForMonth(_currentMonth);
+      _selectedCalendarDay =
+          HistorySharedUtils.defaultSelectedDayForMonth(_currentMonth);
     });
     context.read<PontoHistoryBloc>().add(
           LoadHistoryEvent(uid: widget.targetUid, month: _currentMonth),
@@ -139,28 +122,12 @@ class _HistoryViewState extends State<_HistoryView> {
     }
     setState(() {
       _currentMonth = nextMonth;
-      _selectedCalendarDay = _defaultSelectedDayForMonth(_currentMonth);
+      _selectedCalendarDay =
+          HistorySharedUtils.defaultSelectedDayForMonth(_currentMonth);
     });
     context.read<PontoHistoryBloc>().add(
           LoadHistoryEvent(uid: widget.targetUid, month: _currentMonth),
         );
-  }
-
-  /// Gera lista de todos os dias do mês selecionado (desc), sem ultrapassar hoje.
-  List<String> _generateMonthDays() {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final lastDay =
-        DateTime(_currentMonth.year, _currentMonth.month + 1, 0).day;
-
-    final days = <String>[];
-    for (int d = lastDay; d >= 1; d--) {
-      final date = DateTime(_currentMonth.year, _currentMonth.month, d);
-      // Não mostrar dias futuros
-      if (date.isAfter(today)) continue;
-      days.add(DateFormat('yyyy-MM-dd').format(date));
-    }
-    return days;
   }
 
   void _showAddDialogForDay(BuildContext context, String diaId) =>
@@ -187,15 +154,6 @@ class _HistoryViewState extends State<_HistoryView> {
         diaId: diaId,
         evento: evento,
       );
-
-  Map<String, List<Map<String, dynamic>>> _daysMapFromState(
-      PontoHistoryState state) {
-    if (state is PontoHistoryLoaded) return state.daysMap;
-    if (state is PontoHistoryActionSuccess) return state.daysMap;
-    if (state is PontoHistoryActionError) return state.daysMap;
-    if (state is PontoHistoryActionProcessing) return state.daysMap;
-    return {};
-  }
 
   Widget _buildSingleDayCard(
     BuildContext context,
@@ -282,13 +240,13 @@ class _HistoryViewState extends State<_HistoryView> {
           ],
         ),
         actions: [
-          _ViewModeIconButton(
+          HistoryViewModeIconButton(
             icon: Icons.view_agenda_outlined,
             selected: _viewPreference == HistoryViewPreference.list,
             tooltip: 'Visualização em lista',
             onTap: () => _setPreferredView(HistoryViewPreference.list),
           ),
-          _ViewModeIconButton(
+          HistoryViewModeIconButton(
             icon: Icons.calendar_month_outlined,
             selected: _viewPreference == HistoryViewPreference.calendar,
             tooltip: 'Visualização em calendário',
@@ -334,7 +292,7 @@ class _HistoryViewState extends State<_HistoryView> {
       );
     }
 
-    final daysMap = _daysMapFromState(state);
+    final daysMap = HistorySharedUtils.daysMapFromState(state);
 
     if (state is PontoHistoryError && daysMap.isEmpty) {
       return Center(
@@ -366,7 +324,7 @@ class _HistoryViewState extends State<_HistoryView> {
     }
 
     // Gera todos os dias do mês (sem futuros)
-    final allDays = _generateMonthDays();
+    final allDays = HistorySharedUtils.generateMonthDays(_currentMonth);
 
     if (allDays.isEmpty) {
       return const EmptyHistoryState();
@@ -382,8 +340,8 @@ class _HistoryViewState extends State<_HistoryView> {
         month: _currentMonth,
         selectedDay: _selectedCalendarDay,
         daysMap: daysMap,
-        dayIdFor: _toDayId,
-        isFutureDate: _isFutureDate,
+        dayIdFor: HistorySharedUtils.toDayId,
+        isFutureDate: HistorySharedUtils.isFutureDate,
         onDaySelected: (day) => setState(() => _selectedCalendarDay = day),
         dayBuilder: buildDayCardById,
         onRefresh: _refreshHistory,
@@ -394,32 +352,6 @@ class _HistoryViewState extends State<_HistoryView> {
       dayIds: allDays,
       dayBuilder: buildDayCardById,
       onRefresh: _refreshHistory,
-    );
-  }
-}
-
-class _ViewModeIconButton extends StatelessWidget {
-  final IconData icon;
-  final bool selected;
-  final String tooltip;
-  final VoidCallback onTap;
-
-  const _ViewModeIconButton({
-    required this.icon,
-    required this.selected,
-    required this.tooltip,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return IconButton(
-      onPressed: onTap,
-      tooltip: tooltip,
-      icon: Icon(
-        icon,
-        color: selected ? AppColors.primary : AppColors.textSecondary,
-      ),
     );
   }
 }

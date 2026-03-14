@@ -12,7 +12,7 @@ class HistoryModeCalendarView extends StatelessWidget {
   final Set<String> pendingDayIds;
   final ValueChanged<DateTime> onDaySelected;
   final Widget Function(String dayId) dayBuilder;
-  final Future<void> Function() onRefresh;
+  final Future<void> Function()? onRefresh;
 
   const HistoryModeCalendarView({
     super.key,
@@ -24,7 +24,7 @@ class HistoryModeCalendarView extends StatelessWidget {
     this.pendingDayIds = const {},
     required this.onDaySelected,
     required this.dayBuilder,
-    required this.onRefresh,
+    this.onRefresh,
   });
 
   @override
@@ -37,71 +37,77 @@ class HistoryModeCalendarView extends StatelessWidget {
       isFutureDate: isFutureDate,
     );
 
+    final content = <Widget>[
+      Container(
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.borderLight),
+          boxShadow: const [
+            BoxShadow(
+              color: AppColors.shadow,
+              blurRadius: 8,
+              offset: Offset(0, 2),
+            ),
+          ],
+        ),
+        child: TableCalendar<Map<String, dynamic>>(
+          locale: 'pt_BR',
+          firstDay: DateTime(month.year, month.month, 1),
+          lastDay: DateTime(month.year, month.month + 1, 0),
+          focusedDay: selectedDay,
+          selectedDayPredicate: (day) => isSameDay(day, selectedDay),
+          availableCalendarFormats: const {CalendarFormat.month: 'Mês'},
+          calendarFormat: CalendarFormat.month,
+          enabledDayPredicate: (day) => !isFutureDate(day),
+          eventLoader: statusHelper.eventLoader,
+          onDaySelected: (selected, _) {
+            if (isFutureDate(selected)) return;
+            onDaySelected(
+                DateTime(selected.year, selected.month, selected.day));
+          },
+          headerStyle: const HeaderStyle(
+            titleCentered: true,
+            formatButtonVisible: false,
+            leftChevronVisible: false,
+            rightChevronVisible: false,
+          ),
+          calendarStyle: CalendarStyle(
+            outsideDaysVisible: false,
+            todayDecoration: BoxDecoration(
+              color: AppColors.primaryLight10,
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: AppColors.primary.withValues(alpha: 0.4),
+              ),
+            ),
+            selectedDecoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.18),
+              shape: BoxShape.circle,
+              border: Border.all(color: AppColors.primary),
+            ),
+            markersMaxCount: 1,
+          ),
+          calendarBuilders: statusHelper.builders(
+            selectedDay: selectedDay,
+          ),
+        ),
+      ),
+      const SizedBox(height: 10),
+      dayBuilder(selectedId),
+    ];
+
+    if (onRefresh == null) {
+      return Column(children: content);
+    }
+
     return RefreshIndicator(
-      onRefresh: onRefresh,
+      onRefresh: onRefresh!,
       color: AppColors.primary,
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppColors.borderLight),
-              boxShadow: const [
-                BoxShadow(
-                  color: AppColors.shadow,
-                  blurRadius: 8,
-                  offset: Offset(0, 2),
-                ),
-              ],
-            ),
-            child: TableCalendar<Map<String, dynamic>>(
-              locale: 'pt_BR',
-              firstDay: DateTime(month.year, month.month, 1),
-              lastDay: DateTime(month.year, month.month + 1, 0),
-              focusedDay: selectedDay,
-              selectedDayPredicate: (day) => isSameDay(day, selectedDay),
-              availableCalendarFormats: const {CalendarFormat.month: 'Mês'},
-              calendarFormat: CalendarFormat.month,
-              enabledDayPredicate: (day) => !isFutureDate(day),
-              eventLoader: statusHelper.eventLoader,
-              onDaySelected: (selected, _) {
-                if (isFutureDate(selected)) return;
-                onDaySelected(
-                    DateTime(selected.year, selected.month, selected.day));
-              },
-              headerStyle: const HeaderStyle(
-                titleCentered: true,
-                formatButtonVisible: false,
-                leftChevronVisible: false,
-                rightChevronVisible: false,
-              ),
-              calendarStyle: CalendarStyle(
-                outsideDaysVisible: false,
-                todayDecoration: BoxDecoration(
-                  color: AppColors.primaryLight10,
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: AppColors.primary.withValues(alpha: 0.4),
-                  ),
-                ),
-                selectedDecoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.18),
-                  shape: BoxShape.circle,
-                  border: Border.all(color: AppColors.primary),
-                ),
-                markersMaxCount: 1,
-              ),
-              calendarBuilders: statusHelper.builders(
-                selectedDay: selectedDay,
-              ),
-            ),
-          ),
-          const SizedBox(height: 10),
-          dayBuilder(selectedId),
-        ],
+        children: content,
       ),
     );
   }
