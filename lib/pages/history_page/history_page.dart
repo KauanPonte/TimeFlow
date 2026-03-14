@@ -69,7 +69,8 @@ class _HistoryViewState extends State<_HistoryView> {
 
   late DateTime _currentMonth;
   late DateTime _selectedCalendarDay;
-  HistoryViewPreference _viewPreference = HistoryViewPreference.list;
+  HistoryViewPreference _viewPreference =
+      HistoryViewPreferenceRepository.currentMode;
 
   bool get isAdmin => widget.targetUid != null;
 
@@ -82,13 +83,6 @@ class _HistoryViewState extends State<_HistoryView> {
         : DateTime(now.year, now.month);
     _selectedCalendarDay =
         HistorySharedUtils.defaultSelectedDayForMonth(_currentMonth);
-    _loadPreferredView();
-  }
-
-  Future<void> _loadPreferredView() async {
-    final preferred = await _viewPreferenceRepository.loadPreferredMode();
-    if (!mounted) return;
-    setState(() => _viewPreference = preferred);
   }
 
   Future<void> _setPreferredView(HistoryViewPreference value) async {

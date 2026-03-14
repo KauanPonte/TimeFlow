@@ -50,7 +50,8 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
 
   /// GlobalKeys por diaId para `Scrollable.ensureVisible`.
   final Map<String, GlobalKey> _dayKeys = {};
-  HistoryViewPreference _viewPreference = HistoryViewPreference.list;
+  HistoryViewPreference _viewPreference =
+      HistoryViewPreferenceRepository.currentMode;
   late DateTime _selectedCalendarDay;
 
   @override
@@ -58,13 +59,6 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
     super.initState();
     _selectedCalendarDay =
         HistorySharedUtils.defaultSelectedDayForMonth(widget.currentMonth);
-    _loadPreferredView();
-  }
-
-  Future<void> _loadPreferredView() async {
-    final preferred = await _viewPreferenceRepository.loadPreferredMode();
-    if (!mounted) return;
-    setState(() => _viewPreference = preferred);
   }
 
   Future<void> _setPreferredView(HistoryViewPreference value) async {
