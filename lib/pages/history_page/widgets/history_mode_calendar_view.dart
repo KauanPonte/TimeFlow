@@ -55,6 +55,7 @@ class HistoryModeCalendarView extends StatelessWidget {
           locale: 'pt_BR',
           firstDay: DateTime(month.year, month.month, 1),
           lastDay: DateTime(month.year, month.month + 1, 0),
+          availableGestures: AvailableGestures.none,
           focusedDay: selectedDay,
           selectedDayPredicate: (day) => isSameDay(day, selectedDay),
           availableCalendarFormats: const {CalendarFormat.month: 'Mês'},
@@ -66,11 +67,12 @@ class HistoryModeCalendarView extends StatelessWidget {
             onDaySelected(
                 DateTime(selected.year, selected.month, selected.day));
           },
-          headerStyle: const HeaderStyle(
+          headerStyle: HeaderStyle(
             titleCentered: true,
             formatButtonVisible: false,
             leftChevronVisible: false,
             rightChevronVisible: false,
+            titleTextFormatter: (date, locale) => '',
           ),
           calendarStyle: CalendarStyle(
             outsideDaysVisible: false,
