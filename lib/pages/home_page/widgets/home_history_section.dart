@@ -11,12 +11,13 @@ import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
 import 'package:flutter_application_appdeponto/widgets/custom_snackbar.dart';
 import 'package:flutter_application_appdeponto/services/ponto_edit_dialogs.dart';
-import 'package:intl/intl.dart';
 import '../../history_page/widgets/card/day_card.dart';
+import '../../history_page/widgets/history_mode_calendar_view.dart';
+import '../../history_page/widgets/history_mode_list_view.dart';
+import '../../history_page/widgets/history_shared_utils.dart';
+import '../../history_page/widgets/history_view_mode_icon_button.dart';
 import '../../history_page/widgets/month_selector.dart';
 import '../../history_page/widgets/dialogs/day_edit_dialog.dart';
-import 'home_history_mode_calendar_view.dart';
-import 'home_history_mode_list_view.dart';
 
 class HomeHistorySection extends StatefulWidget {
   final DateTime currentMonth;
@@ -24,7 +25,6 @@ class HomeHistorySection extends StatefulWidget {
   final VoidCallback onNext;
   final bool isAdmin;
   final String? uid;
-  final List<String> Function() generateMonthDays;
   final VoidCallback onActionSuccess;
 
   /// Dia que deve receber destaque visual e scroll (ISO 'yyyy-MM-dd').
@@ -36,7 +36,6 @@ class HomeHistorySection extends StatefulWidget {
     required this.onPrevious,
     required this.onNext,
     required this.isAdmin,
-    required this.generateMonthDays,
     required this.onActionSuccess,
     this.uid,
     this.highlightDayId,
@@ -51,20 +50,15 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
 
   /// GlobalKeys por diaId para `Scrollable.ensureVisible`.
   final Map<String, GlobalKey> _dayKeys = {};
-  HistoryViewPreference _viewPreference = HistoryViewPreference.list;
+  HistoryViewPreference _viewPreference =
+      HistoryViewPreferenceRepository.currentMode;
   late DateTime _selectedCalendarDay;
 
   @override
   void initState() {
     super.initState();
-    _selectedCalendarDay = _defaultSelectedDayForMonth(widget.currentMonth);
-    _loadPreferredView();
-  }
-
-  Future<void> _loadPreferredView() async {
-    final preferred = await _viewPreferenceRepository.loadPreferredMode();
-    if (!mounted) return;
-    setState(() => _viewPreference = preferred);
+    _selectedCalendarDay =
+        HistorySharedUtils.defaultSelectedDayForMonth(widget.currentMonth);
   }
 
   Future<void> _setPreferredView(HistoryViewPreference value) async {
@@ -76,26 +70,6 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
     } catch (_) {
       // Evita travar UI se persistência falhar momentaneamente.
     }
-  }
-
-  DateTime _defaultSelectedDayForMonth(DateTime month) {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final lastDay = DateTime(month.year, month.month + 1, 0);
-    return lastDay.isAfter(today) ? today : lastDay;
-  }
-
-  String _toDayId(DateTime day) {
-    return DateFormat('yyyy-MM-dd').format(
-      DateTime(day.year, day.month, day.day),
-    );
-  }
-
-  bool _isFutureDate(DateTime day) {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final normalized = DateTime(day.year, day.month, day.day);
-    return normalized.isAfter(today);
   }
 
   GlobalKey _keyForDay(String diaId) =>
@@ -121,7 +95,8 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
     // Mês mudou → limpa chaves velhas (evita acúmulo desnecessário).
     if (widget.currentMonth != oldWidget.currentMonth) {
       _dayKeys.clear();
-      _selectedCalendarDay = _defaultSelectedDayForMonth(widget.currentMonth);
+      _selectedCalendarDay =
+          HistorySharedUtils.defaultSelectedDayForMonth(widget.currentMonth);
     }
 
     if (widget.highlightDayId != null &&
@@ -183,14 +158,14 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
                 style: AppTextStyles.h3.copyWith(color: AppColors.textPrimary),
               ),
               const Spacer(),
-              _HistoryModeIconButton(
+              HistoryViewModeIconButton(
                 icon: Icons.view_agenda_outlined,
                 selected: _viewPreference == HistoryViewPreference.list,
                 tooltip: 'Visualização em lista',
                 onTap: () => _setPreferredView(HistoryViewPreference.list),
               ),
               const SizedBox(width: 4),
-              _HistoryModeIconButton(
+              HistoryViewModeIconButton(
                 icon: Icons.calendar_month_outlined,
                 selected: _viewPreference == HistoryViewPreference.calendar,
                 tooltip: 'Visualização em calendário',
@@ -238,18 +213,9 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
                 );
               }
 
-              Map<String, List<Map<String, dynamic>>> daysMap = {};
-              if (state is PontoHistoryLoaded) {
-                daysMap = state.daysMap;
-              } else if (state is PontoHistoryActionSuccess) {
-                daysMap = state.daysMap;
-              } else if (state is PontoHistoryActionError) {
-                daysMap = state.daysMap;
-              } else if (state is PontoHistoryActionProcessing) {
-                daysMap = state.daysMap;
-              }
-
-              final allDays = widget.generateMonthDays();
+              final daysMap = HistorySharedUtils.daysMapFromState(state);
+              final allDays =
+                  HistorySharedUtils.generateMonthDays(widget.currentMonth);
 
               if (allDays.isEmpty) {
                 return Padding(
@@ -278,15 +244,21 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
               } else if (solState is SolicitationError) {
                 allSolicitations.addAll(solState.solicitations);
               }
-              final pendingDayIds =
-                  allSolicitations.map((s) => s.diaId).toSet();
+              final pendingSolicitations = allSolicitations
+                  .where((s) => s.status == SolicitationStatus.pending)
+                  .toList(growable: false);
+              final pendingDayIds = widget.isAdmin
+                  ? <String>{}
+                  : pendingSolicitations.map((s) => s.diaId).toSet();
 
               DayCard buildDayCard(String diaId, {bool withKey = false}) {
                 final eventos = daysMap[diaId] ?? [];
                 final isHighlight = diaId == widget.highlightDayId;
                 final daySolicitations = widget.isAdmin
                     ? <SolicitationModel>[]
-                    : allSolicitations.where((s) => s.diaId == diaId).toList();
+                    : pendingSolicitations
+                        .where((s) => s.diaId == diaId)
+                        .toList();
 
                 return DayCard(
                   key: withKey && isHighlight ? _keyForDay(diaId) : null,
@@ -340,12 +312,12 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
               }
 
               if (_viewPreference == HistoryViewPreference.calendar) {
-                return HomeHistoryModeCalendarView(
+                return HistoryModeCalendarView(
                   month: widget.currentMonth,
                   selectedDay: _selectedCalendarDay,
                   daysMap: daysMap,
-                  dayIdFor: _toDayId,
-                  isFutureDate: _isFutureDate,
+                  dayIdFor: HistorySharedUtils.toDayId,
+                  isFutureDate: HistorySharedUtils.isFutureDate,
                   pendingDayIds: pendingDayIds,
                   onDaySelected: (day) =>
                       setState(() => _selectedCalendarDay = day),
@@ -353,9 +325,10 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
                 );
               }
 
-              return HomeHistoryModeListView(
+              return HistoryModeListView(
                 dayIds: allDays,
                 dayBuilder: (dayId) => buildDayCard(dayId, withKey: true),
+                embedInParentScroll: true,
               );
             },
           ),
@@ -451,31 +424,5 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
             );
       }
     }
-  }
-}
-
-class _HistoryModeIconButton extends StatelessWidget {
-  final IconData icon;
-  final bool selected;
-  final String tooltip;
-  final VoidCallback onTap;
-
-  const _HistoryModeIconButton({
-    required this.icon,
-    required this.selected,
-    required this.tooltip,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return IconButton(
-      onPressed: onTap,
-      tooltip: tooltip,
-      icon: Icon(
-        icon,
-        color: selected ? AppColors.primary : AppColors.textSecondary,
-      ),
-    );
   }
 }

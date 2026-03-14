@@ -49,7 +49,7 @@ class _HomePageState extends State<HomePage> {
   Timer? _tickTimer;
   Timer? _solTimer;
   final int _targetMinutesPerDay = 8 * 60; // 8 horas por dia
-    double workProgress = 0.0;
+  double workProgress = 0.0;
 
   late DateTime _currentMonth;
   final ScrollController _scrollController = ScrollController();
@@ -143,24 +143,6 @@ class _HomePageState extends State<HomePage> {
         .read<PontoHistoryBloc>()
         .add(LoadHistoryEvent(month: _currentMonth));
   }
-
-  List<String> _generateMonthDays() {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final lastDay =
-        DateTime(_currentMonth.year, _currentMonth.month + 1, 0).day;
-
-    final days = <String>[];
-    for (int d = lastDay; d >= 1; d--) {
-      final date = DateTime(_currentMonth.year, _currentMonth.month, d);
-      if (date.isAfter(today)) continue;
-      // Alterado para CustomDateFormatter
-      days.add(CustomDateFormatter('yyyy-MM-dd').format(date));
-    }
-    return days;
-  }
-
- 
 
   String _labelFromUltimoTipo(String? ultimo) {
     switch (ultimo) {
@@ -324,7 +306,6 @@ class _HomePageState extends State<HomePage> {
                     onNext: _goToNextMonth,
                     isAdmin: isAdmin,
                     uid: _uid,
-                    generateMonthDays: _generateMonthDays,
                     onActionSuccess: () {
                       context.read<PontoTodayCubit>().refresh();
                     },

@@ -17,6 +17,7 @@ import 'package:flutter_application_appdeponto/blocs/solicitations/solicitation_
 import 'package:flutter_application_appdeponto/blocs/solicitations/solicitation_event.dart';
 import 'package:flutter_application_appdeponto/blocs/solicitations/solicitation_state.dart';
 import 'package:flutter_application_appdeponto/repositories/auth_repository.dart';
+import 'package:flutter_application_appdeponto/repositories/history_view_preference_repository.dart';
 import 'package:flutter_application_appdeponto/repositories/ponto_history_repository.dart';
 import 'package:flutter_application_appdeponto/repositories/profile_repository.dart';
 import 'package:flutter_application_appdeponto/repositories/solicitation_repository.dart';
@@ -41,6 +42,7 @@ void main() async {
     DeviceOrientation.portraitUp,
   ]);
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await HistoryViewPreferenceRepository.initialize();
   await initializeDateFormatting('pt_BR');
   await NotificationService.init();
   runApp(const TimeFlow());
@@ -122,6 +124,7 @@ class TimeFlow extends StatelessWidget {
               context.read<ProfileBloc>().reset();
               context.read<AdminHomeBloc>().reset();
               context.read<SolicitationBloc>().reset();
+              HistoryViewPreferenceRepository.clearCache();
             },
             child: BlocListener<AuthBloc, AuthState>(
               // Login direto (ex: tela de login, sem passar pelo splash):

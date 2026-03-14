@@ -6,6 +6,7 @@ import 'package:flutter_application_appdeponto/blocs/auth/auth_state.dart';
 import 'package:flutter_application_appdeponto/blocs/ponto_today/ponto_today_cubit.dart';
 import 'package:flutter_application_appdeponto/blocs/solicitations/solicitation_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/solicitations/solicitation_event.dart';
+import 'package:flutter_application_appdeponto/repositories/history_view_preference_repository.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 
 class SplashPage extends StatefulWidget {
@@ -37,39 +38,47 @@ class _SplashPageState extends State<SplashPage> {
     return BlocListener<AuthBloc, AuthState>(
       listener: (context, state) {
         if (state is AdminAuthenticated) {
-          // Carrega dados cedo para popular notificações na AppBar.
-          context.read<PontoTodayCubit>().load();
-          context.read<SolicitationBloc>().add(
-                const LoadSolicitationsEvent(isAdmin: true),
-              );
-          Navigator.pushNamedAndRemoveUntil(
-            context,
-            '/admin',
-            (route) => false,
-            arguments: {
-              'employeeName': state.userData['name'],
-              'profileImageUrl': state.userData['profileImage'] ?? '',
-              'employeeRole': state.userData['role'],
-            },
-          );
+          () async {
+            // Carrega dados cedo para popular notificações na AppBar.
+            context.read<PontoTodayCubit>().load();
+            context.read<SolicitationBloc>().add(
+                  const LoadSolicitationsEvent(isAdmin: true),
+                );
+            await HistoryViewPreferenceRepository.initialize();
+            if (!context.mounted) return;
+            Navigator.pushNamedAndRemoveUntil(
+              context,
+              '/admin',
+              (route) => false,
+              arguments: {
+                'employeeName': state.userData['name'],
+                'profileImageUrl': state.userData['profileImage'] ?? '',
+                'employeeRole': state.userData['role'],
+              },
+            );
+          }();
         } else if (state is UserAuthenticated) {
-          // Carrega dados cedo para popular notificações na AppBar.
-          context.read<PontoTodayCubit>().load();
-          final role = (state.userData['role'] ?? '').toString();
-          final isAdmin = role.toUpperCase().contains('ADM');
-          context.read<SolicitationBloc>().add(
-                LoadSolicitationsEvent(isAdmin: isAdmin),
-              );
-          Navigator.pushNamedAndRemoveUntil(
-            context,
-            '/home',
-            (route) => false,
-            arguments: {
-              'employeeName': state.userData['name'],
-              'profileImageUrl': state.userData['profileImage'] ?? '',
-              'employeeRole': state.userData['role'],
-            },
-          );
+          () async {
+            // Carrega dados cedo para popular notificações na AppBar.
+            context.read<PontoTodayCubit>().load();
+            final role = (state.userData['role'] ?? '').toString();
+            final isAdmin = role.toUpperCase().contains('ADM');
+            context.read<SolicitationBloc>().add(
+                  LoadSolicitationsEvent(isAdmin: isAdmin),
+                );
+            await HistoryViewPreferenceRepository.initialize();
+            if (!context.mounted) return;
+            Navigator.pushNamedAndRemoveUntil(
+              context,
+              '/home',
+              (route) => false,
+              arguments: {
+                'employeeName': state.userData['name'],
+                'profileImageUrl': state.userData['profileImage'] ?? '',
+                'employeeRole': state.userData['role'],
+              },
+            );
+          }();
         } else if (state is Unauthenticated) {
           Navigator.pushReplacementNamed(context, '/welcome');
         }

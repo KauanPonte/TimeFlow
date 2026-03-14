@@ -5,6 +5,7 @@ import 'package:flutter_application_appdeponto/blocs/auth/auth_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/auth/auth_event.dart';
 import 'package:flutter_application_appdeponto/models/auth_field.dart';
 import 'package:flutter_application_appdeponto/blocs/auth/auth_state.dart';
+import 'package:flutter_application_appdeponto/repositories/history_view_preference_repository.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
 import 'package:flutter_application_appdeponto/widgets/custom_snackbar.dart';
@@ -63,7 +64,9 @@ class _RegisterPageState extends State<RegisterPage> {
               Navigator.pushReplacementNamed(context, '/login');
             });
           } else if (state is RegisterSuccess) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
+            WidgetsBinding.instance.addPostFrameCallback((_) async {
+              await HistoryViewPreferenceRepository.initialize();
+              if (!context.mounted) return;
               Navigator.pushNamedAndRemoveUntil(
                 context,
                 "/home",
