@@ -338,7 +338,12 @@ class PontoService {
     final hojeId = DateFormat('yyyy-MM-dd').format(DateTime.now());
     final bool ehHoje = diaId == hojeId;
 
-    final bool falta = !ehHoje && eventos.isEmpty;
+    // Lógica de falta considerando calendário 
+    final date = DateTime.parse(diaId);
+    final holidays = getBrazilHolidays(date.year);
+    final bool isWeekend = date.weekday == DateTime.saturday || date.weekday == DateTime.sunday;
+    final bool isHoliday = holidays.containsKey(date);
+    final bool falta = !ehHoje && eventos.isEmpty && !isWeekend && !isHoliday;
 
     final bool emAberto = !diaFechado && eventos.isNotEmpty;
 
@@ -358,6 +363,7 @@ class PontoService {
 
       tx.set(
           refDia,
+        
           {
             'workedMinutes': workedMinutes,
             'deltaMinutes': deltaMinutes,
@@ -420,4 +426,46 @@ class PontoService {
   }
 
   static String newMethod(String mesId) => mesId;
+
+  static Map<DateTime, String> getBrazilHolidays(int year) {
+    Map<DateTime, String> holidays = {
+      DateTime(year, 1, 1): "Confraternização Universal",
+      DateTime(year, 4, 21): "Tiradentes",
+      DateTime(year, 5, 1): "Dia do Trabalho",
+      DateTime(year, 9, 7): "Independência do Brasil",
+      DateTime(year, 10, 12): "Nossa Senhora Aparecida",
+      DateTime(year, 11, 2): "Finados",
+      DateTime(year, 11, 15): "Proclamação da República",
+      DateTime(year, 11, 20): "Consciência Negra",
+      DateTime(year, 12, 25): "Natal",
+    };
+
+    // Cálculo da Páscoa (Algoritmo de Meeus/Jones/Butcher) calendário gregoriano
+    int a = year % 19;
+    int b = year ~/ 100;
+    int c = year % 100;
+    int d = b ~/ 4;
+    int e = b % 4;
+    int f = (b + 8) ~/ 25;
+    int g = (b - f + 1) ~/ 3;
+    int h = (19 * a + b - d - g + 15) % 30;
+    int i = c ~/ 4;
+    int k = c % 4;
+    int l = (32 + 2 * e + 2 * i - h - k) % 7;
+    int m = (a + 11 * h + 22 * l) ~/ 451;
+    int month = (h + l - 7 * m + 114) ~/ 31;
+    int day = ((h + l - 7 * m + 114) % 31) + 1;
+
+    DateTime pascoa = DateTime(year, month, day);
+
+    holidays[pascoa.subtract(const Duration(days: 2))] = "Sexta-feira Santa";
+    holidays[pascoa.subtract(const Duration(days: 47))] = "Carnaval";
+    holidays[pascoa.add(const Duration(days: 60))] = "Corpus Christi";
+
+    // ---  feriados do Ceará ---
+    holidays[DateTime(year, 3, 19)] = "São José (CE)";
+    holidays[DateTime(year, 3, 25)] = "Data Magna (CE)";
+
+    return holidays;
+  }
 }

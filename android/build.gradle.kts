@@ -21,7 +21,7 @@ subprojects {
 
 gradle.afterProject {
     extensions.findByType<com.android.build.gradle.LibraryExtension>()?.apply {
-        compileSdk = 35
+        compileSdk = 36
     }
 }
 
