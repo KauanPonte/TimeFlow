@@ -10,6 +10,15 @@ class BalanceCard extends StatelessWidget {
     required this.monthBalance,
   });
 
+  String _formatBalanceAsHoursMinutes(double hours) {
+    final isNegative = hours < 0;
+    final absHours = hours.abs();
+    final h = absHours.toInt();
+    final m = ((absHours - h) * 60).toInt();
+    final sign = isNegative ? '-' : '';
+    return '$sign${h}h ${m}m';
+  }
+
   @override
   Widget build(BuildContext context) {
     final isPositive = monthBalance >= 0;
@@ -56,7 +65,7 @@ class BalanceCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '${isPositive ? '+' : ''}${monthBalance.toStringAsFixed(2)} h',
+                  '${monthBalance >= 0 ? '+' : ''}${_formatBalanceAsHoursMinutes(monthBalance)}',
                   style: AppTextStyles.h2.copyWith(
                     color: isPositive ? AppColors.success : AppColors.error,
                     fontWeight: FontWeight.bold,
