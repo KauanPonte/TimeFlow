@@ -190,17 +190,30 @@ class PontoService {
     final lastTipo = diaDoc.data()?['lastTipo']?.toString();
     if (lastTipo == null || lastTipo == 'saida') return null;
 
-    // Busca o último evento 'entrada' para obter o workMode da sessão
     final eventosSnap =
         await _refEventos(uid, diaId).orderBy('at', descending: true).get();
 
+    bool hasPresencial = false;
+    bool hasRemoto = false;
+
     for (final doc in eventosSnap.docs) {
       final data = doc.data();
-      if (data['tipo'] == 'entrada') {
-        final wm = (data['workMode'] ?? '').toString();
-        return wm.isEmpty ? null : wm;
+      final tipo = (data['tipo'] ?? '').toString();
+      final wm = (data['workMode'] ?? '').toString();
+      
+      if (wm == 'presencial') {
+        hasPresencial = true;
+      } else if (wm == 'remoto') {
+        hasRemoto = true;
+      }
+
+      if (tipo == 'entrada') {
+        break;
       }
     }
+
+    if (hasPresencial) return 'presencial';
+    if (hasRemoto) return 'remoto';
     return null;
   }
 
