@@ -10,6 +10,7 @@ import 'package:flutter_application_appdeponto/repositories/history_view_prefere
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
 import 'package:flutter_application_appdeponto/widgets/custom_snackbar.dart';
+import 'package:flutter_application_appdeponto/widgets/app_dialog_components.dart';
 import 'package:flutter_application_appdeponto/services/ponto_edit_dialogs.dart';
 import '../../history_page/widgets/card/day_card.dart';
 import '../../history_page/widgets/history_mode_calendar_view.dart';
@@ -281,22 +282,6 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
                             diaId: diaId,
                           )
                       : null,
-                  onEditEvento: canEdit
-                      ? (ev) => showPontoEditDialog(
-                            context: context,
-                            uid: widget.uid!,
-                            diaId: diaId,
-                            evento: ev,
-                          )
-                      : null,
-                  onDeleteEvento: canEdit
-                      ? (ev) => showPontoDeleteConfirm(
-                            context: context,
-                            uid: widget.uid!,
-                            diaId: diaId,
-                            evento: ev,
-                          )
-                      : null,
                   onRequestSolicitation: (!widget.isAdmin)
                       ? () => _showSolicitationDialog(
                             context,
@@ -343,32 +328,17 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
   ) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Cancelar solicitação?', style: AppTextStyles.h3),
-        content: Text(
-          'Tem certeza que deseja cancelar esta solicitação?\n'
-          'Esta ação não pode ser desfeita.',
-          style: AppTextStyles.bodySmall,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Voltar',
-                style: TextStyle(color: AppColors.textSecondary)),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.error,
-              foregroundColor: Colors.white,
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8)),
-            ),
-            child: const Text('Cancelar solicitação'),
-          ),
-        ],
+      builder: (_) => AppDialogScaffold(
+        title: 'Cancelar solicitação?',
+        subtitle: 'Tem certeza que deseja cancelar esta solicitação?\n'
+            'Esta ação não pode ser desfeita.',
+        icon: Icons.warning_amber_rounded,
+        isDestructive: true,
+        confirmLabel: 'Cancelar solicitação',
+        cancelLabel: 'Voltar',
+        onConfirm: () => Navigator.pop(context, true),
+        onCancel: () => Navigator.pop(context, false),
+        children: const [],
       ),
     );
 

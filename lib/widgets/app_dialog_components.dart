@@ -11,6 +11,7 @@ class AppDialogScaffold extends StatelessWidget {
   final VoidCallback onConfirm;
   final String cancelLabel;
   final VoidCallback? onCancel;
+  final bool isDestructive;
 
   const AppDialogScaffold({
     super.key,
@@ -22,11 +23,13 @@ class AppDialogScaffold extends StatelessWidget {
     required this.onConfirm,
     this.cancelLabel = 'Cancelar',
     this.onCancel,
+    this.isDestructive = false,
   });
 
   @override
   Widget build(BuildContext context) {
     final cancelAction = onCancel ?? () => Navigator.pop(context);
+    final accentColor = isDestructive ? AppColors.error : AppColors.primary;
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -42,12 +45,14 @@ class AppDialogScaffold extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: AppColors.primaryLight10,
+                    color: isDestructive
+                        ? AppColors.error.withValues(alpha: 0.1)
+                        : AppColors.primaryLight10,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
                     icon,
-                    color: AppColors.primary,
+                    color: accentColor,
                     size: 22,
                   ),
                 ),
@@ -109,7 +114,7 @@ class AppDialogScaffold extends StatelessWidget {
                   child: ElevatedButton(
                     onPressed: onConfirm,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
+                      backgroundColor: accentColor,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(

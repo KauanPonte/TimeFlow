@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
+import 'package:flutter_application_appdeponto/widgets/app_dialog_components.dart';
 
 class CalendarPage extends StatefulWidget {
   const CalendarPage({super.key});
@@ -269,35 +270,36 @@ class _CalendarPageState extends State<CalendarPage> {
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Novo Evento Pessoal"),
-        content: TextField(
-          controller: controller,
-          decoration: const InputDecoration(hintText: "Nome do evento"),
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("Cancelar")),
-          ElevatedButton(
-            onPressed: () {
-              if (controller.text.isNotEmpty && _selectedDay != null) {
-                setState(() {
-                  final date = DateTime(_selectedDay!.year, _selectedDay!.month,
-                      _selectedDay!.day);
-                  // Adiciona o evento na lista de eventos da data selecionada
-                  _events[date] ??= [];
-                  _events[date]!.add({
-                    'title': controller.text,
-                    'color': Colors.blue[300] // Cor azul para Pessoal
-                  });
+      builder: (_) => StatefulBuilder(
+        builder: (context, setDialogState) => AppDialogScaffold(
+          title: 'Novo Evento Pessoal',
+          icon: Icons.event,
+          confirmLabel: 'Salvar',
+          onConfirm: () {
+            if (controller.text.isNotEmpty && _selectedDay != null) {
+              setState(() {
+                final date = DateTime(_selectedDay!.year, _selectedDay!.month,
+                    _selectedDay!.day);
+                _events[date] ??= [];
+                _events[date]!.add({
+                  'title': controller.text,
+                  'color': Colors.blue[300]
                 });
-                Navigator.pop(context);
-              }
-            },
-            child: const Text("Salvar"),
-          ),
-        ],
+              });
+              Navigator.pop(context);
+            }
+          },
+          children: [
+            AppDialogField(
+              label: 'Nome do evento',
+              hintText: 'Digite o nome do evento',
+              controller: controller,
+              errorText: null,
+              icon: Icons.edit,
+              autofocus: true,
+            ),
+          ],
+        ),
       ),
     );
   }
