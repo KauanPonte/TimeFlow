@@ -11,8 +11,6 @@ class DayCard extends StatelessWidget {
   final List<Map<String, dynamic>> eventos;
   final bool isAdmin;
   final bool isFuture;
-  final void Function(Map<String, dynamic> evento)? onEditEvento;
-  final void Function(Map<String, dynamic> evento)? onDeleteEvento;
   final VoidCallback? onAddEvento;
   final VoidCallback? onRequestSolicitation;
   final List<SolicitationModel> pendingSolicitations;
@@ -28,8 +26,6 @@ class DayCard extends StatelessWidget {
     required this.eventos,
     this.isAdmin = false,
     this.isFuture = false,
-    this.onEditEvento,
-    this.onDeleteEvento,
     this.onAddEvento,
     this.onRequestSolicitation,
     this.pendingSolicitations = const [],
@@ -82,8 +78,6 @@ class DayCard extends StatelessWidget {
       disabled: disabled,
       isAdmin: isAdmin,
       pendingSolicitations: pendingSolicitations,
-      onEditEvento: disabled ? null : onEditEvento,
-      onDeleteEvento: disabled ? null : onDeleteEvento,
       onAddEvento: disabled ? null : onAddEvento,
       onBatchEdit: (!disabled && onBatchEdit != null)
           ? () => onBatchEdit!(diaId, eventos)
