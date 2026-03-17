@@ -42,18 +42,23 @@ class AuthRepository {
         'profileImage': '',
       };
     } on FirebaseAuthException catch (e) {
-      if (e.code == 'email-already-in-use') {
-        throw Exception('Email já cadastrado');
+      switch (e.code) {
+        case 'email-already-in-use':
+          throw Exception('Email já cadastrado');
+        case 'weak-password':
+          throw Exception('Senha fraca: use pelo menos 6 caracteres');
+        case 'invalid-email':
+          throw Exception('Email inválido');
+        case 'network-request-failed':
+          throw Exception('Sem conexão com a internet');
+        case 'too-many-requests':
+          throw Exception('Muitas tentativas. Tente novamente mais tarde.');
+        default:
+          throw Exception('Erro ao cadastrar. Tente novamente.');
       }
-      if (e.code == 'weak-password') {
-        throw Exception('Senha fraca: use pelo menos 6 caracteres');
-      }
-      if (e.code == 'invalid-email') {
-        throw Exception('Email inválido');
-      }
-      throw Exception('Erro ao cadastrar: ${e.message ?? e.code}');
     } catch (e) {
-      throw Exception('Erro inesperado: $e');
+      if (e is Exception) rethrow;
+      throw Exception('Erro inesperado ao cadastrar. Tente novamente.');
     }
   }
 
@@ -96,39 +101,71 @@ class AuthRepository {
         'profileImage': data['profileImage'] ?? '',
       };
     } on FirebaseAuthException catch (e) {
-      if (e.code == 'user-not-found') {
-        throw Exception('Usuário não encontrado');
+      switch (e.code) {
+        case 'invalid-credential':
+        case 'INVALID_LOGIN_CREDENTIALS':
+          throw Exception('Email ou senha incorretos');
+        case 'user-not-found':
+          throw Exception('Usuário não encontrado');
+        case 'wrong-password':
+          throw Exception('Senha incorreta');
+        case 'invalid-email':
+          throw Exception('Email inválido');
+        case 'user-disabled':
+          throw Exception('Esta conta foi desativada. Contate o administrador.');
+        case 'too-many-requests':
+          throw Exception('Muitas tentativas. Tente novamente mais tarde.');
+        case 'network-request-failed':
+          throw Exception('Sem conexão com a internet');
+        case 'channel-error':
+          throw Exception('Preencha todos os campos');
+        default:
+          throw Exception('Erro ao entrar. Tente novamente.');
       }
-      if (e.code == 'wrong-password') {
-        throw Exception('Senha incorreta');
-      }
-      if (e.code == 'invalid-email') {
-        throw Exception('Email inválido');
-      }
-      if (e.code == 'too-many-requests') {
-        throw Exception('Muitas tentativas. Tente novamente mais tarde.');
-      }
-
-      throw Exception('Erro ao entrar: ${e.message ?? e.code}');
     } catch (e) {
-      throw Exception('Erro inesperado: $e');
+      if (e is Exception) rethrow;
+      throw Exception('Erro inesperado ao entrar. Tente novamente.');
     }
   }
 
   Future<bool> sendPasswordResetEmail(String email) async {
     try {
-      await _auth.sendPasswordResetEmail(email: email.trim());
-      return true;
-    } on FirebaseAuthException catch (e) {
-      if (e.code == 'invalid-email') {
-        throw Exception('Email inválido');
-      }
-      if (e.code == 'user-not-found') {
+      // Firebase Auth v5 no longer throws user-not-found for security reasons,
+      // so we validate against Firestore first to give proper user feedback.
+      final exists = await validateEmail(email.trim());
+      if (!exists) {
         throw Exception('Email não cadastrado');
       }
-      throw Exception('Erro ao enviar email: ${e.message ?? e.code}');
+
+      // ActionCodeSettings ensures Firebase generates a proper email with a
+      // working link. Without this, the email may fail to be delivered or the
+      // link may not render correctly. handleCodeInApp: false means the reset
+      // page opens in the browser — no dynamic links setup required.
+      final actionCodeSettings = ActionCodeSettings(
+        url: 'https://timeflow-5b4e6.firebaseapp.com',
+        handleCodeInApp: false,
+      );
+
+      await _auth.sendPasswordResetEmail(
+        email: email.trim(),
+        actionCodeSettings: actionCodeSettings,
+      );
+      return true;
+    } on FirebaseAuthException catch (e) {
+      switch (e.code) {
+        case 'invalid-email':
+          throw Exception('Email inválido');
+        case 'too-many-requests':
+          throw Exception('Muitas tentativas. Tente novamente mais tarde.');
+        case 'network-request-failed':
+          throw Exception('Sem conexão com a internet');
+        default:
+          throw Exception('Erro ao enviar email de recuperação. Tente novamente.');
+      }
+    } on Exception {
+      rethrow;
     } catch (e) {
-      throw Exception('Erro inesperado: $e');
+      throw Exception('Erro inesperado. Tente novamente.');
     }
   }
 
