@@ -3,6 +3,7 @@ import 'package:flutter_application_appdeponto/models/solicitation_model.dart';
 import 'widgets/empty_day_card.dart';
 import 'widgets/filled_day_card.dart';
 import 'widgets/pending_only_day_card.dart';
+import 'widgets/day_card_helpers.dart';
 
 /// Widget roteador: delega para EmptyDayCard, PendingOnlyDayCard ou FilledDayCard.
 class DayCard extends StatelessWidget {
@@ -38,47 +39,57 @@ class DayCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final blockedDay = isWeekendOrHoliday(diaId);
+    final disabled = isFuture || blockedDay;
+
     if (isFuture) {
       return EmptyDayCard(
         diaId: diaId,
-        disabled: true,
+        disabled: disabled,
         isAdmin: isAdmin,
-        onAddEvento: onAddEvento,
-        onBatchEdit: onBatchEdit != null ? () => onBatchEdit!(diaId, []) : null,
-        onRequestSolicitation: onRequestSolicitation,
+        onAddEvento: disabled ? null : onAddEvento,
+        onBatchEdit: (!disabled && onBatchEdit != null)
+            ? () => onBatchEdit!(diaId, [])
+            : null,
+        onRequestSolicitation: disabled ? null : onRequestSolicitation,
       );
     }
     if (eventos.isEmpty && pendingSolicitations.isEmpty) {
       return EmptyDayCard(
         diaId: diaId,
-        disabled: false,
+        disabled: disabled,
         isAdmin: isAdmin,
-        onAddEvento: onAddEvento,
-        onBatchEdit: onBatchEdit != null ? () => onBatchEdit!(diaId, []) : null,
-        onRequestSolicitation: onRequestSolicitation,
+        onAddEvento: disabled ? null : onAddEvento,
+        onBatchEdit: (!disabled && onBatchEdit != null)
+            ? () => onBatchEdit!(diaId, [])
+            : null,
+        onRequestSolicitation: disabled ? null : onRequestSolicitation,
       );
     }
     if (eventos.isEmpty && pendingSolicitations.isNotEmpty) {
       return PendingOnlyDayCard(
         diaId: diaId,
         pendingSolicitations: pendingSolicitations,
+        disabled: disabled,
         isAdmin: isAdmin,
-        onCancelSolicitation: onCancelSolicitation,
-        onRequestSolicitation: onRequestSolicitation,
+        onCancelSolicitation: disabled ? null : onCancelSolicitation,
+        onRequestSolicitation: disabled ? null : onRequestSolicitation,
       );
     }
     return FilledDayCard(
       diaId: diaId,
       eventos: eventos,
+      disabled: disabled,
       isAdmin: isAdmin,
       pendingSolicitations: pendingSolicitations,
-      onEditEvento: onEditEvento,
-      onDeleteEvento: onDeleteEvento,
-      onAddEvento: onAddEvento,
-      onBatchEdit:
-          onBatchEdit != null ? () => onBatchEdit!(diaId, eventos) : null,
-      onRequestSolicitation: onRequestSolicitation,
-      onCancelSolicitation: onCancelSolicitation,
+      onEditEvento: disabled ? null : onEditEvento,
+      onDeleteEvento: disabled ? null : onDeleteEvento,
+      onAddEvento: disabled ? null : onAddEvento,
+      onBatchEdit: (!disabled && onBatchEdit != null)
+          ? () => onBatchEdit!(diaId, eventos)
+          : null,
+      onRequestSolicitation: disabled ? null : onRequestSolicitation,
+      onCancelSolicitation: disabled ? null : onCancelSolicitation,
     );
   }
 }

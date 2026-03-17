@@ -8,6 +8,9 @@ class PontoTodayState extends Equatable {
   final String? lockedWorkMode;
   final Map<String, Map<String, String>> registros;
   final double monthBalance;
+  final int monthWorkedMinutes;
+  final int monthExpectedMinutes;
+  final int monthBusinessDays;
 
   const PontoTodayState({
     this.loading = true,
@@ -17,6 +20,9 @@ class PontoTodayState extends Equatable {
     this.lockedWorkMode,
     this.registros = const {},
     this.monthBalance = 0.0,
+    this.monthWorkedMinutes = 0,
+    this.monthExpectedMinutes = 0,
+    this.monthBusinessDays = 0,
   });
 
   PontoTodayState copyWith({
@@ -29,6 +35,9 @@ class PontoTodayState extends Equatable {
     bool clearLockedWorkMode = false,
     Map<String, Map<String, String>>? registros,
     double? monthBalance,
+    int? monthWorkedMinutes,
+    int? monthExpectedMinutes,
+    int? monthBusinessDays,
   }) {
     return PontoTodayState(
       loading: loading ?? this.loading,
@@ -40,6 +49,9 @@ class PontoTodayState extends Equatable {
           clearLockedWorkMode ? null : (lockedWorkMode ?? this.lockedWorkMode),
       registros: registros ?? this.registros,
       monthBalance: monthBalance ?? this.monthBalance,
+      monthWorkedMinutes: monthWorkedMinutes ?? this.monthWorkedMinutes,
+      monthExpectedMinutes: monthExpectedMinutes ?? this.monthExpectedMinutes,
+      monthBusinessDays: monthBusinessDays ?? this.monthBusinessDays,
     );
   }
 
@@ -52,5 +64,8 @@ class PontoTodayState extends Equatable {
         lockedWorkMode,
         registros,
         monthBalance,
+        monthWorkedMinutes,
+        monthExpectedMinutes,
+        monthBusinessDays,
       ];
 }

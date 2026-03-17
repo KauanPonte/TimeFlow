@@ -11,6 +11,7 @@ class FilledDayCard extends StatelessWidget {
   final String diaId;
   final List<Map<String, dynamic>> eventos;
   final bool isAdmin;
+  final bool disabled;
   final List<SolicitationModel> pendingSolicitations;
   final void Function(Map<String, dynamic>)? onEditEvento;
   final void Function(Map<String, dynamic>)? onDeleteEvento;
@@ -24,6 +25,7 @@ class FilledDayCard extends StatelessWidget {
     required this.diaId,
     required this.eventos,
     this.isAdmin = false,
+    this.disabled = false,
     this.pendingSolicitations = const [],
     this.onEditEvento,
     this.onDeleteEvento,
@@ -51,22 +53,28 @@ class FilledDayCard extends StatelessWidget {
     final incomplete = _incomplete;
     final hasPending = pendingSolicitations.isNotEmpty;
     final count = pendingSolicitations.length;
+    final disabledStyle = disabled;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: disabledStyle ? AppColors.surface : AppColors.surface,
         borderRadius: BorderRadius.circular(14),
       ),
       child: Container(
         decoration: BoxDecoration(
-          color: incomplete
-              ? AppColors.warning.withValues(alpha: 0.05)
-              : AppColors.surface,
+          color: disabledStyle
+              ? AppColors.surface
+              : (incomplete
+                  ? AppColors.warning.withValues(alpha: 0.05)
+                  : AppColors.surface),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color:
-                incomplete ? AppColors.warningLight30 : AppColors.borderLight,
+            color: disabledStyle
+                ? AppColors.borderLight.withValues(alpha: 0.7)
+                : (incomplete
+                    ? AppColors.warningLight30
+                    : AppColors.borderLight),
           ),
           boxShadow: const [
             BoxShadow(
@@ -78,55 +86,71 @@ class FilledDayCard extends StatelessWidget {
         ),
         child: Theme(
           data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-          child: ExpansionTile(
-            tilePadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            childrenPadding:
-                const EdgeInsets.only(left: 16, right: 16, bottom: 12),
-            leading: Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: incomplete
-                    ? AppColors.warning.withValues(alpha: 0.05)
-                    : AppColors.primaryLight10,
-                border: Border.all(
-                  color: incomplete
-                      ? AppColors.warningLight30
-                      : AppColors.primary.withValues(alpha: 0.3),
+          child: IgnorePointer(
+            ignoring: disabledStyle,
+            child: Opacity(
+              opacity: disabledStyle ? 0.85 : 1,
+              child: ExpansionTile(
+                tilePadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                childrenPadding:
+                    const EdgeInsets.only(left: 16, right: 16, bottom: 12),
+                leading: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: disabledStyle
+                        ? AppColors.borderLight.withValues(alpha: 0.4)
+                        : (incomplete
+                            ? AppColors.warning.withValues(alpha: 0.05)
+                            : AppColors.primaryLight10),
+                    border: Border.all(
+                      color: disabledStyle
+                          ? AppColors.borderLight.withValues(alpha: 0.7)
+                          : (incomplete
+                              ? AppColors.warningLight30
+                              : AppColors.primary.withValues(alpha: 0.3)),
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    incomplete
+                        ? Icons.warning_amber_rounded
+                        : Icons.calendar_today,
+                    color: disabledStyle
+                        ? AppColors.textSecondary
+                        : (incomplete ? AppColors.warning : AppColors.primary),
+                    size: 20,
+                  ),
                 ),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                incomplete ? Icons.warning_amber_rounded : Icons.calendar_today,
-                color: incomplete ? AppColors.warning : AppColors.primary,
-                size: 20,
+                title: Text(
+                  formatDate(diaId),
+                  style: AppTextStyles.bodyLarge.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: disabledStyle
+                        ? AppColors.textSecondary
+                        : AppColors.textPrimary,
+                  ),
+                ),
+                subtitle: _buildSubtitle(incomplete, hasPending, count),
+                children: [
+                  const Divider(height: 1),
+                  const SizedBox(height: 8),
+                  ..._buildEventoRows(incomplete),
+                  if (incomplete) _buildIncompleteWarning(),
+                  if (isAdmin && onBatchEdit != null) _buildBatchEditButton(),
+                  if (!isAdmin && onAddEvento != null) _buildAddButton(),
+                  if (hasPending) ...[
+                    PendingSolicitationsSection(
+                      solicitations: pendingSolicitations,
+                      isAdmin: isAdmin,
+                      onCancel: onCancelSolicitation,
+                    ),
+                  ],
+                  if (!isAdmin && onRequestSolicitation != null)
+                    SolicitationButton(onTap: onRequestSolicitation!),
+                ],
               ),
             ),
-            title: Text(
-              formatDate(diaId),
-              style: AppTextStyles.bodyLarge.copyWith(
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            subtitle: _buildSubtitle(incomplete, hasPending, count),
-            children: [
-              const Divider(height: 1),
-              const SizedBox(height: 8),
-              ..._buildEventoRows(incomplete),
-              if (incomplete) _buildIncompleteWarning(),
-              if (isAdmin && onBatchEdit != null) _buildBatchEditButton(),
-              if (!isAdmin && onAddEvento != null) _buildAddButton(),
-              if (hasPending) ...[
-                PendingSolicitationsSection(
-                  solicitations: pendingSolicitations,
-                  isAdmin: isAdmin,
-                  onCancel: onCancelSolicitation,
-                ),
-              ],
-              if (!isAdmin && onRequestSolicitation != null)
-                SolicitationButton(onTap: onRequestSolicitation!),
-            ],
           ),
         ),
       ),

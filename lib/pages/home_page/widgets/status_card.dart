@@ -10,6 +10,8 @@ class StatusCard extends StatelessWidget {
   final String todayWorkedDisplay;
   final double workProgress;
   final int workedMinutes;
+  final int monthWorkedMinutes;
+  final int monthExpectedMinutes;
 
   const StatusCard({
     super.key,
@@ -17,6 +19,8 @@ class StatusCard extends StatelessWidget {
     required this.todayWorkedDisplay,
     required this.workProgress,
     required this.workedMinutes,
+    this.monthWorkedMinutes = 0,
+    this.monthExpectedMinutes = 0,
   });
 
   Color get _statusColor {
@@ -28,6 +32,13 @@ class StatusCard extends StatelessWidget {
       default:
         return AppColors.textSecondary;
     }
+  }
+
+  String _formatMinutesAsHoursLabel(int minutes) {
+    final h = minutes ~/ 60;
+    final m = minutes % 60;
+    if (m == 0) return '$h horas';
+    return '${h}h ${m}m';
   }
 
   @override
@@ -42,8 +53,10 @@ class StatusCard extends StatelessWidget {
     final String formattedLastDay =
         DateFormat('dd/MM/yyyy').format(lastDayOfMonth);
 
-    // Texto fixo solicitado
-    const String monthlyProgress = "72 horas de 124 horas/mês";
+    final hasExpected = monthExpectedMinutes > 0;
+    final monthlyProgress = hasExpected
+        ? '${_formatMinutesAsHoursLabel(monthWorkedMinutes)} de ${_formatMinutesAsHoursLabel(monthExpectedMinutes)}/mês'
+        : '';
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -125,13 +138,14 @@ class StatusCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 2),
-                Text(
-                  monthlyProgress,
-                  style: AppTextStyles.bodySmall.copyWith(
-                    color: AppColors.textSecondary,
-                    fontSize: 11,
+                if (monthlyProgress.isNotEmpty)
+                  Text(
+                    monthlyProgress,
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: AppColors.textSecondary,
+                      fontSize: 11,
+                    ),
                   ),
-                ),
               ],
             ),
           ),
