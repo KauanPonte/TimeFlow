@@ -97,7 +97,6 @@ class PontoService {
       final now = Timestamp.fromDate(DateTime(
           nowRaw.year, nowRaw.month, nowRaw.day, nowRaw.hour, nowRaw.minute));
 
-
       final diaSnapPre = await refDia.get();
 
       if (!diaSnapPre.exists) {
@@ -337,10 +336,11 @@ class PontoService {
     final hojeId = DateFormat('yyyy-MM-dd').format(DateTime.now());
     final bool ehHoje = diaId == hojeId;
 
-    // Lógica de falta considerando calendário 
+    // Lógica de falta considerando calendário
     final date = DateTime.parse(diaId);
     final holidays = getBrazilHolidays(date.year);
-    final bool isWeekend = date.weekday == DateTime.saturday || date.weekday == DateTime.sunday;
+    final bool isWeekend =
+        date.weekday == DateTime.saturday || date.weekday == DateTime.sunday;
     final bool isHoliday = holidays.containsKey(date);
     final bool falta = !ehHoje && eventos.isEmpty && !isWeekend && !isHoliday;
 
@@ -463,6 +463,7 @@ class PontoService {
         workedMinutes: 0,
         expectedMinutes: 0,
         businessDaysTotal: 0,
+        monthBalance: 0.0,
       );
     }
 
@@ -478,7 +479,8 @@ class PontoService {
     int businessDaysTotal = 0;
     int expectedMinutes = 0;
 
-    for (var d = monthStart; d.isBefore(nextMonthStart);
+    for (var d = monthStart;
+        d.isBefore(nextMonthStart);
         d = d.add(const Duration(days: 1))) {
       final date = _startOfDay(d);
       final isWeekend =
@@ -507,24 +509,29 @@ class PontoService {
       workedMinutes += (m['workedMinutes'] as int?) ?? 0;
     }
 
+    int todayExpectedMinutes;
+    double monthBalance;
+    int expected = 0;
+    final today = DateTime(now.year, now.month, now.day);
+    for (var d = DateTime(now.year, now.month, 1);
+        d.isBefore(today) || d.isAtSameMomentAs(today);
+        d = d.add(const Duration(days: 1))) {
+      final isWeekend =
+          d.weekday == DateTime.saturday || d.weekday == DateTime.sunday;
+      final isHoliday = holidays.containsKey(d);
+      if (!isWeekend && !isHoliday) {
+        expected += workloadMinutes;
+      }
+    }
+    todayExpectedMinutes = expected;
+    monthBalance = (workedMinutes - todayExpectedMinutes) / 60.0;
+
     return MesResumo(
       workedMinutes: workedMinutes,
       expectedMinutes: expectedMinutes,
       businessDaysTotal: businessDaysTotal,
+      monthBalance: monthBalance,
     );
-  }
-
-  static Future<double> getSaldoMesAtualHoras() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return 0.0;
-
-    final uid = user.uid;
-    final mesId = DateFormat('yyyy-MM').format(DateTime.now());
-
-    final snap = await _refMes(uid, newMethod(mesId)).get();
-    final minutes = (snap.data()?['balanceMinutes'] as int?) ?? 0;
-
-    return minutes / 60.0;
   }
 
   /// Garante o desconto de faltas em dias úteis passados (mês atual),
@@ -561,7 +568,8 @@ class PontoService {
       DateTime(now.year, now.month, now.day, cutoffHour, cutoffMinute),
     );
 
-    for (var d = monthStart; d.isBefore(nextMonthStart);
+    for (var d = monthStart;
+        d.isBefore(nextMonthStart);
         d = d.add(const Duration(days: 1))) {
       final day = _startOfDay(d);
       final isToday = day.isAtSameMomentAs(today);
@@ -628,10 +636,11 @@ class MesResumo {
   final int workedMinutes;
   final int expectedMinutes;
   final int businessDaysTotal;
-
+  final double monthBalance;
   const MesResumo({
     required this.workedMinutes,
     required this.expectedMinutes,
     required this.businessDaysTotal,
+    required this.monthBalance,
   });
 }

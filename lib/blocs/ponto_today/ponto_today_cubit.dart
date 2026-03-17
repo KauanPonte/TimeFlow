@@ -39,7 +39,6 @@ class PontoTodayCubit extends Cubit<PontoTodayState> {
         PontoService.loadEventosHojeFormatados(),
         PontoService.getUltimoTipoHoje(),
         PontoService.loadRegistros(),
-        PontoService.getSaldoMesAtualHoras(),
         PontoService.getLockedWorkModeHoje(),
         PontoService.getResumoMesAtual(),
       ]);
@@ -48,7 +47,7 @@ class PontoTodayCubit extends Cubit<PontoTodayState> {
 
       if (!isClosed) {
         final ultimoTipo = results[2] as String?;
-        final mesResumo = results[6] as MesResumo;
+        final mesResumo = results[5] as MesResumo;
 
         _scheduleCutoffRefresh();
 
@@ -57,9 +56,9 @@ class PontoTodayCubit extends Cubit<PontoTodayState> {
           eventosHoje: results[0] as List<Map<String, dynamic>>,
           eventosHojeFormatados: results[1] as List<Map<String, String>>,
           ultimoTipo: ultimoTipo,
-          lockedWorkMode: results[5] as String?,
+          lockedWorkMode: results[4] as String?,
           registros: results[3] as Map<String, Map<String, String>>,
-          monthBalance: results[4] as double,
+          monthBalance: mesResumo.monthBalance,
           monthWorkedMinutes: mesResumo.workedMinutes,
           monthExpectedMinutes: mesResumo.expectedMinutes,
           monthBusinessDays: mesResumo.businessDaysTotal,
