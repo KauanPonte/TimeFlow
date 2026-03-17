@@ -11,6 +11,8 @@ class CustomTextField extends StatelessWidget {
   final String? errorText;
   final bool isValid;
   final Function(String)? onChanged;
+  final TextInputAction? textInputAction;
+  final Function(String)? onFieldSubmitted;
 
   const CustomTextField({
     super.key,
@@ -23,6 +25,8 @@ class CustomTextField extends StatelessWidget {
     this.errorText,
     this.isValid = false,
     this.onChanged,
+    this.textInputAction,
+    this.onFieldSubmitted,
   });
 
   @override
@@ -37,6 +41,8 @@ class CustomTextField extends StatelessWidget {
       controller: controller,
       obscureText: obscureText,
       keyboardType: keyboardType,
+      textInputAction: textInputAction,
+      onSubmitted: onFieldSubmitted,
       onChanged: onChanged,
       decoration: InputDecoration(
         labelText: labelText,

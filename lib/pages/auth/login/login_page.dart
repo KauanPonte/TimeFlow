@@ -149,6 +149,7 @@ class _LoginPageState extends State<LoginPage> {
                                 );
                           }
                         },
+                        textInputAction: TextInputAction.next,
                       ),
                       const SizedBox(height: 16),
 
@@ -190,6 +191,17 @@ class _LoginPageState extends State<LoginPage> {
                             });
                           },
                         ),
+                        textInputAction: TextInputAction.done,
+                        onFieldSubmitted: (_) {
+                          if (!isLoading) {
+                            context.read<AuthBloc>().add(
+                                  LoginRequested(
+                                    email: emailController.text.trim(),
+                                    password: passwordController.text,
+                                  ),
+                                );
+                          }
+                        },
                       ),
                       const SizedBox(height: 16),
 
@@ -211,16 +223,15 @@ class _LoginPageState extends State<LoginPage> {
                       // Login Button
                       PrimaryButton(
                         text: isLoading ? "Entrando..." : "Entrar",
-                        onPressed: isLoading
-                            ? () {}
-                            : () {
-                                context.read<AuthBloc>().add(
-                                      LoginRequested(
-                                        email: emailController.text.trim(),
-                                        password: passwordController.text,
-                                      ),
-                                    );
-                              },
+                        isLoading: isLoading,
+                        onPressed: () {
+                          context.read<AuthBloc>().add(
+                                LoginRequested(
+                                  email: emailController.text.trim(),
+                                  password: passwordController.text,
+                                ),
+                              );
+                        },
                       ),
                       const SizedBox(height: 16),
 

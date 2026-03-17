@@ -7,6 +7,7 @@ class EmailInputSection extends StatelessWidget {
   final VoidCallback onSendPressed;
   final String? errorText;
   final Function(String)? onChanged;
+  final bool isLoading;
 
   const EmailInputSection({
     super.key,
@@ -14,6 +15,7 @@ class EmailInputSection extends StatelessWidget {
     required this.onSendPressed,
     this.errorText,
     this.onChanged,
+    this.isLoading = false,
   });
 
   @override
@@ -29,6 +31,12 @@ class EmailInputSection extends StatelessWidget {
           keyboardType: TextInputType.emailAddress,
           errorText: errorText,
           onChanged: onChanged,
+          textInputAction: TextInputAction.done,
+          onFieldSubmitted: (_) {
+            if (!isLoading) {
+              onSendPressed();
+            }
+          },
         ),
         const SizedBox(height: 16),
 
@@ -42,8 +50,9 @@ class EmailInputSection extends StatelessWidget {
 
         // Send Button
         PrimaryButton(
-          text: "Enviar Link",
+          text: isLoading ? "Enviando..." : "Enviar Link",
           onPressed: onSendPressed,
+          isLoading: isLoading,
         ),
       ],
     );

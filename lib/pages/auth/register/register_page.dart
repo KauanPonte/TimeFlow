@@ -148,6 +148,7 @@ class _RegisterPageState extends State<RegisterPage> {
                                     );
                               }
                             },
+                            textInputAction: TextInputAction.next,
                           ),
                           const SizedBox(height: 16),
 
@@ -177,6 +178,7 @@ class _RegisterPageState extends State<RegisterPage> {
                                     );
                               }
                             },
+                            textInputAction: TextInputAction.next,
                           ),
                           const SizedBox(height: 16),
 
@@ -218,6 +220,19 @@ class _RegisterPageState extends State<RegisterPage> {
                                 });
                               },
                             ),
+                            textInputAction: TextInputAction.done,
+                            onFieldSubmitted: (_) {
+                              if (!isLoading) {
+                                context.read<AuthBloc>().add(
+                                      RegisterRequested(
+                                        email: emailController.text.trim(),
+                                        password: passwordController.text,
+                                        name: nameController.text.trim(),
+                                        profileImage: selectedImage,
+                                      ),
+                                    );
+                              }
+                            },
                           ),
                           const SizedBox(height: 32),
 
@@ -226,9 +241,8 @@ class _RegisterPageState extends State<RegisterPage> {
                             text: isLoading
                                 ? "Enviando..."
                                 : "Solicitar Cadastro",
-                            onPressed: isLoading
-                                ? () {}
-                                : () {
+                            isLoading: isLoading,
+                            onPressed: () {
                                     context.read<AuthBloc>().add(
                                           RegisterRequested(
                                             email: emailController.text.trim(),
