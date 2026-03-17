@@ -8,6 +8,9 @@ import 'package:flutter_application_appdeponto/blocs/ponto_history/ponto_history
 import 'package:flutter_application_appdeponto/blocs/ponto_today/ponto_today_cubit.dart';
 import 'package:flutter_application_appdeponto/blocs/solicitations/solicitation_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/solicitations/solicitation_event.dart';
+import 'package:flutter_application_appdeponto/blocs/solicitations/solicitation_state.dart';
+import 'package:flutter_application_appdeponto/models/solicitation_model.dart';
+import 'package:flutter_application_appdeponto/services/ponto_service.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/widgets/main_app_bar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -48,6 +51,8 @@ class _HomePageState extends State<HomePage> {
   String? _uid;
   Timer? _tickTimer;
   Timer? _solTimer;
+  StreamSubscription<SolicitationState>? _solSub;
+  final Set<String> _handledReviewedIds = {};
   final int _targetMinutesPerDay = 8 * 60; // 8 horas por dia
   double workProgress = 0.0;
 
@@ -102,6 +107,44 @@ class _HomePageState extends State<HomePage> {
         context.read<SolicitationBloc>().add(
               SilentReloadSolicitationsEvent(isAdmin: _isAdmin),
             );
+      }
+    });
+
+    _solSub = context.read<SolicitationBloc>().stream.listen((state) async {
+      if (!mounted || _isAdmin) return;
+      List<SolicitationModel> reviewed = [];
+      if (state is SolicitationLoaded) {
+        reviewed = state.reviewedSolicitations;
+      } else if (state is SolicitationActionSuccess) {
+        reviewed = state.reviewedSolicitations;
+      }
+      if (reviewed.isEmpty) return;
+
+      bool shouldRefresh = false;
+      final dayIdsToRecalc = <String>{};
+      for (final s in reviewed) {
+        if (s.status != SolicitationStatus.approved) continue;
+        if (_handledReviewedIds.add(s.id)) {
+          shouldRefresh = true;
+          dayIdsToRecalc.add(s.diaId);
+        }
+      }
+      if (dayIdsToRecalc.isNotEmpty) {
+        final uid = FirebaseAuth.instance.currentUser?.uid;
+        if (uid != null) {
+          for (final diaId in dayIdsToRecalc) {
+            await PontoService.recalcularBancoDeHorasDoDia(
+              uid: uid,
+              diaId: diaId,
+            );
+          }
+        }
+      }
+      if (shouldRefresh) {
+        context.read<PontoTodayCubit>().refresh();
+        context
+            .read<PontoHistoryBloc>()
+            .add(LoadHistoryEvent(month: _currentMonth));
       }
     });
   }
@@ -199,6 +242,7 @@ class _HomePageState extends State<HomePage> {
   void dispose() {
     _tickTimer?.cancel();
     _solTimer?.cancel();
+    _solSub?.cancel();
     _scrollController.dispose();
     super.dispose();
   }
@@ -281,9 +325,13 @@ class _HomePageState extends State<HomePage> {
                     workProgress: workProgress,
                     workedMinutes:
                         workedMinutes, // Passando o valor para o novo StatusCard
+                    monthWorkedMinutes: pontoState.monthWorkedMinutes,
+                    monthExpectedMinutes: pontoState.monthExpectedMinutes,
                   ),
                   const SizedBox(height: 16),
-                  BalanceCard(monthBalance: pontoState.monthBalance),
+                  BalanceCard(
+                    monthBalance: pontoState.monthBalance,
+                  ),
                   const SizedBox(height: 24),
                   PunchButton(
                     onPressed: () async {

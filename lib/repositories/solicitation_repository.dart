@@ -301,6 +301,12 @@ class SolicitationRepository {
       if (remaining.docs.isEmpty) {
         await refDia.delete();
       } else {
+        // Garante que o doc do dia tenha os campos base para aparecer no histórico.
+        await refDia.set({
+          'uid': uid,
+          'date': diaId,
+          'updatedAt': Timestamp.now(),
+        }, SetOptions(merge: true));
         await PontoService.recalcularBancoDeHorasDoDia(uid: uid, diaId: diaId);
       }
     }

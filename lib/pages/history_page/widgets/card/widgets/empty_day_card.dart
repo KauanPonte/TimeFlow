@@ -27,11 +27,11 @@ class EmptyDayCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color: disabled ? AppColors.bgLight : AppColors.surface,
+        color: disabled ? AppColors.surface : AppColors.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: disabled
-              ? AppColors.borderLight.withValues(alpha: 0.5)
+              ? AppColors.borderLight.withValues(alpha: 0.7)
               : AppColors.borderLight,
         ),
       ),
@@ -41,25 +41,25 @@ class EmptyDayCard extends StatelessWidget {
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
             color: disabled
-                ? AppColors.borderLight.withValues(alpha: 0.3)
+                ? AppColors.borderLight.withValues(alpha: 0.4)
                 : AppColors.borderLight.withValues(alpha: 0.5),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: disabled
-                  ? AppColors.borderLight.withValues(alpha: 0.5)
+                  ? AppColors.borderLight.withValues(alpha: 0.7)
                   : AppColors.borderLight,
             ),
           ),
           child: Icon(
             Icons.calendar_today,
-            color: disabled ? AppColors.borderLight : AppColors.textSecondary,
+            color: disabled ? AppColors.textSecondary : AppColors.textSecondary,
             size: 20,
           ),
         ),
         title: Text(
           formatDate(diaId),
           style: AppTextStyles.bodyMedium.copyWith(
-            color: disabled ? AppColors.borderLight : AppColors.textSecondary,
+            color: disabled ? AppColors.textSecondary : AppColors.textSecondary,
           ),
         ),
         subtitle: disabled

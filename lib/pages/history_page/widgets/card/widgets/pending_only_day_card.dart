@@ -11,6 +11,7 @@ class PendingOnlyDayCard extends StatelessWidget {
   final String diaId;
   final List<SolicitationModel> pendingSolicitations;
   final bool isAdmin;
+  final bool disabled;
   final void Function(String)? onCancelSolicitation;
   final VoidCallback? onRequestSolicitation;
 
@@ -19,6 +20,7 @@ class PendingOnlyDayCard extends StatelessWidget {
     required this.diaId,
     required this.pendingSolicitations,
     this.isAdmin = false,
+    this.disabled = false,
     this.onCancelSolicitation,
     this.onRequestSolicitation,
   });
@@ -29,9 +31,13 @@ class PendingOnlyDayCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: disabled ? AppColors.surface : AppColors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.borderLight),
+        border: Border.all(
+          color: disabled
+              ? AppColors.borderLight.withValues(alpha: 0.7)
+              : AppColors.borderLight,
+        ),
         boxShadow: const [
           BoxShadow(
             color: AppColors.shadow,
@@ -42,67 +48,80 @@ class PendingOnlyDayCard extends StatelessWidget {
       ),
       child: Theme(
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-        child: ExpansionTile(
-          initiallyExpanded: true,
-          tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-          childrenPadding:
-              const EdgeInsets.only(left: 16, right: 16, bottom: 12),
-          leading: Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: AppColors.borderLight.withValues(alpha: 0.5),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(Icons.calendar_today,
-                color: AppColors.textSecondary, size: 20),
-          ),
-          title: Text(
-            formatDate(diaId),
-            style: AppTextStyles.bodyLarge.copyWith(
-              fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary,
-            ),
-          ),
-          subtitle: Row(
-            children: [
-              Text(
-                'Sem registros',
-                style: AppTextStyles.bodySmall.copyWith(
-                  color: AppColors.textSecondary.withValues(alpha: 0.6),
-                  fontSize: 11,
-                ),
-              ),
-              const SizedBox(width: 6),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+        child: IgnorePointer(
+          ignoring: disabled,
+          child: Opacity(
+            opacity: disabled ? 0.85 : 1,
+            child: ExpansionTile(
+              initiallyExpanded: true,
+              tilePadding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              childrenPadding:
+                  const EdgeInsets.only(left: 16, right: 16, bottom: 12),
+              leading: Container(
+                padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: AppColors.warningLight20,
-                  borderRadius: BorderRadius.circular(8),
-                  border:
-                      Border.all(color: AppColors.warningLight30, width: 0.5),
+                  color: AppColors.borderLight.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                child: Text(
-                  '$count pendencia${count != 1 ? 's' : ''}',
-                  style: AppTextStyles.bodySmall.copyWith(
-                    color: AppColors.warning,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 11,
-                  ),
+                child: Icon(Icons.calendar_today,
+                    color: disabled
+                        ? AppColors.textSecondary
+                        : AppColors.textSecondary,
+                    size: 20),
+              ),
+              title: Text(
+                formatDate(diaId),
+                style: AppTextStyles.bodyLarge.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: disabled
+                      ? AppColors.textSecondary
+                      : AppColors.textPrimary,
                 ),
               ),
-            ],
-          ),
-          children: [
-            const Divider(height: 1),
-            const SizedBox(height: 8),
-            PendingSolicitationsSection(
-              solicitations: pendingSolicitations,
-              isAdmin: isAdmin,
-              onCancel: onCancelSolicitation,
+              subtitle: Row(
+                children: [
+                  Text(
+                    'Sem registros',
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: AppColors.textSecondary.withValues(alpha: 0.6),
+                      fontSize: 11,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: AppColors.warningLight20,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                          color: AppColors.warningLight30, width: 0.5),
+                    ),
+                    child: Text(
+                      '$count pendencia${count != 1 ? 's' : ''}',
+                      style: AppTextStyles.bodySmall.copyWith(
+                        color: AppColors.warning,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              children: [
+                const Divider(height: 1),
+                const SizedBox(height: 8),
+                PendingSolicitationsSection(
+                  solicitations: pendingSolicitations,
+                  isAdmin: isAdmin,
+                  onCancel: onCancelSolicitation,
+                ),
+                if (onRequestSolicitation != null)
+                  SolicitationButton(onTap: onRequestSolicitation!),
+              ],
             ),
-            if (onRequestSolicitation != null)
-              SolicitationButton(onTap: onRequestSolicitation!),
-          ],
+          ),
         ),
       ),
     );

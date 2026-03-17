@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_appdeponto/models/solicitation_model.dart';
+import 'package:flutter_application_appdeponto/services/ponto_service.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:intl/intl.dart';
 
@@ -19,6 +20,20 @@ String formatDate(String diaId) {
 String formatTime(DateTime? dt) {
   if (dt == null) return '--:--';
   return DateFormat('HH:mm').format(dt);
+}
+
+bool isWeekendOrHoliday(String diaId) {
+  try {
+    final date = DateTime.parse(diaId);
+    final day = DateTime(date.year, date.month, date.day);
+    final isWeekend =
+        day.weekday == DateTime.saturday || day.weekday == DateTime.sunday;
+    final holidays = PontoService.getBrazilHolidays(date.year);
+    final isHoliday = holidays.containsKey(day);
+    return isWeekend || isHoliday;
+  } catch (_) {
+    return false;
+  }
 }
 
 // Tipo helpers
