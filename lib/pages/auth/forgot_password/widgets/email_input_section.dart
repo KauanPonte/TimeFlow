@@ -31,6 +31,12 @@ class EmailInputSection extends StatelessWidget {
           keyboardType: TextInputType.emailAddress,
           errorText: errorText,
           onChanged: onChanged,
+          textInputAction: TextInputAction.done,
+          onFieldSubmitted: (_) {
+            if (!isLoading) {
+              onSendPressed();
+            }
+          },
         ),
         const SizedBox(height: 16),
 
