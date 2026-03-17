@@ -101,6 +101,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                       if (!isEmailSent)
                         EmailInputSection(
                           emailController: emailController,
+                          isLoading: isLoading,
                           errorText:
                               fieldsState.fieldErrors[AuthFields.resetEmail],
                           onChanged: (value) {

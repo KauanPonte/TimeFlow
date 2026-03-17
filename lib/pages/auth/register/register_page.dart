@@ -226,9 +226,8 @@ class _RegisterPageState extends State<RegisterPage> {
                             text: isLoading
                                 ? "Enviando..."
                                 : "Solicitar Cadastro",
-                            onPressed: isLoading
-                                ? () {}
-                                : () {
+                            isLoading: isLoading,
+                            onPressed: () {
                                     context.read<AuthBloc>().add(
                                           RegisterRequested(
                                             email: emailController.text.trim(),
