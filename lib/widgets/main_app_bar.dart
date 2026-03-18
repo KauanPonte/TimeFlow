@@ -746,6 +746,8 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isAdmin = _resolveIsAdmin(context);
+
     return AppBar(
       backgroundColor: AppColors.surface,
       elevation: 0,
@@ -804,8 +806,7 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
             final pontoState = context.watch<PontoTodayCubit>().state;
             final incompletos = _computeIncompletos(pontoState);
 
-            // Descobre se é admin
-            final isAdmin = _resolveIsAdmin(context);
+            // Conta solicitações pendentes (admin) ou revisadas (funcionário)
 
             // Conta solicitações pendentes (admin) ou revisadas (funcionário)
             final solState = context.watch<SolicitationBloc>().state;
@@ -884,18 +885,20 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
             }
           },
           itemBuilder: (context) => [
-            PopupMenuItem<String>(
-              value: 'settings',
-              child: Row(children: [
-                const Icon(Icons.settings_outlined,
-                    color: AppColors.primary, size: 20),
-                const SizedBox(width: 12),
-                Text('Configurações',
-                    style: AppTextStyles.bodyMedium
-                        .copyWith(color: AppColors.textPrimary)),
-              ]),
-            ),
-            const PopupMenuDivider(),
+            if (isAdmin) ...[
+              PopupMenuItem<String>(
+                value: 'settings',
+                child: Row(children: [
+                  const Icon(Icons.settings_outlined,
+                      color: AppColors.primary, size: 20),
+                  const SizedBox(width: 12),
+                  Text('Configurações',
+                      style: AppTextStyles.bodyMedium
+                          .copyWith(color: AppColors.textPrimary)),
+                ]),
+              ),
+              const PopupMenuDivider(),
+            ],
             PopupMenuItem<String>(
               value: 'solicitacoes',
               child: Row(children: [
