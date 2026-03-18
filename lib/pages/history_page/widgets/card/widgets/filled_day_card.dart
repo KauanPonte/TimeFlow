@@ -248,17 +248,52 @@ class FilledDayCard extends StatelessWidget {
         return atA.compareTo(atB);
       });
 
+    final cycles = <List<Map<String, dynamic>>>[];
+    List<Map<String, dynamic>> currentCycle = [];
+
+    for (var ev in orderedEventos) {
+      final tipo = (ev['tipo'] ?? '').toString();
+      
+      if (tipo == 'entrada') {
+        if (currentCycle.isNotEmpty) {
+          cycles.add(currentCycle);
+        }
+        currentCycle = [ev];
+      } else {
+        currentCycle.add(ev);
+        if (tipo == 'saida') {
+          cycles.add(currentCycle);
+          currentCycle = [];
+        }
+      }
+    }
+    if (currentCycle.isNotEmpty) {
+      cycles.add(currentCycle);
+    }
+
     final groups = <_ModeGroup>[];
 
-    for (var i = 0; i < orderedEventos.length; i++) {
-      final evento = orderedEventos[i];
-      final explicitMode = _explicitWorkMode(evento);
-      final mode = explicitMode ?? _inferModeForUntypedEvent(orderedEventos, i);
-
-      if (groups.isEmpty || groups.last.mode != mode) {
-        groups.add(_ModeGroup(mode: mode, events: [evento]));
-      } else {
-        groups.last.events.add(evento);
+    for (var cycle in cycles) {
+      bool hasPresencial = false;
+      bool hasRemoto = false;
+      
+      for (var ev in cycle) {
+        final rawMode = (ev['workMode'] ?? '').toString();
+        if (rawMode == 'presencial') {
+          hasPresencial = true;
+        } else if (rawMode == 'remoto') {
+          hasRemoto = true;
+        }
+      }
+      
+      final cycleMode = hasPresencial ? 'presencial' : (hasRemoto ? 'remoto' : 'outro');
+      
+      for (var ev in cycle) {
+        if (groups.isEmpty || groups.last.mode != cycleMode) {
+          groups.add(_ModeGroup(mode: cycleMode, events: [ev]));
+        } else {
+          groups.last.events.add(ev);
+        }
       }
     }
 
@@ -324,95 +359,6 @@ class FilledDayCard extends StatelessWidget {
     }
   }
 
-  String? _explicitWorkMode(Map<String, dynamic> evento) {
-    final workMode = (evento['workMode'] ?? '').toString();
-    if (workMode == 'presencial' || workMode == 'remoto') {
-      return workMode;
-    }
-    return null;
-  }
-
-  String _inferModeForUntypedEvent(
-      List<Map<String, dynamic>> orderedEventos, int index) {
-    final tipo = (orderedEventos[index]['tipo'] ?? '').toString();
-    final inPresencialGroup = _belongsToModeForUntypedEvent(
-        orderedEventos, index, 'presencial', tipo);
-    final inRemotoGroup =
-        _belongsToModeForUntypedEvent(orderedEventos, index, 'remoto', tipo);
-
-    if (inPresencialGroup && !inRemotoGroup) return 'presencial';
-    if (inRemotoGroup && !inPresencialGroup) return 'remoto';
-    return 'outro';
-  }
-
-  bool _belongsToModeForUntypedEvent(
-    List<Map<String, dynamic>> orderedEventos,
-    int index,
-    String mode,
-    String tipo,
-  ) {
-    if (tipo == 'entrada') {
-      return _hasClosingSaidaAfterIndex(orderedEventos, index, mode);
-    }
-    if (tipo == 'saida') {
-      return _hasOpenEntradaBeforeIndex(orderedEventos, index, mode);
-    }
-    return _isInsideClosedGroupWindow(orderedEventos, index, mode);
-  }
-
-  bool _isInsideClosedGroupWindow(
-    List<Map<String, dynamic>> orderedEventos,
-    int index,
-    String mode,
-  ) {
-    if (!_hasOpenEntradaBeforeIndex(orderedEventos, index, mode)) {
-      return false;
-    }
-    return _hasClosingSaidaAfterIndex(orderedEventos, index, mode);
-  }
-
-  bool _hasOpenEntradaBeforeIndex(
-    List<Map<String, dynamic>> orderedEventos,
-    int index,
-    String mode,
-  ) {
-    var hasOpenEntrada = false;
-
-    for (var i = 0; i < index; i++) {
-      final evento = orderedEventos[i];
-      if (_explicitWorkMode(evento) != mode) continue;
-
-      final tipo = (evento['tipo'] ?? '').toString();
-      if (tipo == 'entrada') {
-        hasOpenEntrada = true;
-      } else if (tipo == 'saida') {
-        hasOpenEntrada = false;
-      }
-    }
-
-    return hasOpenEntrada;
-  }
-
-  bool _hasClosingSaidaAfterIndex(
-    List<Map<String, dynamic>> orderedEventos,
-    int index,
-    String mode,
-  ) {
-    for (var i = index + 1; i < orderedEventos.length; i++) {
-      final evento = orderedEventos[i];
-      if (_explicitWorkMode(evento) != mode) continue;
-
-      final tipo = (evento['tipo'] ?? '').toString();
-      if (tipo == 'saida') {
-        return true;
-      }
-      if (tipo == 'entrada') {
-        return false;
-      }
-    }
-
-    return false;
-  }
 
   Widget _buildEventoRow(Map<String, dynamic> ev) {
     final tipo = (ev['tipo'] ?? '').toString();

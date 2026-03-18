@@ -16,15 +16,14 @@ import 'package:flutter_application_appdeponto/pages/admin/solicitations/solicit
 import 'package:flutter_application_appdeponto/repositories/solicitation_repository.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
+import 'package:flutter_application_appdeponto/widgets/app_dialog_components.dart';
 import '../pages/solicitacoes_page/solicitacoes_page.dart';
-import '../pages/home_page/pages/calendar_page.dart';
+import '../pages/admin/settings/settings_hub_page.dart';
 
 /// AppBar padrão para as telas principais (Painel, Meu Ponto, Perfil).
 /// Logo + subtítulo configurável + menu com "Sair" (e "Configurações" opcional).
 class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String subtitle;
-  final bool showSettings;
-  final VoidCallback? onSettingsTap;
 
   /// Callback disparado quando o usuário toca em um dia na lista de
   /// registros incompletos. Se fornecido, NÃO navega — delega à tela
@@ -35,8 +34,6 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
   const MainAppBar({
     super.key,
     required this.subtitle,
-    this.showSettings = false,
-    this.onSettingsTap,
     this.onNotificationDayTap,
   });
 
@@ -730,36 +727,27 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
   void _showLogoutDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Sair', style: AppTextStyles.h3),
-        content:
-            Text('Deseja realmente sair?', style: AppTextStyles.bodyMedium),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              context.read<AuthBloc>().add(const LogoutRequested());
-              Navigator.pushNamedAndRemoveUntil(
-                  context, '/welcome', (r) => false);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.error,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Sair'),
-          ),
-        ],
+      builder: (_) => AppDialogScaffold(
+        title: 'Sair',
+        subtitle: 'Deseja realmente sair?',
+        icon: Icons.logout,
+        isDestructive: true,
+        confirmLabel: 'Sair',
+        onConfirm: () {
+          Navigator.pop(context);
+          context.read<AuthBloc>().add(const LogoutRequested());
+          Navigator.pushNamedAndRemoveUntil(
+              context, '/welcome', (r) => false);
+        },
+        children: const [],
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final isAdmin = _resolveIsAdmin(context);
+
     return AppBar(
       backgroundColor: AppColors.surface,
       elevation: 0,
@@ -818,8 +806,7 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
             final pontoState = context.watch<PontoTodayCubit>().state;
             final incompletos = _computeIncompletos(pontoState);
 
-            // Descobre se é admin
-            final isAdmin = _resolveIsAdmin(context);
+            // Conta solicitações pendentes (admin) ou revisadas (funcionário)
 
             // Conta solicitações pendentes (admin) ou revisadas (funcionário)
             final solState = context.watch<SolicitationBloc>().state;
@@ -884,12 +871,10 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
           offset: const Offset(0, 50),
           onSelected: (value) {
             if (value == 'settings') {
-              onSettingsTap?.call();
-            } else if (value == 'calendario') {
               Navigator.push(
                   context,
                   MaterialPageRoute(
-                      builder: (context) => const CalendarPage()));
+                      builder: (context) => const SettingsHubPage()));
             } else if (value == 'solicitacoes') {
               Navigator.push(
                   context,
@@ -900,7 +885,7 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
             }
           },
           itemBuilder: (context) => [
-            if (showSettings)
+            if (isAdmin) ...[
               PopupMenuItem<String>(
                 value: 'settings',
                 child: Row(children: [
@@ -912,17 +897,8 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                           .copyWith(color: AppColors.textPrimary)),
                 ]),
               ),
-            if (showSettings) const PopupMenuDivider(),
-            PopupMenuItem<String>(
-              value: 'calendario',
-              child: Row(children: [
-                const Icon(Icons.calendar_month_outlined,
-                    color: AppColors.primary, size: 20),
-                const SizedBox(width: 12),
-                Text('Calendário', style: AppTextStyles.bodyMedium),
-              ]),
-            ),
-            const PopupMenuDivider(),
+              const PopupMenuDivider(),
+            ],
             PopupMenuItem<String>(
               value: 'solicitacoes',
               child: Row(children: [

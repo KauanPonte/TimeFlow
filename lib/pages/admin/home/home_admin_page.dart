@@ -18,7 +18,6 @@ import 'widgets/admin_stat_card.dart';
 import 'widgets/admin_menu_item.dart';
 import '../users_management/users_management_page.dart';
 import '../create_user/create_user_page.dart';
-import '../settings/admin_settings_page.dart';
 
 class HomeAdminPage extends StatelessWidget {
   final String employeeName;
@@ -249,19 +248,6 @@ class _HomeAdminViewState extends State<HomeAdminView> {
                         MaterialPageRoute(
                           // REMOVA O CONST DAQUI
                           builder: (context) => const ReportsPage(),
-                        ),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 8),
-                  AdminMenuItem(
-                    icon: Icons.settings_outlined,
-                    title: 'Configurações',
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const AdminSettingsPage(),
                         ),
                       );
                     },

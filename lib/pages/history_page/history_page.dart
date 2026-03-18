@@ -131,24 +131,6 @@ class _HistoryViewState extends State<_HistoryView> {
         diaId: diaId,
       );
 
-  void _showEditDialog(
-          BuildContext context, String diaId, Map<String, dynamic> evento) =>
-      showPontoEditDialog(
-        context: context,
-        uid: widget.targetUid!,
-        diaId: diaId,
-        evento: evento,
-      );
-
-  void _showDeleteConfirm(
-          BuildContext context, String diaId, Map<String, dynamic> evento) =>
-      showPontoDeleteConfirm(
-        context: context,
-        uid: widget.targetUid!,
-        diaId: diaId,
-        evento: evento,
-      );
-
   Widget _buildSingleDayCard(
     BuildContext context,
     String diaId,
@@ -167,11 +149,6 @@ class _HistoryViewState extends State<_HistoryView> {
               )
           : null,
       onAddEvento: isAdmin ? () => _showAddDialogForDay(context, diaId) : null,
-      onEditEvento:
-          isAdmin ? (evento) => _showEditDialog(context, diaId, evento) : null,
-      onDeleteEvento: isAdmin
-          ? (evento) => _showDeleteConfirm(context, diaId, evento)
-          : null,
     );
   }
 

@@ -14,6 +14,7 @@ import 'package:flutter_application_appdeponto/pages/admin/settings/widgets/sett
 import 'package:flutter_application_appdeponto/pages/admin/settings/widgets/settings_search_field.dart';
 import 'package:flutter_application_appdeponto/pages/admin/settings/widgets/settings_suggestions_card.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
+import 'package:flutter_application_appdeponto/widgets/app_dialog_components.dart';
 import 'package:flutter_application_appdeponto/widgets/custom_snackbar.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
@@ -285,22 +286,16 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
 
     final shouldDelete = await showDialog<bool>(
           context: context,
-          builder: (context) {
-            return AlertDialog(
-              title: const Text('Excluir local?'),
-              content: Text(
-                'Deseja remover este local presencial?\n\n$label',
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(false),
-                  child: const Text('Cancelar'),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(true),
-                  child: const Text('Excluir'),
-                ),
-              ],
+          builder: (_) {
+            return AppDialogScaffold(
+              title: 'Excluir local?',
+              subtitle: 'Deseja remover este local presencial?\n\n$label',
+              icon: Icons.delete_outline,
+              isDestructive: true,
+              confirmLabel: 'Excluir',
+              onConfirm: () => Navigator.of(context).pop(true),
+              onCancel: () => Navigator.of(context).pop(false),
+              children: const [],
             );
           },
         ) ??

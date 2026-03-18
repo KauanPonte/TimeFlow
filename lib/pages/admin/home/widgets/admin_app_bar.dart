@@ -1,16 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
+import 'package:flutter_application_appdeponto/pages/admin/settings/settings_hub_page.dart';
 
 class AdminAppBar extends StatelessWidget implements PreferredSizeWidget {
   final VoidCallback onProfileTap;
-  final VoidCallback onSettingsTap;
   final VoidCallback onLogoutTap;
 
   const AdminAppBar({
     super.key,
     required this.onProfileTap,
-    required this.onSettingsTap,
     required this.onLogoutTap,
   });
 
@@ -84,7 +83,12 @@ class AdminAppBar extends StatelessWidget implements PreferredSizeWidget {
                 onProfileTap();
                 break;
               case 'settings':
-                onSettingsTap();
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const SettingsHubPage(),
+                  ),
+                );
                 break;
               case 'logout':
                 onLogoutTap();

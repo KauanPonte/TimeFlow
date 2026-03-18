@@ -8,6 +8,7 @@ import 'package:flutter_application_appdeponto/blocs/profile/profile_event.dart'
 import 'package:flutter_application_appdeponto/blocs/profile/profile_state.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
+import 'package:flutter_application_appdeponto/widgets/app_dialog_components.dart';
 import 'package:flutter_application_appdeponto/widgets/custom_snackbar.dart';
 import 'package:flutter_application_appdeponto/widgets/main_app_bar.dart';
 import '../../widgets/bottom_nav.dart';
@@ -186,19 +187,25 @@ class _ProfilePageViewState extends State<_ProfilePageView> {
 
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
-          children: [
-            Icon(Icons.preview, color: AppColors.primary, size: 20),
-            SizedBox(width: 12),
-            Text('Confirmar foto', style: AppTextStyles.h3),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ClipRRect(
+      builder: (_) => AppDialogScaffold(
+        title: 'Confirmar foto',
+        subtitle: 'Deseja usar essa foto como foto de perfil?',
+        icon: Icons.preview,
+        confirmLabel: 'Confirmar',
+        onConfirm: () {
+          Navigator.pop(context);
+          context.read<ProfileBloc>().add(
+                UploadProfileImageEvent(imageFile: _pendingImage!),
+              );
+          setState(() => _pendingImage = null);
+        },
+        onCancel: () {
+          setState(() => _pendingImage = null);
+          Navigator.pop(context);
+        },
+        children: [
+          Center(
+            child: ClipRRect(
               borderRadius: BorderRadius.circular(80),
               child: Image.file(
                 _pendingImage!,
@@ -207,45 +214,6 @@ class _ProfilePageViewState extends State<_ProfilePageView> {
                 fit: BoxFit.cover,
               ),
             ),
-            const SizedBox(height: 16),
-            Text(
-              'Deseja usar essa foto como foto de perfil?',
-              style: AppTextStyles.bodyMedium.copyWith(
-                color: AppColors.textSecondary,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              setState(() => _pendingImage = null);
-              Navigator.pop(ctx);
-            },
-            child: Text(
-              'Cancelar',
-              style: AppTextStyles.bodyMedium.copyWith(
-                color: AppColors.textSecondary,
-              ),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              context.read<ProfileBloc>().add(
-                    UploadProfileImageEvent(imageFile: _pendingImage!),
-                  );
-              setState(() => _pendingImage = null);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child: const Text('Confirmar'),
           ),
         ],
       ),
@@ -256,45 +224,17 @@ class _ProfilePageViewState extends State<_ProfilePageView> {
   void _confirmRemoveImage(BuildContext context) {
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
-          children: [
-            Icon(Icons.warning_amber_rounded,
-                color: AppColors.warning, size: 20),
-            SizedBox(width: 12),
-            Text('Remover foto', style: AppTextStyles.h3),
-          ],
-        ),
-        content: Text(
-          'Tem certeza que deseja remover sua foto de perfil?',
-          style: AppTextStyles.bodyMedium,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(
-              'Cancelar',
-              style: AppTextStyles.bodyMedium.copyWith(
-                color: AppColors.textSecondary,
-              ),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              context.read<ProfileBloc>().add(const RemoveProfileImageEvent());
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.error,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child: const Text('Remover'),
-          ),
-        ],
+      builder: (_) => AppDialogScaffold(
+        title: 'Remover foto',
+        subtitle: 'Tem certeza que deseja remover sua foto de perfil?',
+        icon: Icons.warning_amber_rounded,
+        isDestructive: true,
+        confirmLabel: 'Remover',
+        onConfirm: () {
+          Navigator.pop(context);
+          context.read<ProfileBloc>().add(const RemoveProfileImageEvent());
+        },
+        children: const [],
       ),
     );
   }
