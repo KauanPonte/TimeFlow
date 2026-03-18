@@ -1,6 +1,9 @@
+import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:flutter_application_appdeponto/widgets/app_dialog_components.dart';
+
+bool isAdmin = true;
 
 class CalendarPage extends StatefulWidget {
   const CalendarPage({super.key});
@@ -18,32 +21,68 @@ class _CalendarPageState extends State<CalendarPage> {
   @override
   void initState() {
     super.initState();
+    _selectedDay = _focusedDay;
     _events = _generateMockEvents(_focusedDay.year);
   }
 
-  // Simulação de eventos e feriados (incluindo regionais)
+  // --- FUNÇÕES DE LÓGICA ---
+
+  // Função auxiliar para garantir que a data seja sempre Meia-Noite
+  // Isso resolve o problema de o funcionário não ver o que o admin salvou
+  DateTime _normalizeDate(DateTime date) {
+    return DateTime(date.year, date.month, date.day);
+  }
+
   Map<DateTime, List<Map<String, dynamic>>> _generateMockEvents(int year) {
     final holidays = getBrazilHolidays(year);
     Map<DateTime, List<Map<String, dynamic>>> data = {};
 
     holidays.forEach((date, name) {
-      data[date] = [
+      data[_normalizeDate(date)] = [
         {'title': name, 'color': Colors.green[400]}
       ];
     });
 
-    // Exemplo de eventos fixos para teste (conforme sua legenda)
     final now = DateTime.now();
-    data[DateTime(now.year, now.month, 11)] = [
+    data[_normalizeDate(DateTime(now.year, now.month, 11))] = [
       {'title': 'Escritório', 'color': Colors.purple[300]},
       {'title': 'Escritório', 'color': Colors.purple[100]},
     ];
-    data[DateTime(now.year, now.month, 12)] = [
+    data[_normalizeDate(DateTime(now.year, now.month, 12))] = [
       {'title': 'Reunião S', 'color': Colors.orange[200]},
     ];
 
     return data;
   }
+
+  void _confirmDeleteEvent(DateTime date, int index) {
+    if (!isAdmin) return;
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Excluir Evento?"),
+        content: Text(
+            "Deseja remover '${_events[date]![index]['title']}' deste dia?"),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Cancelar")),
+          TextButton(
+            onPressed: () {
+              setState(() {
+                _events[date]!.removeAt(index);
+                if (_events[date]!.isEmpty) _events.remove(date);
+              });
+              Navigator.pop(context);
+            },
+            child: const Text("Excluir", style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // --- UI PRINCIPAL ---
 
   @override
   Widget build(BuildContext context) {
@@ -58,11 +97,14 @@ class _CalendarPageState extends State<CalendarPage> {
         foregroundColor: isDark ? Colors.white : Colors.black,
         elevation: 0,
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showAddEventDialog(),
-        backgroundColor: Colors.blue[300],
-        child: const Icon(Icons.add, color: Colors.white),
-      ),
+      // O botão só existe na árvore de widgets se isAdmin for true
+      floatingActionButton: isAdmin 
+          ? FloatingActionButton(
+              onPressed: () => _showAddEventDialog(),
+              backgroundColor: Colors.blue[300],
+              child: const Icon(Icons.add, color: Colors.white),
+            )
+          : null,
       body: SingleChildScrollView(
         child: Column(
           children: [
@@ -80,20 +122,9 @@ class _CalendarPageState extends State<CalendarPage> {
                   lastDay: DateTime.utc(2030, 12, 31),
                   focusedDay: _focusedDay,
                   calendarFormat: _calendarFormat,
-                  rowHeight: 100, // Altura maior para caber os textos
+                  rowHeight: 100,
                   headerStyle: const HeaderStyle(
-                    formatButtonVisible: false,
-                    titleCentered: true,
-                  ),
-                  daysOfWeekStyle: const DaysOfWeekStyle(
-                    weekdayStyle:
-                        TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                    weekendStyle: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.red),
-                  ),
-                  // BUILDER PERSONALIZADO PARA OS QUADRADINHOS
+                      formatButtonVisible: false, titleCentered: true),
                   calendarBuilders: CalendarBuilders(
                     defaultBuilder: (context, day, focusedDay) =>
                         _buildDayCell(day, isDark, false),
@@ -104,6 +135,7 @@ class _CalendarPageState extends State<CalendarPage> {
                     outsideBuilder: (context, day, focusedDay) => Opacity(
                         opacity: 0.3, child: _buildDayCell(day, isDark, false)),
                   ),
+                  selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
                   onDaySelected: (selectedDay, focusedDay) {
                     setState(() {
                       _selectedDay = selectedDay;
@@ -122,21 +154,20 @@ class _CalendarPageState extends State<CalendarPage> {
     );
   }
 
-  // Função que desenha cada célula (quadradinho) do calendário
   Widget _buildDayCell(DateTime day, bool isDark, bool highlight,
       {bool isToday = false, bool isSelected = false}) {
+    // Sincronização: Usa a função de normalizar para buscar os eventos
     final dateOnly = DateTime(day.year, day.month, day.day);
     final events = _events[dateOnly] ?? [];
 
     return Container(
-      margin:
-          const EdgeInsets.all(0.5), // Cria o efeito de grade (bordas finas)
+      margin: const EdgeInsets.all(0.5),
       decoration: BoxDecoration(
         border: Border.all(
             color: isDark ? Colors.white10 : Colors.grey.shade200, width: 0.5),
         color: isSelected
-            ? Colors.blue.withOpacity(0.1)
-            : (isToday ? Colors.yellow.withOpacity(0.1) : null),
+            ? Colors.yellow.withOpacity(0.3)
+            : (isToday ? Colors.blue.withOpacity(0.1) : null),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -154,35 +185,108 @@ class _CalendarPageState extends State<CalendarPage> {
               ),
             ),
           ),
-          // Renderiza os textos dos eventos dentro do quadrado
           Expanded(
             child: ListView(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              children: events
-                  .map((event) => Container(
-                        margin: const EdgeInsets.symmetric(
-                            vertical: 1, horizontal: 2),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 4, vertical: 1),
-                        decoration: BoxDecoration(
-                          color: event['color'],
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                        child: Text(
-                          event['title'],
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                              fontSize: 9,
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold),
-                        ),
-                      ))
-                  .toList(),
+              children: events.asMap().entries.map((entry) {
+                int idx = entry.key;
+                var event = entry.value;
+
+                return GestureDetector(
+                  onLongPress: () =>
+                      isAdmin ? _confirmDeleteEvent(dateOnly, idx) : null,
+                  child: Container(
+                    margin:
+                        const EdgeInsets.symmetric(vertical: 1, horizontal: 2),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                    decoration: BoxDecoration(
+                      color: event['color'],
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                    child: Text(
+                      event['title'],
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          fontSize: 9,
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                );
+              }).toList(),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  // --- DIALOGS E COMPONENTES AUXILIARES ---
+
+  void _showAddEventDialog() {
+    if (!isAdmin) return;
+    final TextEditingController controller = TextEditingController();
+    Color selectedColor = Colors.green[400]!;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title:
+              Text("Evento para ${DateFormat('dd/MM').format(_selectedDay!)}"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: controller,
+                decoration:
+                    const InputDecoration(hintText: "Ex: Ponto Facultativo"),
+              ),
+              const SizedBox(height: 15),
+              DropdownButton<Color>(
+                value: selectedColor,
+                isExpanded: true,
+                items: [
+                  DropdownMenuItem(
+                      value: Colors.green[400],
+                      child: const Text("Feriado / Facultativo")),
+                  DropdownMenuItem(
+                      value: Colors.purple[300],
+                      child: const Text("Escritório")),
+                  DropdownMenuItem(
+                      value: Colors.blue[300], child: const Text("Pessoal")),
+                ],
+                onChanged: (color) =>
+                    setDialogState(() => selectedColor = color!),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text("Cancelar")),
+            ElevatedButton(
+              onPressed: () {
+                if (controller.text.isNotEmpty && _selectedDay != null) {
+                  setState(() {
+                    // SALVAMENTO: Sempre normaliza antes de guardar no Map
+                    final cleanDate = _normalizeDate(_selectedDay!);
+                    _events[cleanDate] ??= [];
+                    _events[cleanDate]!.add({
+                      'title': controller.text,
+                      'color': selectedColor,
+                    });
+                  });
+                  Navigator.pop(context);
+                }
+              },
+              child: const Text("Adicionar ao Calendário"),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -236,7 +340,7 @@ class _CalendarPageState extends State<CalendarPage> {
       DateTime(year, 12, 25): "Natal",
     };
 
-    // Cálculo da Páscoa (Algoritmo de Meeus/Jones/Butcher) calendário gregoriano
+    // Cálculos de datas móveis (Páscoa e derivados)
     int a = year % 19;
     int b = year ~/ 100;
     int c = year % 100;
@@ -253,54 +357,12 @@ class _CalendarPageState extends State<CalendarPage> {
     int day = ((h + l - 7 * m + 114) % 31) + 1;
 
     DateTime pascoa = DateTime(year, month, day);
-
     holidays[pascoa.subtract(const Duration(days: 2))] = "Sexta-feira Santa";
     holidays[pascoa.subtract(const Duration(days: 47))] = "Carnaval";
     holidays[pascoa.add(const Duration(days: 60))] = "Corpus Christi";
-
-    // ---  feriados do Ceará ---
     holidays[DateTime(year, 3, 19)] = "São José (CE)";
     holidays[DateTime(year, 3, 25)] = "Data Magna (CE)";
 
     return holidays;
-  }
-
-  void _showAddEventDialog() {
-    final TextEditingController controller = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (_) => StatefulBuilder(
-        builder: (context, setDialogState) => AppDialogScaffold(
-          title: 'Novo Evento Pessoal',
-          icon: Icons.event,
-          confirmLabel: 'Salvar',
-          onConfirm: () {
-            if (controller.text.isNotEmpty && _selectedDay != null) {
-              setState(() {
-                final date = DateTime(_selectedDay!.year, _selectedDay!.month,
-                    _selectedDay!.day);
-                _events[date] ??= [];
-                _events[date]!.add({
-                  'title': controller.text,
-                  'color': Colors.blue[300]
-                });
-              });
-              Navigator.pop(context);
-            }
-          },
-          children: [
-            AppDialogField(
-              label: 'Nome do evento',
-              hintText: 'Digite o nome do evento',
-              controller: controller,
-              errorText: null,
-              icon: Icons.edit,
-              autofocus: true,
-            ),
-          ],
-        ),
-      ),
-    );
   }
 }
