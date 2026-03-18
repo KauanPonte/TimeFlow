@@ -51,15 +51,54 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
 
   /// GlobalKeys por diaId para `Scrollable.ensureVisible`.
   final Map<String, GlobalKey> _dayKeys = {};
+
+  /// Dia selecionado no calendário.
+  late DateTime _selectedCalendarDay;
+
+  /// Dia que deve ser rolado para visibilidade assim que o mês estiver carregado.
+  String? _pendingScrollDayId;
+
   HistoryViewPreference _viewPreference =
       HistoryViewPreferenceRepository.currentMode;
-  late DateTime _selectedCalendarDay;
 
   @override
   void initState() {
     super.initState();
     _selectedCalendarDay =
         HistorySharedUtils.defaultSelectedDayForMonth(widget.currentMonth);
+  }
+
+  void _requestScrollToDay(String dayId) {
+    _pendingScrollDayId = dayId;
+
+    final state = context.read<PontoHistoryBloc>().state;
+    final alreadyLoaded = state is PontoHistoryLoaded ||
+        state is PontoHistoryActionSuccess ||
+        state is PontoHistoryActionError ||
+        state is PontoHistoryActionProcessing;
+
+    if (alreadyLoaded) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _scrollToPendingDay();
+      });
+    }
+  }
+
+  void _scrollToPendingDay() {
+    final dayId = _pendingScrollDayId;
+    if (dayId == null) return;
+
+    final ctx = _dayKeys[dayId]?.currentContext;
+    if (ctx == null) return;
+
+    Scrollable.ensureVisible(
+      ctx,
+      alignment: 0.15,
+      duration: const Duration(milliseconds: 500),
+      curve: Curves.easeInOut,
+    );
+
+    _pendingScrollDayId = null;
   }
 
   Future<void> _setPreferredView(HistoryViewPreference value) async {
@@ -76,30 +115,22 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
   GlobalKey _keyForDay(String diaId) =>
       _dayKeys.putIfAbsent(diaId, () => GlobalKey());
 
-  void _scrollToHighlightedDay() {
-    final id = widget.highlightDayId;
-    if (id == null) return;
-    final ctx = _dayKeys[id]?.currentContext;
-    if (ctx == null) return;
-    Scrollable.ensureVisible(
-      ctx,
-      alignment: 0.15,
-      duration: const Duration(milliseconds: 500),
-      curve: Curves.easeInOut,
-    );
-  }
-
   @override
   void didUpdateWidget(HomeHistorySection oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    // Mês mudou → limpa chaves velhas (evita acúmulo desnecessário).
+    // Mês mudou → limpa chaves velhas (evita acúmulo desnecessário) e agenda
+    // scroll para o dia padrão desse mês.
     if (widget.currentMonth != oldWidget.currentMonth) {
       _dayKeys.clear();
       _selectedCalendarDay =
           HistorySharedUtils.defaultSelectedDayForMonth(widget.currentMonth);
+
+      _requestScrollToDay(HistorySharedUtils.toDayId(_selectedCalendarDay));
     }
 
+    // Caso o dia destacado mude (por notificação de registro incompleto),
+    // agenda scroll pro dia e ajusta o dia selecionado no calendário.
     if (widget.highlightDayId != null &&
         widget.highlightDayId != oldWidget.highlightDayId) {
       final highlighted = DateTime.tryParse(widget.highlightDayId!);
@@ -107,23 +138,7 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
         _selectedCalendarDay =
             DateTime(highlighted.year, highlighted.month, highlighted.day);
       }
-    }
-
-    // Highlight mudou → se o histórico já está carregado, scrolla imediatamente.
-    if (widget.highlightDayId != null &&
-        widget.highlightDayId != oldWidget.highlightDayId) {
-      final state = context.read<PontoHistoryBloc>().state;
-      final alreadyLoaded = state is PontoHistoryLoaded ||
-          state is PontoHistoryActionSuccess ||
-          state is PontoHistoryActionError ||
-          state is PontoHistoryActionProcessing;
-      if (alreadyLoaded) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) _scrollToHighlightedDay();
-        });
-      }
-      // Se não está carregado, o BlocConsumer.listener cuidará do scroll
-      // quando o estado mudar para PontoHistoryLoaded.
+      _requestScrollToDay(widget.highlightDayId!);
     }
   }
 
@@ -192,12 +207,10 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
                 CustomSnackbar.showError(context, state.message);
               }
 
-              // Scroll para o dia destacado assim que o histórico terminar
-              // de carregar (caso o mês tenha mudado).
-              if (state is PontoHistoryLoaded &&
-                  widget.highlightDayId != null) {
+              // Scroll para o dia pendente (mês carregado / dia selecionado / registro incompleto)
+              if (state is PontoHistoryLoaded) {
                 WidgetsBinding.instance.addPostFrameCallback((_) {
-                  if (mounted) _scrollToHighlightedDay();
+                  if (mounted) _scrollToPendingDay();
                 });
               }
             },
@@ -252,9 +265,8 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
                   ? <String>{}
                   : pendingSolicitations.map((s) => s.diaId).toSet();
 
-              DayCard buildDayCard(String diaId, {bool withKey = false}) {
+              DayCard buildDayCard(String diaId) {
                 final eventos = daysMap[diaId] ?? [];
-                final isHighlight = diaId == widget.highlightDayId;
                 final daySolicitations = widget.isAdmin
                     ? <SolicitationModel>[]
                     : pendingSolicitations
@@ -262,7 +274,7 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
                         .toList();
 
                 return DayCard(
-                  key: withKey && isHighlight ? _keyForDay(diaId) : null,
+                  key: _keyForDay(diaId),
                   diaId: diaId,
                   eventos: eventos,
                   isAdmin: widget.isAdmin,
@@ -304,15 +316,17 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
                   dayIdFor: HistorySharedUtils.toDayId,
                   isFutureDate: HistorySharedUtils.isFutureDate,
                   pendingDayIds: pendingDayIds,
-                  onDaySelected: (day) =>
-                      setState(() => _selectedCalendarDay = day),
+                  onDaySelected: (day) {
+                    setState(() => _selectedCalendarDay = day);
+                    _requestScrollToDay(HistorySharedUtils.toDayId(day));
+                  },
                   dayBuilder: (dayId) => buildDayCard(dayId),
                 );
               }
 
               return HistoryModeListView(
                 dayIds: allDays,
-                dayBuilder: (dayId) => buildDayCard(dayId, withKey: true),
+                dayBuilder: (dayId) => buildDayCard(dayId),
                 embedInParentScroll: true,
               );
             },
