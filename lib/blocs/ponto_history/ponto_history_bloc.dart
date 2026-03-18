@@ -52,7 +52,9 @@ class PontoHistoryBloc extends Bloc<PontoHistoryEvent, PontoHistoryState> {
     _currentUid = event.uid;
     _currentMonth = event.month;
 
-    final key = _cacheKey(_currentMonth, _currentUid);
+    final requestedUid = _currentUid;
+    final requestedMonth = _currentMonth;
+    final key = _cacheKey(requestedMonth, requestedUid);
     final cached = _monthCache[key];
 
     // Exibe dados cacheados imediatamente — sem spinner ao trocar de mês.
@@ -66,12 +68,18 @@ class PontoHistoryBloc extends Bloc<PontoHistoryEvent, PontoHistoryState> {
     try {
       final daysMap = await repository.loadDaysByMonth(
         uid: event.uid,
-        year: _currentMonth.year,
-        month: _currentMonth.month,
+        year: requestedMonth.year,
+        month: requestedMonth.month,
       );
+
+      // Cacheia para uso rápido ao navegar entre meses.
       _monthCache[key] = daysMap;
-      _lastDaysMap = daysMap;
-      emit(PontoHistoryLoaded(daysMap: daysMap));
+
+      // Só atualiza a UI se este carregamento ainda for o mês/usuário atual.
+      if (requestedUid == _currentUid && requestedMonth == _currentMonth) {
+        _lastDaysMap = daysMap;
+        emit(PontoHistoryLoaded(daysMap: daysMap));
+      }
     } catch (e) {
       // Se não havia cache, exibe erro; caso contrário mantém dados cacheados.
       if (cached == null) {
