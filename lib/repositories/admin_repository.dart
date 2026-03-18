@@ -19,6 +19,20 @@ class AdminRepository {
     }).toList();
   }
 
+  Future<List<Map<String, dynamic>>> getAdmins() async {
+    final snapshot = await _firestore
+        .collection('usuarios')
+        .where('role', isEqualTo: 'ADM') // Busca apenas ADMs
+        .get();
+
+    return snapshot.docs.map((doc) {
+      return {
+        'id': doc.id,
+        ...doc.data(),
+      };
+    }).toList();
+  }
+
   /// Buscar funcionário específico
   Future<Map<String, dynamic>?> getEmployeeById(String id) async {
     final doc = await _firestore.collection('usuarios').doc(id).get();
