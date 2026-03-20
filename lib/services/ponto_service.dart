@@ -199,7 +199,7 @@ class PontoService {
       final data = doc.data();
       final tipo = (data['tipo'] ?? '').toString();
       final wm = (data['workMode'] ?? '').toString();
-      
+
       if (wm == 'presencial') {
         hasPresencial = true;
       } else if (wm == 'remoto') {
@@ -443,7 +443,7 @@ class PontoService {
   static int _computeWorkedMinutesFromEventosFechado(
       List<Map<String, dynamic>> eventos) {
     DateTime? openWork;
-    Duration total = Duration.zero;
+    int totalMinutes = 0;
 
     DateTime? tsToDate(dynamic ts) {
       if (ts is Timestamp) return ts.toDate();
@@ -459,12 +459,13 @@ class PontoService {
         openWork ??= at;
       } else if (tipo == 'pausa' || tipo == 'saida') {
         if (openWork != null && at.isAfter(openWork)) {
-          total += at.difference(openWork);
+          final diff = at.difference(openWork);
+          totalMinutes += diff.inSeconds ~/ 60;
         }
         openWork = null;
       }
     }
-    return total.inMinutes;
+    return totalMinutes;
   }
 
   /// Resumo do mês: horas feitas vs horas previstas (dias úteis),
