@@ -330,7 +330,7 @@ class _HomePageState extends State<HomePage> {
                   ),
                   const SizedBox(height: 16),
                   BalanceCard(
-                    monthBalance: pontoState.monthBalance,
+                    monthBalance: pontoState.monthBalance / 60.0,
                   ),
                   const SizedBox(height: 24),
                   PunchButton(

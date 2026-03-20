@@ -476,6 +476,7 @@ class PontoService {
         workedMinutes: 0,
         expectedMinutes: 0,
         businessDaysTotal: 0,
+        monthBalance: 0.0,
       );
     }
 
@@ -521,26 +522,34 @@ class PontoService {
       workedMinutes += (m['workedMinutes'] as int?) ?? 0;
     }
 
+    int todayExpectedMinutes;
+    double monthBalance;
+    int expected = 0;
+    final today = DateTime(now.year,now.month,now.day);
+    for (var d = DateTime(now.year,now.month,1);
+      d.isBefore(today) || d.isAtSameMomentAs(today);
+      d = d.add(const Duration(days:1 ))) {
+        final isWeekend = d.weekday == DateTime.saturday || d.weekday == DateTime.sunday;
+        final isHoliday = holidays.containsKey(d);
+        if(!isWeekend && !isHoliday) {
+          expected += workloadMinutes;
+        }
+      }
+      todayExpectedMinutes = expected;
+      monthBalance = (workedMinutes - todayExpectedMinutes).toDouble();
+
+
+
     return MesResumo(
       workedMinutes: workedMinutes,
       expectedMinutes: expectedMinutes,
       businessDaysTotal: businessDaysTotal,
+      monthBalance: monthBalance,
     );
   }
 
   // Para o Cubit (Usuário logado ver o próprio saldo)
-  static Future<double> getSaldoMesAtualHoras() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return 0.0;
 
-    final uid = user.uid;
-    final mesId = DateFormat('yyyy-MM').format(DateTime.now());
-
-    final snap = await _refMes(uid, mesId).get();
-    final minutes = (snap.data()?['balanceMinutes'] as int?) ?? 0;
-
-    return minutes / 60.0;
-  }
 
   // Para a página de Relatórios (Admin ver saldo de qualquer usuário)
   static Future<int> getSaldoMesPorUsuario(String uid, DateTime date) async {
@@ -658,10 +667,12 @@ class MesResumo {
   final int workedMinutes;
   final int expectedMinutes;
   final int businessDaysTotal;
+  final double monthBalance;
 
   const MesResumo({
     required this.workedMinutes,
     required this.expectedMinutes,
     required this.businessDaysTotal,
+    required this.monthBalance,
   });
 }
