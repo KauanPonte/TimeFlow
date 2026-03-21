@@ -12,6 +12,9 @@ import 'package:flutter_application_appdeponto/blocs/solicitations/solicitation_
 import 'package:flutter_application_appdeponto/blocs/solicitations/solicitation_event.dart';
 import 'package:flutter_application_appdeponto/blocs/solicitations/solicitation_state.dart';
 import 'package:flutter_application_appdeponto/models/solicitation_model.dart';
+import 'package:flutter_application_appdeponto/blocs/atestado/atestado_bloc.dart';
+import 'package:flutter_application_appdeponto/blocs/atestado/atestado_state.dart';
+import 'package:flutter_application_appdeponto/models/atestado_model.dart';
 import 'package:flutter_application_appdeponto/pages/admin/solicitations/solicitation_review_dialog.dart';
 import 'package:flutter_application_appdeponto/repositories/solicitation_repository.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
@@ -75,6 +78,7 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
     List<MapEntry<String, Map<String, String>>> incompletos, {
     bool isAdmin = false,
     List<SolicitationModel> reviewedSolicitations = const [],
+    List<AtestadoModel> pendingAtestados = const [],
   }) {
     // Obtém solicitações pendentes para admin
     List<SolicitationModel> solicitations = [];
@@ -373,6 +377,63 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                           );
                         }),
                       ], // end reviewed
+
+                      //  Seção: Atestados pendentes (admin)
+                      if (isAdmin && pendingAtestados.isNotEmpty) ...[
+                        if (incompletos.isNotEmpty || solicitations.isNotEmpty)
+                          const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            const Icon(Icons.assignment_ind_rounded,
+                                color: AppColors.warning),
+                            const SizedBox(width: 10),
+                            const Text('Atestados Pendentes',
+                                style: AppTextStyles.h3),
+                            const Spacer(),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: AppColors.warning.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                '${pendingAtestados.length}',
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.warning,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        const Divider(),
+                        ...pendingAtestados.map((a) {
+                          return ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            leading: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: AppColors.warning.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(Icons.medical_information_outlined,
+                                  size: 18, color: AppColors.warning),
+                            ),
+                            title: Text(a.employeeName,
+                                style: AppTextStyles.bodyMedium
+                                    .copyWith(fontWeight: FontWeight.w600)),
+                            subtitle: Text(
+                                '${a.dataInicio} → ${a.dataFim}',
+                                style: AppTextStyles.bodySmall
+                                    .copyWith(color: AppColors.warning)),
+                            trailing: const Icon(Icons.chevron_right,
+                                color: AppColors.textSecondary),
+                          );
+                        }),
+                      ],
 
                       //  Seção: Solicitações pendentes (admin)
                       if (solicitations.isNotEmpty) ...[
@@ -806,12 +867,11 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
             final pontoState = context.watch<PontoTodayCubit>().state;
             final incompletos = _computeIncompletos(pontoState);
 
-            // Conta solicitações pendentes (admin) ou revisadas (funcionário)
-
-            // Conta solicitações pendentes (admin) ou revisadas (funcionário)
             final solState = context.watch<SolicitationBloc>().state;
+            final atestadoState = context.watch<AtestadoBloc>().state;
             int solCount = 0;
             List<SolicitationModel> reviewedSolicitations = [];
+            List<AtestadoModel> pendingAtestados = [];
 
             if (isAdmin) {
               if (solState is SolicitationLoaded) {
@@ -820,6 +880,9 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                 solCount = solState.solicitations
                     .where((s) => s.status == SolicitationStatus.pending)
                     .length;
+              }
+              if (atestadoState is AtestadoLoaded && atestadoState.isAdmin) {
+                pendingAtestados = atestadoState.atestados;
               }
             } else {
               if (solState is SolicitationLoaded) {
@@ -831,10 +894,10 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                   reviewedSolicitations.where((s) => !s.seenByEmployee).length;
             }
 
-            final totalCount = incompletos.length + solCount;
+            final totalCount = incompletos.length + solCount + pendingAtestados.length;
             final hasNotification = totalCount > 0;
             final badgeColor = isAdmin
-                ? (solCount > 0 ? AppColors.primary : AppColors.warning)
+                ? (pendingAtestados.isNotEmpty ? AppColors.warning : solCount > 0 ? AppColors.primary : AppColors.warning)
                 : (solCount > 0 ? AppColors.success : AppColors.warning);
 
             return Badge(
@@ -858,6 +921,7 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                   incompletos,
                   isAdmin: isAdmin,
                   reviewedSolicitations: reviewedSolicitations,
+                  pendingAtestados: pendingAtestados,
                 ),
               ),
             );

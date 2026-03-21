@@ -341,6 +341,10 @@ class PontoService {
     final workedMinutes = _computeWorkedMinutesFromEventosFechado(eventos);
     final workloadMinutes = await _getWorkloadMinutes(uid);
 
+    // Lê isExcused do documento existente (campo preservado via merge)
+    final diaSnapPre = await refDia.get();
+    final bool isExcused = (diaSnapPre.data()?['isExcused'] as bool?) ?? false;
+
     final String? ultimoTipoEvento =
         eventos.isNotEmpty ? (eventos.last['tipo'] ?? '').toString() : null;
 
@@ -349,19 +353,21 @@ class PontoService {
     final hojeId = DateFormat('yyyy-MM-dd').format(DateTime.now());
     final bool ehHoje = diaId == hojeId;
 
-    // Lógica de falta considerando calendário
+    // Lógica de falta considerando calendário e dias facultativos
     final date = DateTime.parse(diaId);
     final holidays = getBrazilHolidays(date.year);
     final bool isWeekend =
         date.weekday == DateTime.saturday || date.weekday == DateTime.sunday;
     final bool isHoliday = holidays.containsKey(date);
-    final bool falta = !ehHoje && eventos.isEmpty && !isWeekend && !isHoliday;
+    final bool falta =
+        !ehHoje && eventos.isEmpty && !isWeekend && !isHoliday && !isExcused;
 
     final bool emAberto = !diaFechado && eventos.isNotEmpty;
 
-    final int deltaMinutes = falta
-        ? -workloadMinutes
-        : (diaFechado ? (workedMinutes - workloadMinutes) : 0);
+    // Dia facultativo: sem meta — tudo que trabalhou é bônus, ausência não desconta
+    final int deltaMinutes = isExcused
+        ? workedMinutes
+        : (falta ? -workloadMinutes : (diaFechado ? (workedMinutes - workloadMinutes) : 0));
 
     Future<void> applyUpdate({
       required int oldDelta,
@@ -516,6 +522,12 @@ class PontoService {
         .where('date', isLessThan: endId)
         .get();
 
+    // Coleta dias com atestado aprovado (isExcused)
+    final excusedDayIds = diasSnap.docs
+        .where((d) => (d.data()['isExcused'] as bool?) == true)
+        .map((d) => d.id)
+        .toSet();
+
     int workedMinutes = 0;
     for (final doc in diasSnap.docs) {
       final m = doc.data();
@@ -525,18 +537,20 @@ class PontoService {
     int todayExpectedMinutes;
     double monthBalance;
     int expected = 0;
-    final today = DateTime(now.year,now.month,now.day);
-    for (var d = DateTime(now.year,now.month,1);
-      d.isBefore(today) || d.isAtSameMomentAs(today);
-      d = d.add(const Duration(days:1 ))) {
-        final isWeekend = d.weekday == DateTime.saturday || d.weekday == DateTime.sunday;
-        final isHoliday = holidays.containsKey(d);
-        if(!isWeekend && !isHoliday) {
-          expected += workloadMinutes;
-        }
+    final today = DateTime(now.year, now.month, now.day);
+    for (var d = DateTime(now.year, now.month, 1);
+        d.isBefore(today) || d.isAtSameMomentAs(today);
+        d = d.add(const Duration(days: 1))) {
+      final isWeekend =
+          d.weekday == DateTime.saturday || d.weekday == DateTime.sunday;
+      final isHoliday = holidays.containsKey(d);
+      final isExcused = excusedDayIds.contains(_diaId(d));
+      if (!isWeekend && !isHoliday && !isExcused) {
+        expected += workloadMinutes;
       }
-      todayExpectedMinutes = expected;
-      monthBalance = (workedMinutes - todayExpectedMinutes).toDouble();
+    }
+    todayExpectedMinutes = expected;
+    monthBalance = (workedMinutes - todayExpectedMinutes).toDouble();
 
 
 
