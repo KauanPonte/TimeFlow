@@ -93,16 +93,14 @@ class ProfileInfoCard extends StatelessWidget {
             label: 'Cargo',
             value: role.isNotEmpty ? role : 'Sem cargo',
           ),
-          if (isAdmin) ...[
-            const SizedBox(height: 12),
-            const Divider(height: 1),
-            const SizedBox(height: 12),
-            ProfileInfoRow(
-              icon: Icons.schedule_outlined,
-              label: 'Carga horária diária',
-              value: _formatWorkload(workloadMinutes),
-            ),
-          ],
+          const SizedBox(height: 12),
+          const Divider(height: 1),
+          const SizedBox(height: 12),
+          ProfileInfoRow(
+            icon: Icons.schedule_outlined,
+            label: 'Carga horária diária',
+            value: _formatWorkload(workloadMinutes),
+          ),
         ],
       ),
     );

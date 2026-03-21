@@ -8,6 +8,9 @@ import 'package:flutter_application_appdeponto/blocs/admin_home/admin_home_state
 import 'package:flutter_application_appdeponto/blocs/solicitations/solicitation_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/solicitations/solicitation_event.dart';
 import 'package:flutter_application_appdeponto/blocs/solicitations/solicitation_state.dart';
+import 'package:flutter_application_appdeponto/blocs/atestado/atestado_bloc.dart';
+import 'package:flutter_application_appdeponto/blocs/atestado/atestado_event.dart';
+import 'package:flutter_application_appdeponto/blocs/atestado/atestado_state.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
 import 'package:flutter_application_appdeponto/widgets/bottom_nav.dart';
@@ -71,12 +74,14 @@ class _HomeAdminViewState extends State<HomeAdminView> {
     context.read<SolicitationBloc>().add(
           const SilentReloadSolicitationsEvent(isAdmin: true),
         );
+    context.read<AtestadoBloc>().add(const SilentLoadAtestadosEvent());
     // Atualização periódica a cada 2 minutos.
     _solTimer = Timer.periodic(const Duration(minutes: 2), (_) {
       if (mounted) {
         context.read<SolicitationBloc>().add(
               const SilentReloadSolicitationsEvent(isAdmin: true),
             );
+        context.read<AtestadoBloc>().add(const SilentLoadAtestadosEvent());
       }
     });
   }
@@ -149,6 +154,7 @@ class _HomeAdminViewState extends State<HomeAdminView> {
               context.read<SolicitationBloc>().add(
                     const SilentReloadSolicitationsEvent(isAdmin: true),
                   );
+              context.read<AtestadoBloc>().add(const SilentLoadAtestadosEvent());
             },
             child: BlocListener<SolicitationBloc, SolicitationState>(
               listener: (context, solState) {
@@ -167,24 +173,33 @@ class _HomeAdminViewState extends State<HomeAdminView> {
                   const SizedBox(height: 24),
 
                   // Stats Cards
-                  Row(
-                    children: [
-                      Expanded(
-                        child: AdminStatCard(
-                          icon: Icons.people,
-                          label: 'Usuários',
-                          value: '${stats.totalUsers}',
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: AdminStatCard(
-                          icon: Icons.person_add,
-                          label: 'Pendentes',
-                          value: '${stats.pendingRequests}',
-                        ),
-                      ),
-                    ],
+                  BlocBuilder<AtestadoBloc, AtestadoState>(
+                    builder: (context, atestadoState) {
+                      final atestadoCount = switch (atestadoState) {
+                        AtestadoLoaded(:final atestados) => atestados.length,
+                        AtestadoActionSuccess(:final atestados) => atestados.length,
+                        _ => 0,
+                      };
+                      return Row(
+                        children: [
+                          Expanded(
+                            child: AdminStatCard(
+                              icon: Icons.people,
+                              label: 'Usuários',
+                              value: '${stats.totalUsers}',
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: AdminStatCard(
+                              icon: Icons.assignment_ind_outlined,
+                              label: 'Atestados',
+                              value: '$atestadoCount',
+                            ),
+                          ),
+                        ],
+                      );
+                    },
                   ),
                   const SizedBox(height: 24),
 
@@ -246,7 +261,6 @@ class _HomeAdminViewState extends State<HomeAdminView> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          // REMOVA O CONST DAQUI
                           builder: (context) => const ReportsPage(),
                         ),
                       );

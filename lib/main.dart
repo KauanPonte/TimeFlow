@@ -16,6 +16,8 @@ import 'package:flutter_application_appdeponto/blocs/admin_home/admin_home_bloc.
 import 'package:flutter_application_appdeponto/blocs/solicitations/solicitation_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/solicitations/solicitation_event.dart';
 import 'package:flutter_application_appdeponto/blocs/solicitations/solicitation_state.dart';
+import 'package:flutter_application_appdeponto/blocs/atestado/atestado_bloc.dart';
+import 'package:flutter_application_appdeponto/repositories/atestado_repository.dart';
 import 'package:flutter_application_appdeponto/repositories/auth_repository.dart';
 import 'package:flutter_application_appdeponto/repositories/history_view_preference_repository.dart';
 import 'package:flutter_application_appdeponto/repositories/ponto_history_repository.dart';
@@ -108,6 +110,12 @@ class TimeFlow extends StatelessWidget {
             globalLoading: context.read<GlobalLoadingCubit>(),
           ),
         ),
+        BlocProvider<AtestadoBloc>(
+          create: (context) => AtestadoBloc(
+            repository: AtestadoRepository(),
+            globalLoading: context.read<GlobalLoadingCubit>(),
+          ),
+        ),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
@@ -124,6 +132,7 @@ class TimeFlow extends StatelessWidget {
               context.read<ProfileBloc>().reset();
               context.read<AdminHomeBloc>().reset();
               context.read<SolicitationBloc>().reset();
+              context.read<AtestadoBloc>().reset();
               HistoryViewPreferenceRepository.clearCache();
             },
             child: BlocListener<AuthBloc, AuthState>(
