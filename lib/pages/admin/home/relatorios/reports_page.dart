@@ -61,8 +61,8 @@ class _ReportsPageState extends State<ReportsPage> {
       appBar: AppBar(
         title: Text(
           'Selecionar Usuário',
-          style: AppTextStyles.h3.copyWith(
-              color: const Color.fromARGB(255, 0, 0, 0)), 
+          style: AppTextStyles.h3
+              .copyWith(color: const Color.fromARGB(255, 0, 0, 0)),
         ),
         backgroundColor: AppColors.surface,
         elevation: 0,
@@ -152,10 +152,11 @@ class _ReportsPageState extends State<ReportsPage> {
                                   context,
                                   MaterialPageRoute(
                                     builder: (context) => UserReportsPage(
-                                      userName: name,
-                                      profileImageUrl: photo,
-                                      userId: user['id'],
-                                    ),
+                                        userName: name,
+                                        profileImageUrl: photo,
+                                        userId: user['id'],
+                                        jornadaFixa: user['workloadMinutes'] ??
+                                            8), //precisa colocar aqui também a role, na verdade só retorna se for dev. Desabilitar
                                   ),
                                 );
                               },

@@ -13,14 +13,14 @@ class UserReportsPage extends StatefulWidget {
   final String userName;
   final String? profileImageUrl;
   final String userId;
-  final int jornadaHoras;
+  final int jornadaFixa; // Agora é um int obrigatório vindo do banco
 
   const UserReportsPage({
     super.key,
     required this.userName,
     required this.userId,
     this.profileImageUrl,
-    this.jornadaHoras = 8,
+    required this.jornadaFixa,
   });
 
   @override
@@ -39,7 +39,9 @@ class _UserReportsPageState extends State<UserReportsPage> {
   String _totalHorasMes = "0h 00m";
   String _totalExtrasMes = "0h 00m";
 
-  int get _jornadaDiariaMinutos => widget.jornadaHoras * 60;
+  // Getters baseados na jornada fixa enviada pelo Admin
+  int get _jornadaDiariaMinutos => widget.jornadaFixa;
+  int get _jornadaDiariaHoras => _jornadaDiariaMinutos ~/ 60;
 
   @override
   void initState() {
@@ -62,24 +64,36 @@ class _UserReportsPageState extends State<UserReportsPage> {
       setState(() {
         punchRecords = data;
         _saldoMinutosMes = saldoOficial;
-
-        int totalTrabalhado = 0;
-        punchRecords.forEach((diaId, eventos) {
-          totalTrabalhado += _calculateTotalMinutes(eventos);
-        });
-
-        _trabalhadoMinutosMes = totalTrabalhado;
-        _totalHorasMes = _formatMinutes(totalTrabalhado);
-
-        String prefixo = _saldoMinutosMes >= 0 ? "+" : "-";
-        _totalExtrasMes = "$prefixo ${_formatMinutes(_saldoMinutosMes.abs())}";
-
         isLoading = false;
       });
+
+      _actualizeDisplayValues();
     } catch (e) {
       debugPrint("Erro ao buscar pontos: $e");
       setState(() => isLoading = false);
     }
+  }
+
+  void _actualizeDisplayValues() {
+    int totalTrabalhado = 0;
+
+    punchRecords.forEach((diaId, eventos) {
+      if (eventos.length % 2 == 0) {
+        totalTrabalhado += _calculateTotalMinutes(eventos);
+      }
+    });
+
+    setState(() {
+      _trabalhadoMinutosMes = totalTrabalhado;
+      _totalHorasMes = _formatMinutes(totalTrabalhado);
+
+      String prefixo = _saldoMinutosMes >= 0 ? "+" : "-";
+      if (_saldoMinutosMes == 0) {
+        _totalExtrasMes = "0h 00m";
+      } else {
+        _totalExtrasMes = "$prefixo ${_formatMinutes(_saldoMinutosMes.abs())}";
+      }
+    });
   }
 
   Map<String, String> _processDayDetails(List<Map<String, dynamic>> eventos) {
@@ -102,7 +116,7 @@ class _UserReportsPageState extends State<UserReportsPage> {
       return "${DateFormat('HH:mm').format(at)} ($label)";
     }).join(' | ');
 
-    String obs = "---";
+    String obs = "Sem pendências";
     if (eventos.length % 2 != 0) {
       obs = "Registro Incompleto";
     } else {
@@ -125,6 +139,10 @@ class _UserReportsPageState extends State<UserReportsPage> {
       DateTime? inicio = eventos[i]['at'];
       DateTime? fim = eventos[i + 1]['at'];
       if (inicio != null && fim != null) {
+        final inicioLimpo = DateTime(
+            inicio.year, inicio.month, inicio.day, inicio.hour, inicio.minute);
+        final fimLimpo =
+            DateTime(fim.year, fim.month, fim.day, fim.hour, fim.minute);
         total += fim.difference(inicio).inMinutes;
       }
     }
@@ -136,8 +154,6 @@ class _UserReportsPageState extends State<UserReportsPage> {
     final minutes = totalMinutes % 60;
     return "${hours}h ${minutes.toString().padLeft(2, '0')}m";
   }
-
-  // --- WIDGETS DA TELA ---
 
   @override
   Widget build(BuildContext context) {
@@ -170,37 +186,7 @@ class _UserReportsPageState extends State<UserReportsPage> {
             const SizedBox(height: 20),
             _buildSummaryStats(),
             const SizedBox(height: 24),
-            Container(
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.borderLight),
-              ),
-              child: Column(
-                children: [
-                  _buildTableHeader(),
-                  const Divider(height: 1),
-                  if (isLoading)
-                    const Padding(
-                        padding: EdgeInsets.all(40),
-                        child: Center(child: CircularProgressIndicator()))
-                  else if (punchRecords.isEmpty)
-                    const Padding(
-                        padding: EdgeInsets.all(40),
-                        child:
-                            Center(child: Text("Nenhum registro encontrado.")))
-                  else
-                    ...sortedDayIds.map((diaId) {
-                      final processado =
-                          _processDayDetails(punchRecords[diaId]!);
-                      final displayDate =
-                          diaId.split('-').reversed.take(2).join('/');
-                      return _buildTableRow(displayDate,
-                          processado["registros"]!, processado["obs"]!);
-                    }),
-                ],
-              ),
-            ),
+            _buildRecordsTable(sortedDayIds),
           ],
         ),
       ),
@@ -208,20 +194,48 @@ class _UserReportsPageState extends State<UserReportsPage> {
   }
 
   Widget _buildSummaryStats() {
-    final String prefixo = _saldoMinutosMes >= 0 ? "+" : "-";
-    final String saldoFormatado =
-        "$prefixo ${_formatMinutes(_saldoMinutosMes.abs())}";
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _statRow("Escala de trabalho:", "${widget.jornadaHoras}h diárias"),
-        _statRow(
-            "Total trabalhado no mês:", _formatMinutes(_trabalhadoMinutosMes)),
-        _statRow("Saldo (Banco de Horas):", saldoFormatado),
+        _statRow("Escala de trabalho:", "$_jornadaDiariaHoras" "h diárias"),
+        _statRow("Total trabalhado no mês:", _totalHorasMes),
+        _statRow("Saldo (Banco de Horas):", _totalExtrasMes),
       ],
     );
   }
+
+  Widget _buildRecordsTable(List<String> sortedDayIds) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.borderLight),
+      ),
+      child: Column(
+        children: [
+          _buildTableHeader(),
+          const Divider(height: 1),
+          if (isLoading)
+            const Padding(
+                padding: EdgeInsets.all(40),
+                child: Center(child: CircularProgressIndicator()))
+          else if (punchRecords.isEmpty)
+            const Padding(
+                padding: EdgeInsets.all(40),
+                child: Center(child: Text("Nenhum registro encontrado.")))
+          else
+            ...sortedDayIds.map((diaId) {
+              final processado = _processDayDetails(punchRecords[diaId]!);
+              final displayDate = diaId.split('-').reversed.take(2).join('/');
+              return _buildTableRow(
+                  displayDate, processado["registros"]!, processado["obs"]!);
+            }),
+        ],
+      ),
+    );
+  }
+
+  // --- WIDGETS AUXILIARES (UI) ---
 
   Widget _statRow(String label, String value) {
     return Padding(
@@ -366,7 +380,7 @@ class _UserReportsPageState extends State<UserReportsPage> {
     );
   }
 
-  // --- LÓGICA DO PDF ---
+  // --- LÓGICA DO PDF (ATUALIZADA) ---
 
   Future<void> _generatePdf() async {
     final pdf = pw.Document();
@@ -382,7 +396,7 @@ class _UserReportsPageState extends State<UserReportsPage> {
                   pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
           pw.SizedBox(height: 10),
           pw.Text("Período: ${DateFormat('MM/yyyy').format(selectedDate)}"),
-          pw.Text("Escala de trabalho: ${widget.jornadaHoras}h diárias"),
+          pw.Text("Escala de trabalho: $_jornadaDiariaHoras" "h diárias"),
           pw.Text("Total trabalhado no mês: $_totalHorasMes"),
           pw.Text("Saldo (Banco de Horas): $_totalExtrasMes"),
           pw.SizedBox(height: 20),
@@ -391,10 +405,9 @@ class _UserReportsPageState extends State<UserReportsPage> {
             columnWidths: {
               0: const pw.FixedColumnWidth(60),
               1: const pw.FlexColumnWidth(),
-              2: const pw.FixedColumnWidth(100),
+              2: const pw.FixedColumnWidth(100)
             },
             children: [
-              // Cabeçalho da Tabela
               pw.TableRow(
                 decoration: const pw.BoxDecoration(color: PdfColors.grey300),
                 children: [
@@ -403,21 +416,18 @@ class _UserReportsPageState extends State<UserReportsPage> {
                   _cellPadding("Observações", bold: true),
                 ],
               ),
-              // Linhas de dados (Loop correto)
               ...sortedKeys.map((diaId) {
                 final eventos = punchRecords[diaId] ?? [];
                 final p = _processDayDetails(eventos);
                 final dataFormatada =
                     diaId.split('-').reversed.take(2).join('/');
-
                 return pw.TableRow(
                   verticalAlignment: pw.TableCellVerticalAlignment.middle,
                   children: [
                     _cellPadding(dataFormatada),
                     pw.Padding(
-                      padding: const pw.EdgeInsets.all(5),
-                      child: _formatEventosParaPdf(eventos),
-                    ),
+                        padding: const pw.EdgeInsets.all(5),
+                        child: _formatEventosParaPdf(eventos)),
                     _cellPadding(p["obs"] ?? ""),
                   ],
                 );
@@ -441,8 +451,6 @@ class _UserReportsPageState extends State<UserReportsPage> {
         final DateTime? at = e['at'];
         if (at == null) return pw.SizedBox();
         final hora = DateFormat('HH:mm').format(at);
-
-        // Verifica se a chave é 'type' ou 'tipo' vindo do banco
         String tipoRaw =
             (e['type'] ?? e['tipo'] ?? '').toString().toUpperCase();
         String label = tipoRaw;
@@ -466,13 +474,9 @@ class _UserReportsPageState extends State<UserReportsPage> {
   pw.Widget _cellPadding(String text, {bool bold = false}) {
     return pw.Padding(
       padding: const pw.EdgeInsets.all(5),
-      child: pw.Text(
-        text,
-        style: pw.TextStyle(
-          fontSize: 10,
-          fontWeight: bold ? pw.FontWeight.bold : null,
-        ),
-      ),
+      child: pw.Text(text,
+          style: pw.TextStyle(
+              fontSize: 10, fontWeight: bold ? pw.FontWeight.bold : null)),
     );
   }
 }
