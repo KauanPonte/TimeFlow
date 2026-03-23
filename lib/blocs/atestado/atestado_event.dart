@@ -42,3 +42,8 @@ class SilentLoadAtestadosEvent extends AtestadoEvent {
 class ResetAtestadosEvent extends AtestadoEvent {
   const ResetAtestadosEvent();
 }
+
+class DismissReviewedAtestadoEvent extends AtestadoEvent {
+  final String atestadoId;
+  const DismissReviewedAtestadoEvent(this.atestadoId);
+}

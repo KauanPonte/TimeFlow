@@ -25,6 +25,7 @@ class AtestadoBloc extends Bloc<AtestadoEvent, AtestadoState> {
       _lastList = [];
       emit(const AtestadoInitial());
     });
+    on<DismissReviewedAtestadoEvent>(_onDismissReviewed);
   }
 
   void reset() => add(const ResetAtestadosEvent());
@@ -109,6 +110,17 @@ class AtestadoBloc extends Bloc<AtestadoEvent, AtestadoState> {
         atestados: _lastList,
       ));
     }
+  }
+
+  Future<void> _onDismissReviewed(
+    DismissReviewedAtestadoEvent event,
+    Emitter<AtestadoState> emit,
+  ) async {
+    await repository.markSeenByEmployee(event.atestadoId);
+    _lastList = _lastList
+        .map((a) => a.id == event.atestadoId ? a.copyWith(seenByEmployee: true) : a)
+        .toList();
+    emit(AtestadoLoaded(atestados: _lastList, isAdmin: _isAdmin));
   }
 
   Future<void> _onReject(
