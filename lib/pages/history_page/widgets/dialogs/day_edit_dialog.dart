@@ -148,11 +148,29 @@ class _DayEditDialogState extends State<DayEditDialog> {
         (e.mode == RowMode.editing && e.hasChanged));
   }
 
+  // Helpers de validação de horário futuro
+
+  bool _isToday() {
+    final now = DateTime.now();
+    final d = _dateForDay();
+    return d.year == now.year && d.month == now.month && d.day == now.day;
+  }
+
+  bool _isFutureTimeOnToday(TimeOfDay t) {
+    if (!_isToday()) return false;
+    final now = TimeOfDay.now();
+    return t.hour > now.hour || (t.hour == now.hour && t.minute > now.minute);
+  }
+
   // Pick time
 
   Future<void> _pickTimeForExisting(EventoEditState ev) async {
     final picked = await showTimePicker24h(context, ev.time);
     if (picked != null) {
+      if (_isFutureTimeOnToday(picked)) {
+        setState(() => _validationError = 'Não é permitido registrar horários futuros.');
+        return;
+      }
       setState(() {
         _validationError = null;
         ev.time = picked;
@@ -163,6 +181,10 @@ class _DayEditDialogState extends State<DayEditDialog> {
   Future<void> _pickTimeForNew(int index) async {
     final picked = await showTimePicker24h(context, _newEntries[index].time);
     if (picked != null) {
+      if (_isFutureTimeOnToday(picked)) {
+        setState(() => _validationError = 'Não é permitido registrar horários futuros.');
+        return;
+      }
       setState(() {
         _validationError = null;
         _newEntries[index].time = picked;

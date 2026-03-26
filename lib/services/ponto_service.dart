@@ -559,9 +559,12 @@ class PontoService {
       }
     }
     todayExpectedMinutes = expected;
-    monthBalance = (workedMinutes - todayExpectedMinutes).toDouble();
 
-
+    // Se hoje não entra no saldo esperado, também não conta as horas
+    // trabalhadas hoje para evitar que horas parciais inflem o saldo
+    final int todayWorked = (todayDoc?.data()['workedMinutes'] as int?) ?? 0;
+    final int workedForBalance = contarHoje ? workedMinutes : workedMinutes - todayWorked;
+    monthBalance = (workedForBalance - todayExpectedMinutes).toDouble();
 
     return MesResumo(
       workedMinutes: workedMinutes,
@@ -570,9 +573,6 @@ class PontoService {
       monthBalance: monthBalance,
     );
   }
-
-  // Para o Cubit (Usuário logado ver o próprio saldo)
-
 
   // Para a página de Relatórios (Admin ver saldo de qualquer usuário)
   static Future<int> getSaldoMesPorUsuario(String uid, DateTime date) async {
