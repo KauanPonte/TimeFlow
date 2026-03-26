@@ -535,12 +535,20 @@ class PontoService {
       workedMinutes += (m['workedMinutes'] as int?) ?? 0;
     }
 
+    // Hoje só entra no esperado se o dia estiver fechado (saída batida)
+    // ou se já passou das 20h (corte de falta)
+    final todayId = _diaId(DateTime(now.year, now.month, now.day));
+    final todayDoc = diasSnap.docs.where((d) => d.id == todayId).firstOrNull;
+    final bool diaHojeFechado = (todayDoc?.data()['isClosed'] as bool?) ?? false;
+    final bool cutoffReached = now.isAfter(DateTime(now.year, now.month, now.day, 20, 0));
+    final bool contarHoje = diaHojeFechado || cutoffReached;
+
     int todayExpectedMinutes;
     double monthBalance;
     int expected = 0;
     final today = DateTime(now.year, now.month, now.day);
     for (var d = DateTime(now.year, now.month, 1);
-        d.isBefore(today) || d.isAtSameMomentAs(today);
+        d.isBefore(today) || (d.isAtSameMomentAs(today) && contarHoje);
         d = d.add(const Duration(days: 1))) {
       final isWeekend =
           d.weekday == DateTime.saturday || d.weekday == DateTime.sunday;
@@ -551,9 +559,12 @@ class PontoService {
       }
     }
     todayExpectedMinutes = expected;
-    monthBalance = (workedMinutes - todayExpectedMinutes).toDouble();
 
-
+    // Se hoje não entra no saldo esperado, também não conta as horas
+    // trabalhadas hoje para evitar que horas parciais inflem o saldo
+    final int todayWorked = (todayDoc?.data()['workedMinutes'] as int?) ?? 0;
+    final int workedForBalance = contarHoje ? workedMinutes : workedMinutes - todayWorked;
+    monthBalance = (workedForBalance - todayExpectedMinutes).toDouble();
 
     return MesResumo(
       workedMinutes: workedMinutes,
@@ -562,9 +573,6 @@ class PontoService {
       monthBalance: monthBalance,
     );
   }
-
-  // Para o Cubit (Usuário logado ver o próprio saldo)
-
 
   // Para a página de Relatórios (Admin ver saldo de qualquer usuário)
   static Future<int> getSaldoMesPorUsuario(String uid, DateTime date) async {
