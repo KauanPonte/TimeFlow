@@ -85,13 +85,12 @@ class PontoService {
             success: false, message: 'Você precisa estar logado.');
       }
       final hoje = DateTime.now();
-      final bool feriadoOuFacultativo = await isFeriado(hoje);
+      final bool feriado = await isFeriado(hoje);
 
-      if (feriadoOuFacultativo) {
+      if (feriado) {
         return const PontoResult(
             success: false,
-            message:
-                'Hoje é feriado ou ponto facultativo. O registro de ponto está bloqueado.');
+            message: 'Hoje é feriado. O registro de ponto está bloqueado.');
       }
 
       if (!['entrada', 'pausa', 'retorno', 'saida'].contains(tipo)) {
@@ -350,7 +349,6 @@ class PontoService {
       const blockingTypes = {
         'feriado',
         'recesso',
-        'ponto_facultativo',
       };
 
       final snapshot = await FirebaseFirestore.instance

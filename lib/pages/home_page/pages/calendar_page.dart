@@ -6,7 +6,6 @@ import 'package:table_calendar/table_calendar.dart';
 import 'calendar_service.dart' hide DateFormat;
 import 'package:intl/intl.dart' as intl;
 
-
 class _EventOption {
   final String label;
   final String type;
@@ -119,7 +118,7 @@ class _CalendarPageState extends State<CalendarPage> {
   }
 
   bool _blocksRegistration(String type) {
-    return ['feriado', 'recesso', 'ponto_facultativo'].contains(type);
+    return ['feriado', 'recesso'].contains(type);
   }
 
   @override
@@ -198,7 +197,7 @@ class _CalendarPageState extends State<CalendarPage> {
                             ),
                             calendarBuilders: CalendarBuilders(
                               markerBuilder: (context, day, events) =>
-                                  const SizedBox.shrink(), 
+                                  const SizedBox.shrink(),
                               defaultBuilder: (context, day, focusedDay) =>
                                   _buildDayCell(day, isDark, false,
                                       eventsMap: temporaryEvents),
