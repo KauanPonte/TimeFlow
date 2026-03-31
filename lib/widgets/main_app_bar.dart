@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_application_appdeponto/blocs/auth/auth_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/auth/auth_event.dart';
 import 'package:flutter_application_appdeponto/blocs/auth/auth_state.dart';
@@ -12,6 +13,10 @@ import 'package:flutter_application_appdeponto/blocs/solicitations/solicitation_
 import 'package:flutter_application_appdeponto/blocs/solicitations/solicitation_event.dart';
 import 'package:flutter_application_appdeponto/blocs/solicitations/solicitation_state.dart';
 import 'package:flutter_application_appdeponto/models/solicitation_model.dart';
+import 'package:flutter_application_appdeponto/blocs/atestado/atestado_bloc.dart';
+import 'package:flutter_application_appdeponto/blocs/atestado/atestado_event.dart';
+import 'package:flutter_application_appdeponto/blocs/atestado/atestado_state.dart';
+import 'package:flutter_application_appdeponto/models/atestado_model.dart';
 import 'package:flutter_application_appdeponto/pages/admin/solicitations/solicitation_review_dialog.dart';
 import 'package:flutter_application_appdeponto/repositories/solicitation_repository.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
@@ -75,6 +80,8 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
     List<MapEntry<String, Map<String, String>>> incompletos, {
     bool isAdmin = false,
     List<SolicitationModel> reviewedSolicitations = const [],
+    List<AtestadoModel> pendingAtestados = const [],
+    List<AtestadoModel> reviewedAtestados = const [],
   }) {
     // Obtém solicitações pendentes para admin
     List<SolicitationModel> solicitations = [];
@@ -100,11 +107,16 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
       builder: (sheetCtx) {
         final Set<String> pendingDismiss = {};
         final Set<String> seenInSession = {};
+        final Set<String> atestadoPendingDismiss = {};
+        final Set<String> atestadoSeenInSession = {};
         return StatefulBuilder(builder: (_, setSheetState) {
           // Mostra todo o histórico (repo já ordena: não vistos mais recentes primeiro).
           final allReviewed = reviewedSolicitations;
           final unseenCount = allReviewed
               .where((s) => !s.seenByEmployee && !seenInSession.contains(s.id))
+              .length;
+          final unseenAtestadoCount = reviewedAtestados
+              .where((a) => !a.seenByEmployee && !atestadoSeenInSession.contains(a.id))
               .length;
           return SafeArea(
             child: Padding(
@@ -133,7 +145,9 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                       //  Estado vazio — sem nenhuma notificação
                       if (incompletos.isEmpty &&
                           allReviewed.isEmpty &&
-                          solicitations.isEmpty) ...[
+                          solicitations.isEmpty &&
+                          pendingAtestados.isEmpty &&
+                          reviewedAtestados.isEmpty) ...[
                         const SizedBox(height: 32),
                         Center(
                           child: Column(
@@ -373,6 +387,135 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                           );
                         }),
                       ], // end reviewed
+
+                      //  Seção: Resultado de atestados (funcionário)
+                      if (!isAdmin && reviewedAtestados.isNotEmpty) ...[
+                        if (incompletos.isNotEmpty || allReviewed.isNotEmpty)
+                          const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            const Icon(Icons.medical_information_outlined,
+                                color: AppColors.primary),
+                            const SizedBox(width: 10),
+                            const Expanded(
+                              child: Text('Resultado de Atestados',
+                                  style: AppTextStyles.h3),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                '$unseenAtestadoCount',
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        const Divider(),
+                        ...reviewedAtestados.map((a) {
+                          final isSeen = a.seenByEmployee ||
+                              atestadoSeenInSession.contains(a.id);
+                          final isPending = atestadoPendingDismiss.contains(a.id);
+                          return _buildReviewedAtestadoTile(
+                            context,
+                            a,
+                            isPendingDismiss: isPending,
+                            isSeen: isSeen && !isPending,
+                            onLocalDismiss: (isSeen || isPending)
+                                ? null
+                                : () {
+                                    setSheetState(
+                                        () => atestadoPendingDismiss.add(a.id));
+                                    context.read<AtestadoBloc>().add(
+                                          DismissReviewedAtestadoEvent(a.id),
+                                        );
+                                    Future.delayed(
+                                        const Duration(milliseconds: 800),
+                                        () => setSheetState(() {
+                                              atestadoPendingDismiss.remove(a.id);
+                                              atestadoSeenInSession.add(a.id);
+                                            }));
+                                  },
+                          );
+                        }),
+                      ], // end reviewed atestados
+
+                      //  Seção: Atestados pendentes (admin)
+                      if (isAdmin && pendingAtestados.isNotEmpty) ...[
+                        if (incompletos.isNotEmpty || solicitations.isNotEmpty)
+                          const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            const Icon(Icons.assignment_ind_rounded,
+                                color: AppColors.warning),
+                            const SizedBox(width: 10),
+                            const Text('Atestados Pendentes',
+                                style: AppTextStyles.h3),
+                            const Spacer(),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: AppColors.warning.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                '${pendingAtestados.length}',
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.warning,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        const Divider(),
+                        ...pendingAtestados.map((a) {
+                          final fmt = DateFormat('dd/MM/yyyy');
+                          final inicio =
+                              fmt.format(DateTime.parse(a.dataInicio));
+                          final fim = fmt.format(DateTime.parse(a.dataFim));
+                          final mesmodia = a.dataInicio == a.dataFim;
+                          return ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            leading: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: AppColors.warning.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(
+                                  Icons.medical_information_outlined,
+                                  size: 18,
+                                  color: AppColors.warning),
+                            ),
+                            title: Text(a.employeeName,
+                                style: AppTextStyles.bodyMedium
+                                    .copyWith(fontWeight: FontWeight.w600)),
+                            subtitle: Text(
+                                mesmodia ? inicio : '$inicio → $fim',
+                                style: AppTextStyles.bodySmall
+                                    .copyWith(color: AppColors.warning)),
+                            trailing: const Icon(Icons.chevron_right,
+                                color: AppColors.textSecondary),
+                            onTap: () {
+                              Navigator.pop(sheetCtx);
+                              _openAtestadoReview(context, a);
+                            },
+                          );
+                        }),
+                      ],
 
                       //  Seção: Solicitações pendentes (admin)
                       if (solicitations.isNotEmpty) ...[
@@ -676,6 +819,180 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
         ));
   }
 
+  Widget _buildReviewedAtestadoTile(
+    BuildContext context,
+    AtestadoModel atestado, {
+    VoidCallback? onLocalDismiss,
+    bool isPendingDismiss = false,
+    bool isSeen = false,
+  }) {
+    final fmt = DateFormat('dd/MM/yyyy');
+    final inicio = fmt.format(DateTime.parse(atestado.dataInicio));
+    final fim = fmt.format(DateTime.parse(atestado.dataFim));
+    final mesmodia = atestado.dataInicio == atestado.dataFim;
+
+    final isApproved = atestado.status == AtestadoStatus.approved;
+    final statusColor = isApproved ? AppColors.success : AppColors.error;
+    final statusLabel = isApproved ? 'Aprovado' : 'Recusado';
+    final statusIcon =
+        isApproved ? Icons.check_circle_outline : Icons.cancel_outlined;
+
+    return Opacity(
+      opacity: isSeen ? 0.6 : 1.0,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: statusColor.withValues(alpha: isSeen ? 0.03 : 0.05),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+              color: statusColor.withValues(alpha: isSeen ? 0.12 : 0.25)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(statusIcon, size: 14, color: statusColor),
+                const SizedBox(width: 6),
+                Text(
+                  mesmodia ? inicio : '$inicio – $fim',
+                  style: AppTextStyles.bodySmall.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const Spacer(),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: statusColor.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    statusLabel,
+                    style: AppTextStyles.bodySmall.copyWith(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      color: statusColor,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Atestado médico',
+              style: AppTextStyles.bodySmall
+                  .copyWith(color: AppColors.textSecondary),
+            ),
+            // Motivo da recusa
+            if (!isApproved &&
+                atestado.reason != null &&
+                atestado.reason!.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.borderLight.withValues(alpha: 0.4),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.comment_outlined,
+                        size: 12, color: AppColors.textSecondary),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        atestado.reason!,
+                        style: AppTextStyles.bodySmall.copyWith(
+                          fontSize: 11,
+                          color: AppColors.textSecondary,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerRight,
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                child: isSeen
+                    ? Padding(
+                        key: const ValueKey('seen'),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.check_circle,
+                                size: 12,
+                                color: AppColors.textSecondary
+                                    .withValues(alpha: 0.5)),
+                            const SizedBox(width: 4),
+                            Text('Visto',
+                                style: AppTextStyles.bodySmall.copyWith(
+                                  fontSize: 11,
+                                  color: AppColors.textSecondary
+                                      .withValues(alpha: 0.5),
+                                )),
+                          ],
+                        ),
+                      )
+                    : InkWell(
+                        key: ValueKey(isPendingDismiss),
+                        onTap: isPendingDismiss ? null : onLocalDismiss,
+                        borderRadius: BorderRadius.circular(6),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                isPendingDismiss
+                                    ? Icons.check_circle
+                                    : Icons.check_circle_outline,
+                                size: 13,
+                                color: isPendingDismiss
+                                    ? AppColors.success
+                                    : AppColors.textSecondary
+                                        .withValues(alpha: 0.7),
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                isPendingDismiss
+                                    ? 'Visto!'
+                                    : 'Marcar como visto',
+                                style: AppTextStyles.bodySmall.copyWith(
+                                  fontSize: 11,
+                                  color: isPendingDismiss
+                                      ? AppColors.success
+                                      : AppColors.textSecondary
+                                          .withValues(alpha: 0.7),
+                                  fontWeight: isPendingDismiss
+                                      ? FontWeight.w700
+                                      : FontWeight.normal,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   String _tipoLabel(String tipo) {
     switch (tipo) {
       case 'entrada':
@@ -722,6 +1039,238 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
             ),
           );
     }
+  }
+
+  void _openAtestadoReview(BuildContext context, AtestadoModel atestado) {
+    final fmt = DateFormat('dd/MM/yyyy');
+    final inicio = fmt.format(DateTime.parse(atestado.dataInicio));
+    final fim = fmt.format(DateTime.parse(atestado.dataFim));
+    final mesmodia = atestado.dataInicio == atestado.dataFim;
+    final dias = DateTime.parse(atestado.dataFim)
+            .difference(DateTime.parse(atestado.dataInicio))
+            .inDays +
+        1;
+    final rejectController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (dialogCtx) {
+        return StatefulBuilder(builder: (_, setState) {
+          return Dialog(
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            insetPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppColors.warning.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.assignment_ind_rounded,
+                            color: AppColors.warning, size: 20),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('Revisar Atestado',
+                                style: AppTextStyles.h3),
+                            Text(
+                              atestado.employeeName,
+                              style: AppTextStyles.bodySmall.copyWith(
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      const Icon(Icons.calendar_today_rounded,
+                          size: 13, color: AppColors.textSecondary),
+                      const SizedBox(width: 5),
+                      Text(
+                        'Enviado em ${DateFormat("dd/MM/yyyy").format(atestado.createdAt)}',
+                        style: AppTextStyles.bodySmall
+                            .copyWith(color: AppColors.textSecondary),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  const Divider(height: 1),
+                  const SizedBox(height: 12),
+
+                  // Período
+                  Row(
+                    children: [
+                      const Icon(Icons.date_range_outlined,
+                          size: 16, color: AppColors.textSecondary),
+                      const SizedBox(width: 6),
+                      Text(
+                        mesmodia ? inicio : '$inicio – $fim',
+                        style: AppTextStyles.bodyMedium,
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          '$dias ${dias == 1 ? 'dia' : 'dias'}',
+                          style: AppTextStyles.bodySmall.copyWith(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  // Ver documento
+                  if (atestado.fileUrl != null) ...[
+                    const SizedBox(height: 10),
+                    OutlinedButton.icon(
+                      onPressed: () async {
+                        try {
+                          await launchUrl(
+                            Uri.parse(atestado.fileUrl!),
+                            mode: LaunchMode.externalApplication,
+                          );
+                        } catch (_) {}
+                      },
+                      icon: const Icon(Icons.picture_as_pdf_outlined, size: 16),
+                      label: const Text('Ver documento'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.primary,
+                        side: const BorderSide(color: AppColors.primary),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
+                      ),
+                    ),
+                  ],
+
+                  const SizedBox(height: 12),
+
+                  // Campo de observação (motivo da recusa)
+                  TextField(
+                    controller: rejectController,
+                    maxLines: 2,
+                    decoration: InputDecoration(
+                      hintText: 'Motivo de recusa (opcional)',
+                      hintStyle: AppTextStyles.bodySmall
+                          .copyWith(color: AppColors.textSecondary),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 10),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide:
+                            const BorderSide(color: AppColors.borderLight),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide:
+                            const BorderSide(color: AppColors.borderLight),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(color: AppColors.primary),
+                      ),
+                    ),
+                    style: AppTextStyles.bodySmall,
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Botões
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextButton(
+                          onPressed: () => Navigator.pop(dialogCtx),
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              side: const BorderSide(
+                                  color: AppColors.borderLight),
+                            ),
+                          ),
+                          child: Text(
+                            'Voltar',
+                            style: AppTextStyles.bodyMedium
+                                .copyWith(color: AppColors.textSecondary),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () {
+                            final reason = rejectController.text.trim();
+                            Navigator.pop(dialogCtx);
+                            context.read<AtestadoBloc>().add(
+                                  RejectAtestadoEvent(
+                                    atestado.id,
+                                    reason: reason.isEmpty ? null : reason,
+                                  ),
+                                );
+                          },
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            foregroundColor: AppColors.error,
+                            side: const BorderSide(color: AppColors.error),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10)),
+                          ),
+                          child: const Text('Recusar'),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.pop(dialogCtx);
+                            context.read<AtestadoBloc>().add(
+                                  ApproveAtestadoEvent(atestado.id),
+                                );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10)),
+                          ),
+                          child: const Text('Aprovar'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          );
+        });
+      },
+    );
   }
 
   void _showLogoutDialog(BuildContext context) {
@@ -806,12 +1355,12 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
             final pontoState = context.watch<PontoTodayCubit>().state;
             final incompletos = _computeIncompletos(pontoState);
 
-            // Conta solicitações pendentes (admin) ou revisadas (funcionário)
-
-            // Conta solicitações pendentes (admin) ou revisadas (funcionário)
             final solState = context.watch<SolicitationBloc>().state;
+            final atestadoState = context.watch<AtestadoBloc>().state;
             int solCount = 0;
             List<SolicitationModel> reviewedSolicitations = [];
+            List<AtestadoModel> pendingAtestados = [];
+            List<AtestadoModel> reviewedAtestados = [];
 
             if (isAdmin) {
               if (solState is SolicitationLoaded) {
@@ -821,6 +1370,9 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                     .where((s) => s.status == SolicitationStatus.pending)
                     .length;
               }
+              if (atestadoState is AtestadoLoaded && atestadoState.isAdmin) {
+                pendingAtestados = atestadoState.atestados;
+              }
             } else {
               if (solState is SolicitationLoaded) {
                 reviewedSolicitations = solState.reviewedSolicitations;
@@ -829,13 +1381,37 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
               }
               solCount =
                   reviewedSolicitations.where((s) => !s.seenByEmployee).length;
+
+              // Atestados revisados para funcionário
+              List<AtestadoModel> allAtestados = [];
+              if (atestadoState is AtestadoLoaded && !atestadoState.isAdmin) {
+                allAtestados = atestadoState.atestados;
+              } else if (atestadoState is AtestadoActionSuccess) {
+                allAtestados = atestadoState.atestados
+                    .where((a) => !atestadoState.atestados
+                        .any((x) => x.id == a.id && x.seenByEmployee))
+                    .toList();
+              }
+              reviewedAtestados = allAtestados
+                  .where((a) =>
+                      a.status != AtestadoStatus.pending && !a.seenByEmployee)
+                  .toList();
             }
 
-            final totalCount = incompletos.length + solCount;
+            final totalCount = incompletos.length +
+                solCount +
+                pendingAtestados.length +
+                reviewedAtestados.length;
             final hasNotification = totalCount > 0;
             final badgeColor = isAdmin
-                ? (solCount > 0 ? AppColors.primary : AppColors.warning)
-                : (solCount > 0 ? AppColors.success : AppColors.warning);
+                ? (pendingAtestados.isNotEmpty
+                    ? AppColors.warning
+                    : solCount > 0
+                        ? AppColors.primary
+                        : AppColors.warning)
+                : (solCount > 0 || reviewedAtestados.isNotEmpty
+                    ? AppColors.success
+                    : AppColors.warning);
 
             return Badge(
               isLabelVisible: hasNotification,
@@ -858,6 +1434,8 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                   incompletos,
                   isAdmin: isAdmin,
                   reviewedSolicitations: reviewedSolicitations,
+                  pendingAtestados: pendingAtestados,
+                  reviewedAtestados: reviewedAtestados,
                 ),
               ),
             );

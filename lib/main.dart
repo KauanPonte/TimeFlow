@@ -16,6 +16,10 @@ import 'package:flutter_application_appdeponto/blocs/admin_home/admin_home_bloc.
 import 'package:flutter_application_appdeponto/blocs/solicitations/solicitation_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/solicitations/solicitation_event.dart';
 import 'package:flutter_application_appdeponto/blocs/solicitations/solicitation_state.dart';
+import 'package:flutter_application_appdeponto/blocs/atestado/atestado_bloc.dart';
+import 'package:flutter_application_appdeponto/blocs/atestado/atestado_event.dart';
+import 'package:flutter_application_appdeponto/blocs/atestado/atestado_state.dart';
+import 'package:flutter_application_appdeponto/repositories/atestado_repository.dart';
 import 'package:flutter_application_appdeponto/repositories/auth_repository.dart';
 import 'package:flutter_application_appdeponto/repositories/history_view_preference_repository.dart';
 import 'package:flutter_application_appdeponto/repositories/ponto_history_repository.dart';
@@ -108,6 +112,12 @@ class TimeFlow extends StatelessWidget {
             globalLoading: context.read<GlobalLoadingCubit>(),
           ),
         ),
+        BlocProvider<AtestadoBloc>(
+          create: (context) => AtestadoBloc(
+            repository: AtestadoRepository(),
+            globalLoading: context.read<GlobalLoadingCubit>(),
+          ),
+        ),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
@@ -124,6 +134,7 @@ class TimeFlow extends StatelessWidget {
               context.read<ProfileBloc>().reset();
               context.read<AdminHomeBloc>().reset();
               context.read<SolicitationBloc>().reset();
+              context.read<AtestadoBloc>().reset();
               HistoryViewPreferenceRepository.clearCache();
             },
             child: BlocListener<AuthBloc, AuthState>(
@@ -137,16 +148,26 @@ class TimeFlow extends StatelessWidget {
               listener: (context, state) {
                 // Só dispara se o bloc ainda não tem dados (splash já cuida do caso normal)
                 final solState = context.read<SolicitationBloc>().state;
+                bool isAdmin = state is AdminAuthenticated;
+                if (!isAdmin && state is UserAuthenticated) {
+                  final r = (state.userData['role'] ?? '').toString();
+                  isAdmin = r.toUpperCase().contains('ADM');
+                }
                 if (solState is! SolicitationLoaded &&
                     solState is! SolicitationLoading) {
-                  bool isAdmin = state is AdminAuthenticated;
-                  if (!isAdmin && state is UserAuthenticated) {
-                    final r = (state.userData['role'] ?? '').toString();
-                    isAdmin = r.toUpperCase().contains('ADM');
-                  }
                   context
                       .read<SolicitationBloc>()
                       .add(LoadSolicitationsEvent(isAdmin: isAdmin));
+                }
+                // Carrega atestados para funcionários (para notificações de resultado)
+                if (!isAdmin) {
+                  final atestadoState = context.read<AtestadoBloc>().state;
+                  if (atestadoState is! AtestadoLoaded &&
+                      atestadoState is! AtestadoLoading) {
+                    context
+                        .read<AtestadoBloc>()
+                        .add(const LoadAtestadosEvent(isAdmin: false));
+                  }
                 }
               },
               child: BlocBuilder<GlobalLoadingCubit, GlobalLoadingState>(
