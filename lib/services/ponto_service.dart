@@ -10,7 +10,6 @@ class PontoResult {
 
 class PontoService {
   static const String _root = 'pontos';
-  
 
   static String _mesIdFromDiaId(String diaId) => diaId.substring(0, 7);
 
@@ -388,9 +387,9 @@ class PontoService {
     final eventos = eventosSnap.docs.map((d) => d.data()).toList();
 
     final workedMinutes = _computeWorkedMinutesFromEventosFechado(eventos);
-    final workloadMinutes = await _getWorkloadMinutes(uid);
+    final workloadMinutes =
+        await _getWorkloadMinutes(uid); // <--- VALOR DEFINIDO AQUI
 
-    // Lê isExcused do documento existente (campo preservado via merge)
     final diaSnapPre = await refDia.get();
     final bool isExcused = (diaSnapPre.data()?['isExcused'] as bool?) ?? false;
 
@@ -400,23 +399,24 @@ class PontoService {
     final hojeId = DateFormat('yyyy-MM-dd').format(DateTime.now());
     final bool ehHoje = diaId == hojeId;
 
-    // Lógica de falta considerando calendário e dias facultativos
     final date = DateTime.parse(diaId);
     final holidays = getBrazilHolidays(date.year);
     final bool isWeekend =
         date.weekday == DateTime.saturday || date.weekday == DateTime.sunday;
     final bool isHoliday = holidays.containsKey(date);
+
     final bool falta =
         !ehHoje && eventos.isEmpty && !isWeekend && !isHoliday && !isExcused;
 
     final bool emAberto = !diaFechado && eventos.isNotEmpty;
 
-    // Dia facultativo: sem meta — tudo que trabalhou é bônus, ausência não desconta
     final int deltaMinutes = isExcused
         ? workedMinutes
-        : (falta ? -workloadMinutes : (diaFechado ? (workedMinutes - workloadMinutes) : 0));
+        : (falta
+            ? -workloadMinutes
+            : (diaFechado ? (workedMinutes - workloadMinutes) : 0));
 
-    // Função auxiliar para atualização
+    // Função interna corrigida usando workloadMinutes
     Future<void> applyUpdate(int oldDelta, int oldBalance) async {
       final diff = deltaMinutes - oldDelta;
       await refDia.set({
@@ -424,7 +424,7 @@ class PontoService {
         'date': diaId,
         'workedMinutes': workedMinutes,
         'deltaMinutes': deltaMinutes,
-        'workloadMinutes': originalWorkload,
+        'workloadMinutes': workloadMinutes,
         'isClosed': diaFechado,
         'isOpen': emAberto,
         'isAbsent': falta,
@@ -448,11 +448,9 @@ class PontoService {
         tx.set(
             refDia,
             {
-              'uid': uid,
-              'date': diaId,
               'workedMinutes': workedMinutes,
               'deltaMinutes': deltaMinutes,
-              'workloadMinutes': originalWorkload,
+              'workloadMinutes': workloadMinutes,
               'isClosed': diaFechado,
               'isOpen': emAberto,
               'isAbsent': falta,
@@ -477,11 +475,14 @@ class PontoService {
   }
 
   // 3. RESUMO DO MÊS (CORRIGIDO)
-  static Future<MesResumo> getResumoMesAtual() async {
+  static Future<MesResumo> getResumoMesAtualOld() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null)
       return const MesResumo(
-          workedMinutes: 0, expectedMinutes: 0, businessDaysTotal: 0);
+          workedMinutes: 0,
+          expectedMinutes: 0,
+          businessDaysTotal: 0,
+          monthBalance: 0.0);
 
     final uid = user.uid;
     final now = DateTime.now();
@@ -535,10 +536,14 @@ class PontoService {
       workedMinutes += (doc.data()['workedMinutes'] as int?) ?? 0;
     }
 
+    final monthBalance = (workedMinutes - expectedMinutes) / 60.0;
+
     return MesResumo(
-        workedMinutes: workedMinutes,
-        expectedMinutes: expectedMinutes,
-        businessDaysTotal: businessDaysTotal);
+      workedMinutes: workedMinutes,
+      expectedMinutes: expectedMinutes,
+      businessDaysTotal: businessDaysTotal,
+      monthBalance: monthBalance,
+    );
   }
 
   static int _computeWorkedMinutesFromEventosFechado(
@@ -634,8 +639,10 @@ class PontoService {
     // ou se já passou das 20h (corte de falta)
     final todayId = _diaId(DateTime(now.year, now.month, now.day));
     final todayDoc = diasSnap.docs.where((d) => d.id == todayId).firstOrNull;
-    final bool diaHojeFechado = (todayDoc?.data()['isClosed'] as bool?) ?? false;
-    final bool cutoffReached = now.isAfter(DateTime(now.year, now.month, now.day, 20, 0));
+    final bool diaHojeFechado =
+        (todayDoc?.data()['isClosed'] as bool?) ?? false;
+    final bool cutoffReached =
+        now.isAfter(DateTime(now.year, now.month, now.day, 20, 0));
     final bool contarHoje = diaHojeFechado || cutoffReached;
 
     int todayExpectedMinutes;
@@ -658,7 +665,8 @@ class PontoService {
     // Se hoje não entra no saldo esperado, também não conta as horas
     // trabalhadas hoje para evitar que horas parciais inflem o saldo
     final int todayWorked = (todayDoc?.data()['workedMinutes'] as int?) ?? 0;
-    final int workedForBalance = contarHoje ? workedMinutes : workedMinutes - todayWorked;
+    final int workedForBalance =
+        contarHoje ? workedMinutes : workedMinutes - todayWorked;
     monthBalance = (workedForBalance - todayExpectedMinutes).toDouble();
 
     return MesResumo(
