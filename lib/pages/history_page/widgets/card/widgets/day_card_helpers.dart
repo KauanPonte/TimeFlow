@@ -36,6 +36,23 @@ bool isWeekendOrHoliday(String diaId) {
   }
 }
 
+bool isWeekendOrHolidayWithCalendar(
+  String diaId,
+  Set<String> calendarBlockedDays,
+) {
+  try {
+    final date = DateTime.parse(diaId);
+    final day = DateTime(date.year, date.month, date.day);
+    final isWeekend =
+        day.weekday == DateTime.saturday || day.weekday == DateTime.sunday;
+    final holidays = PontoService.getBrazilHolidays(date.year);
+    final isHoliday = holidays.containsKey(day);
+    final isCalendarBlocked = calendarBlockedDays.contains(diaId);
+    return isWeekend || isHoliday || isCalendarBlocked;
+  } catch (_) {
+    return false;
+  }
+}
 // Tipo helpers
 
 IconData iconForTipo(String tipo) {
@@ -220,4 +237,36 @@ IconData iconForWorkMode(String workMode) {
     default:
       return Icons.work_outline;
   }
+}
+
+Widget buildHolidayBanner(String name) {
+  return Container(
+    width: double.infinity,
+    margin: const EdgeInsets.only(bottom: 8),
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+    decoration: BoxDecoration(
+      color: Colors.green.withValues(alpha: 0.08),
+      borderRadius: BorderRadius.circular(8),
+      border: Border.all(
+        color: Colors.green.withValues(alpha: 0.3),
+        width: 0.5,
+      ),
+    ),
+    child: Row(
+      children: [
+        Icon(Icons.event_available_rounded, size: 14, color: Colors.green[700]),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            name,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: Colors.green[700],
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
 }

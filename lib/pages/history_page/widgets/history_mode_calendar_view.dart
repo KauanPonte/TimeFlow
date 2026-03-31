@@ -13,6 +13,7 @@ class HistoryModeCalendarView extends StatelessWidget {
   final ValueChanged<DateTime> onDaySelected;
   final Widget Function(String dayId) dayBuilder;
   final Future<void> Function()? onRefresh;
+  final Set<String> holidayDayIds;
 
   const HistoryModeCalendarView({
     super.key,
@@ -24,7 +25,9 @@ class HistoryModeCalendarView extends StatelessWidget {
     this.pendingDayIds = const {},
     required this.onDaySelected,
     required this.dayBuilder,
+    this.holidayDayIds = const {},
     this.onRefresh,
+    required Map<DateTime, List<Map<String, dynamic>>> calendarEvents,
   });
 
   @override
@@ -35,6 +38,7 @@ class HistoryModeCalendarView extends StatelessWidget {
       pendingDayIds: pendingDayIds,
       dayIdFor: dayIdFor,
       isFutureDate: isFutureDate,
+      holidayDayIds: holidayDayIds,
     );
 
     final content = <Widget>[

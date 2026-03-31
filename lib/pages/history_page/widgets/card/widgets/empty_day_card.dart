@@ -11,6 +11,7 @@ class EmptyDayCard extends StatelessWidget {
   final VoidCallback? onAddEvento;
   final VoidCallback? onBatchEdit;
   final VoidCallback? onRequestSolicitation;
+  final String? holidayName;
 
   const EmptyDayCard({
     super.key,
@@ -20,6 +21,7 @@ class EmptyDayCard extends StatelessWidget {
     this.onAddEvento,
     this.onBatchEdit,
     this.onRequestSolicitation,
+    this.holidayName,
   });
 
   @override
@@ -35,57 +37,50 @@ class EmptyDayCard extends StatelessWidget {
               : AppColors.borderLight,
         ),
       ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        leading: Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: disabled
-                ? AppColors.borderLight.withValues(alpha: 0.4)
-                : AppColors.borderLight.withValues(alpha: 0.5),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: disabled
-                  ? AppColors.borderLight.withValues(alpha: 0.7)
-                  : AppColors.borderLight,
-            ),
-          ),
-          child: Icon(
-            Icons.calendar_today,
-            color: disabled ? AppColors.textSecondary : AppColors.textSecondary,
-            size: 20,
-          ),
-        ),
-        title: Text(
-          formatDate(diaId),
-          style: AppTextStyles.bodyMedium.copyWith(
-            color: disabled ? AppColors.textSecondary : AppColors.textSecondary,
-          ),
-        ),
-        subtitle: disabled
-            ? null
-            : Text(
-                'Sem registros',
-                style: AppTextStyles.bodySmall.copyWith(
-                  color: AppColors.textSecondary.withValues(alpha: 0.6),
-                  fontSize: 11,
+      child: Column(
+        children: [
+          ListTile(
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            leading: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: disabled
+                    ? AppColors.borderLight.withValues(alpha: 0.4)
+                    : AppColors.borderLight.withValues(alpha: 0.5),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: disabled
+                      ? AppColors.borderLight.withValues(alpha: 0.7)
+                      : AppColors.borderLight,
                 ),
               ),
-        trailing: (!disabled && isAdmin && onBatchEdit != null)
-            ? IconButton(
-                constraints: const BoxConstraints(),
-                style: IconButton.styleFrom(
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  minimumSize: Size.zero,
-                  padding: EdgeInsets.zero,
-                ),
-                padding: EdgeInsets.zero,
-                onPressed: onBatchEdit,
-                icon: const Icon(Icons.edit_note_rounded,
-                    color: AppColors.primary),
-                tooltip: 'Editar dia',
-              )
-            : (!disabled && isAdmin && onAddEvento != null)
+              child: Icon(
+                Icons.calendar_today,
+                color: disabled
+                    ? AppColors.textSecondary
+                    : AppColors.textSecondary,
+                size: 20,
+              ),
+            ),
+            title: Text(
+              formatDate(diaId),
+              style: AppTextStyles.bodyMedium.copyWith(
+                color: disabled
+                    ? AppColors.textSecondary
+                    : AppColors.textSecondary,
+              ),
+            ),
+            subtitle: disabled
+                ? null
+                : Text(
+                    'Sem registros',
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: AppColors.textSecondary.withValues(alpha: 0.6),
+                      fontSize: 11,
+                    ),
+                  ),
+            trailing: (!disabled && isAdmin && onBatchEdit != null)
                 ? IconButton(
                     constraints: const BoxConstraints(),
                     style: IconButton.styleFrom(
@@ -94,12 +89,12 @@ class EmptyDayCard extends StatelessWidget {
                       padding: EdgeInsets.zero,
                     ),
                     padding: EdgeInsets.zero,
-                    onPressed: onAddEvento,
-                    icon: const Icon(Icons.add_circle_outline,
+                    onPressed: onBatchEdit,
+                    icon: const Icon(Icons.edit_note_rounded,
                         color: AppColors.primary),
-                    tooltip: 'Adicionar ponto',
+                    tooltip: 'Editar dia',
                   )
-                : (!disabled && onRequestSolicitation != null)
+                : (!disabled && isAdmin && onAddEvento != null)
                     ? IconButton(
                         constraints: const BoxConstraints(),
                         style: IconButton.styleFrom(
@@ -108,12 +103,33 @@ class EmptyDayCard extends StatelessWidget {
                           padding: EdgeInsets.zero,
                         ),
                         padding: EdgeInsets.zero,
-                        onPressed: onRequestSolicitation,
-                        icon: const Icon(Icons.edit_note_rounded,
+                        onPressed: onAddEvento,
+                        icon: const Icon(Icons.add_circle_outline,
                             color: AppColors.primary),
-                        tooltip: 'Solicitar alteração',
+                        tooltip: 'Adicionar ponto',
                       )
-                    : null,
+                    : (!disabled && onRequestSolicitation != null)
+                        ? IconButton(
+                            constraints: const BoxConstraints(),
+                            style: IconButton.styleFrom(
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              minimumSize: Size.zero,
+                              padding: EdgeInsets.zero,
+                            ),
+                            padding: EdgeInsets.zero,
+                            onPressed: onRequestSolicitation,
+                            icon: const Icon(Icons.edit_note_rounded,
+                                color: AppColors.primary),
+                            tooltip: 'Solicitar alteração',
+                          )
+                        : null,
+          ),
+          if (holidayName != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              child: buildHolidayBanner(holidayName!),
+            ),
+        ],
       ),
     );
   }

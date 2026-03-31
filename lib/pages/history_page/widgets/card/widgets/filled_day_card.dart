@@ -19,6 +19,7 @@ class FilledDayCard extends StatelessWidget {
   final VoidCallback? onBatchEdit;
   final VoidCallback? onRequestSolicitation;
   final void Function(String)? onCancelSolicitation;
+  final String? holidayName;
 
   const FilledDayCard({
     super.key,
@@ -33,6 +34,7 @@ class FilledDayCard extends StatelessWidget {
     this.onBatchEdit,
     this.onRequestSolicitation,
     this.onCancelSolicitation,
+    this.holidayName,
   });
 
   bool get _incomplete => isIncomplete(
@@ -135,6 +137,7 @@ class FilledDayCard extends StatelessWidget {
                 children: [
                   const Divider(height: 1),
                   const SizedBox(height: 8),
+                  if (holidayName != null) buildHolidayBanner(holidayName!),
                   ..._buildEventoRows(incomplete),
                   if (incomplete) _buildIncompleteWarning(),
                   if (isAdmin && onBatchEdit != null) _buildBatchEditButton(),
@@ -253,7 +256,7 @@ class FilledDayCard extends StatelessWidget {
 
     for (var ev in orderedEventos) {
       final tipo = (ev['tipo'] ?? '').toString();
-      
+
       if (tipo == 'entrada') {
         if (currentCycle.isNotEmpty) {
           cycles.add(currentCycle);
@@ -276,7 +279,7 @@ class FilledDayCard extends StatelessWidget {
     for (var cycle in cycles) {
       bool hasPresencial = false;
       bool hasRemoto = false;
-      
+
       for (var ev in cycle) {
         final rawMode = (ev['workMode'] ?? '').toString();
         if (rawMode == 'presencial') {
@@ -285,9 +288,10 @@ class FilledDayCard extends StatelessWidget {
           hasRemoto = true;
         }
       }
-      
-      final cycleMode = hasPresencial ? 'presencial' : (hasRemoto ? 'remoto' : 'outro');
-      
+
+      final cycleMode =
+          hasPresencial ? 'presencial' : (hasRemoto ? 'remoto' : 'outro');
+
       for (var ev in cycle) {
         if (groups.isEmpty || groups.last.mode != cycleMode) {
           groups.add(_ModeGroup(mode: cycleMode, events: [ev]));
@@ -358,7 +362,6 @@ class FilledDayCard extends StatelessWidget {
         return AppColors.textSecondary;
     }
   }
-
 
   Widget _buildEventoRow(Map<String, dynamic> ev) {
     final tipo = (ev['tipo'] ?? '').toString();
