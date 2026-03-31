@@ -1,4 +1,6 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/services/ponto_service.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/ponto_history/ponto_history_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/ponto_history/ponto_history_state.dart';
@@ -48,15 +50,12 @@ class HomeHistorySection extends StatefulWidget {
 
 class _HomeHistorySectionState extends State<HomeHistorySection> {
   final _viewPreferenceRepository = HistoryViewPreferenceRepository();
-
-  /// GlobalKeys por diaId para `Scrollable.ensureVisible`.
   final Map<String, GlobalKey> _dayKeys = {};
-
-  /// Dia selecionado no calendário.
   late DateTime _selectedCalendarDay;
-
-  /// Dia que deve ser rolado para visibilidade assim que o mês estiver carregado.
   String? _pendingScrollDayId;
+
+  // 1. Variável de estado para os feriados e eventos do admin
+  Map<DateTime, List<Map<String, dynamic>>> _allVisibleEvents = {};
 
   HistoryViewPreference _viewPreference =
       HistoryViewPreferenceRepository.currentMode;
@@ -66,6 +65,52 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
     super.initState();
     _selectedCalendarDay =
         HistorySharedUtils.defaultSelectedDayForMonth(widget.currentMonth);
+
+    // 2. Chama o carregamento dos feriados ao iniciar
+    _loadCalendarEvents();
+  }
+
+  Future<void> _loadCalendarEvents() async {
+    try {
+      final snapshot =
+          await FirebaseFirestore.instance.collection('calendar_events').get();
+
+      Map<DateTime, List<Map<String, dynamic>>> mappedEvents = {};
+
+      // Carrega Feriados Fixos do Código (Nacionais/Estaduais)
+      final year = widget.currentMonth.year; // Usa o ano do mês visualizado
+      final fixos = PontoService.getBrazilHolidays(year);
+      fixos.forEach((date, name) {
+        final cleanDate = DateTime(date.year, date.month, date.day);
+        mappedEvents[cleanDate] = [
+          {'title': name, 'type': 'feriado'}
+        ];
+      });
+
+      // Carrega Feriados dinâmicos do Firebase (gravados pelo Admin)
+      for (var doc in snapshot.docs) {
+        final data = doc.data();
+        if (data['date'] == null) continue;
+
+        final date = (data['date'] as Timestamp).toDate();
+        final cleanDate = DateTime(date.year, date.month, date.day);
+
+        if (mappedEvents[cleanDate] == null) {
+          mappedEvents[cleanDate] = [data];
+        } else {
+          // Se já existe um feriado fixo, adiciona o do admin à lista
+          mappedEvents[cleanDate]!.add(data);
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          _allVisibleEvents = mappedEvents;
+        });
+      }
+    } catch (e) {
+      debugPrint("Erro ao carregar eventos do calendário: $e");
+    }
   }
 
   void _requestScrollToDay(String dayId) {
@@ -127,6 +172,9 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
           HistorySharedUtils.defaultSelectedDayForMonth(widget.currentMonth);
 
       _requestScrollToDay(HistorySharedUtils.toDayId(_selectedCalendarDay));
+      if (widget.currentMonth.year != oldWidget.currentMonth.year) {
+        _loadCalendarEvents();
+      }
     }
 
     // Caso o dia destacado mude (por notificação de registro incompleto),
@@ -273,11 +321,26 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
                         .where((s) => s.diaId == diaId)
                         .toList();
 
+                final date = DateTime.tryParse(diaId);
+                String? holidayName;
+                if (date != null) {
+                  final cleanDate = DateTime(date.year, date.month, date.day);
+                  final eventsForDay = _allVisibleEvents[cleanDate];
+                  debugPrint(
+                      'diaId: $diaId → cleanDate: $cleanDate → events: $eventsForDay');
+                  debugPrint(
+                      'allVisibleEvents keys: ${_allVisibleEvents.keys.toList()}');
+                  if (eventsForDay != null && eventsForDay.isNotEmpty) {
+                    final title = eventsForDay.first['title'] as String?;
+                    if (title != null) holidayName = title;
+                  }
+                }
                 return DayCard(
                   key: _keyForDay(diaId),
                   diaId: diaId,
                   eventos: eventos,
                   isAdmin: widget.isAdmin,
+                  holidayName: holidayName,
                   pendingSolicitations: daySolicitations,
                   onBatchEdit: canEdit
                       ? (d, evs) => showBatchEditDayDialog(
@@ -309,13 +372,19 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
               }
 
               if (_viewPreference == HistoryViewPreference.calendar) {
+                final holidayDayIds = _allVisibleEvents.keys.map((date) {
+                  return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+                }).toSet();
+
                 return HistoryModeCalendarView(
                   month: widget.currentMonth,
                   selectedDay: _selectedCalendarDay,
                   daysMap: daysMap,
+                  calendarEvents: _allVisibleEvents,
                   dayIdFor: HistorySharedUtils.toDayId,
                   isFutureDate: HistorySharedUtils.isFutureDate,
                   pendingDayIds: pendingDayIds,
+                  holidayDayIds: holidayDayIds,
                   onDaySelected: (day) {
                     setState(() => _selectedCalendarDay = day);
                     _requestScrollToDay(HistorySharedUtils.toDayId(day));
@@ -369,8 +438,19 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
     List<Map<String, dynamic>> eventos,
     List<SolicitationModel> daySolicitations,
   ) async {
-    // Se já existe uma solicitação pendente para este dia, abre o diálogo
-    // para edição — ao salvar, a existente é substituída pela nova.
+    // ← NOVO: bloqueia se for feriado/recesso/ponto facultativo
+    final date = DateTime.parse(diaId);
+    final ehFeriado = await PontoService.isFeriado(date);
+    if (ehFeriado) {
+      if (context.mounted) {
+        CustomSnackbar.showError(
+          context,
+          'Registro negado. Não há trabalho neste dia.',
+        );
+      }
+      return;
+    }
+
     final existing =
         daySolicitations.isNotEmpty ? daySolicitations.first : null;
 
@@ -389,7 +469,6 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
       final reason = result['reason'] as String?;
 
       if (existing != null) {
-        // Substitui a solicitação existente pela nova
         context.read<SolicitationBloc>().add(
               UpdateSolicitationEvent(
                 existingSolicitationId: existing.id,

@@ -14,6 +14,7 @@ class PendingOnlyDayCard extends StatelessWidget {
   final bool disabled;
   final void Function(String)? onCancelSolicitation;
   final VoidCallback? onRequestSolicitation;
+  final String? holidayName;
 
   const PendingOnlyDayCard({
     super.key,
@@ -23,6 +24,7 @@ class PendingOnlyDayCard extends StatelessWidget {
     this.disabled = false,
     this.onCancelSolicitation,
     this.onRequestSolicitation,
+    this.holidayName,
   });
 
   @override
@@ -112,6 +114,7 @@ class PendingOnlyDayCard extends StatelessWidget {
               children: [
                 const Divider(height: 1),
                 const SizedBox(height: 8),
+                if (holidayName != null) buildHolidayBanner(holidayName!),
                 PendingSolicitationsSection(
                   solicitations: pendingSolicitations,
                   isAdmin: isAdmin,

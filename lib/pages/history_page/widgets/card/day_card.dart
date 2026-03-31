@@ -15,6 +15,8 @@ class DayCard extends StatelessWidget {
   final VoidCallback? onRequestSolicitation;
   final List<SolicitationModel> pendingSolicitations;
   final void Function(String solicitationId)? onCancelSolicitation;
+  final Set<String> calendarBlockedDays;
+  final String? holidayName;
 
   /// Admin: abre edição em lote passando diaId e eventos atuais.
   final void Function(String diaId, List<Map<String, dynamic>> eventos)?
@@ -31,11 +33,14 @@ class DayCard extends StatelessWidget {
     this.pendingSolicitations = const [],
     this.onCancelSolicitation,
     this.onBatchEdit,
+    this.calendarBlockedDays = const {},
+    this.holidayName,
   });
 
   @override
   Widget build(BuildContext context) {
-    final blockedDay = isWeekendOrHoliday(diaId);
+    final blockedDay =
+        isWeekendOrHolidayWithCalendar(diaId, calendarBlockedDays);
     final disabled = isFuture || blockedDay;
 
     if (isFuture) {
@@ -43,6 +48,7 @@ class DayCard extends StatelessWidget {
         diaId: diaId,
         disabled: disabled,
         isAdmin: isAdmin,
+        holidayName: holidayName,
         onAddEvento: disabled ? null : onAddEvento,
         onBatchEdit: (!disabled && onBatchEdit != null)
             ? () => onBatchEdit!(diaId, [])
@@ -55,6 +61,7 @@ class DayCard extends StatelessWidget {
         diaId: diaId,
         disabled: disabled,
         isAdmin: isAdmin,
+        holidayName: holidayName,
         onAddEvento: disabled ? null : onAddEvento,
         onBatchEdit: (!disabled && onBatchEdit != null)
             ? () => onBatchEdit!(diaId, [])
@@ -65,6 +72,7 @@ class DayCard extends StatelessWidget {
     if (eventos.isEmpty && pendingSolicitations.isNotEmpty) {
       return PendingOnlyDayCard(
         diaId: diaId,
+        holidayName: holidayName,
         pendingSolicitations: pendingSolicitations,
         disabled: disabled,
         isAdmin: isAdmin,
@@ -74,6 +82,7 @@ class DayCard extends StatelessWidget {
     }
     return FilledDayCard(
       diaId: diaId,
+      holidayName: holidayName,
       eventos: eventos,
       disabled: disabled,
       isAdmin: isAdmin,
