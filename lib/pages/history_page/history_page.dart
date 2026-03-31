@@ -84,10 +84,9 @@ class _HistoryViewState extends State<_HistoryView> {
         : DateTime(now.year, now.month);
     _selectedCalendarDay =
         HistorySharedUtils.defaultSelectedDayForMonth(_currentMonth);
-    _loadCalendarBlockedDays(); // ← NOVO
+    _loadCalendarBlockedDays();
   }
 
-  // ← NOVO
   Future<void> _loadCalendarBlockedDays() async {
     try {
       final snapshot = await FirebaseFirestore.instance
@@ -98,8 +97,7 @@ class _HistoryViewState extends State<_HistoryView> {
           .where('date',
               isLessThanOrEqualTo: Timestamp.fromDate(
                   DateTime(_currentMonth.year, _currentMonth.month + 1, 0)))
-          .where('type',
-              whereIn: ['feriado', 'recesso', 'ponto_facultativo']).get();
+          .where('type', whereIn: ['feriado', 'recesso']).get();
 
       final blocked = <String>{};
       for (final doc in snapshot.docs) {
