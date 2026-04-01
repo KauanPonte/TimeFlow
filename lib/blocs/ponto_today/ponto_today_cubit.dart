@@ -41,6 +41,7 @@ class PontoTodayCubit extends Cubit<PontoTodayState> {
         PontoService.loadRegistros(),
         PontoService.getLockedWorkModeHoje(),
         PontoService.getResumoMesAtual(),
+        PontoService.getCargaHorariaUsuarioAtual(),
       ]);
 
       _loadedOnce = true;
@@ -48,6 +49,7 @@ class PontoTodayCubit extends Cubit<PontoTodayState> {
       if (!isClosed) {
         final ultimoTipo = results[2] as String?;
         final mesResumo = results[5] as MesResumo;
+        final workloadMinutes = results[6] as int;
 
         _scheduleCutoffRefresh();
 
@@ -62,6 +64,7 @@ class PontoTodayCubit extends Cubit<PontoTodayState> {
           monthWorkedMinutes: mesResumo.workedMinutes,
           monthExpectedMinutes: mesResumo.expectedMinutes,
           monthBusinessDays: mesResumo.businessDaysTotal,
+          workloadMinutes: workloadMinutes,
         ));
       }
     } catch (_) {

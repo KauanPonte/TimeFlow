@@ -53,7 +53,6 @@ class _HomePageState extends State<HomePage> {
   Timer? _solTimer;
   StreamSubscription<SolicitationState>? _solSub;
   final Set<String> _handledReviewedIds = {};
-  final int _targetMinutesPerDay = 8 * 60; // 8 horas por dia
   double workProgress = 0.0;
 
   late DateTime _currentMonth;
@@ -280,9 +279,10 @@ class _HomePageState extends State<HomePage> {
     final workedMinutes =
         _computeWorkedMinutes(pontoState.eventosHoje, now: now);
     final todayWorkedDisplay = _formatMinutes(workedMinutes);
-    final workProgress = _targetMinutesPerDay == 0
+    final targetMinutesPerDay = pontoState.workloadMinutes;
+    final workProgress = targetMinutesPerDay == 0
         ? 0.0
-        : (workedMinutes / _targetMinutesPerDay).clamp(0.0, 1.0);
+        : (workedMinutes / targetMinutesPerDay).clamp(0.0, 1.0);
 
     return Scaffold(
       backgroundColor: AppColors.bgLight,
