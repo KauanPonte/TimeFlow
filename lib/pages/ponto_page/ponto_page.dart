@@ -113,8 +113,8 @@ class _PontoPageState extends State<PontoPage> {
       globalLoading.hide();
       if (mounted) {
         setState(() => registering = false);
-        CustomSnackbar.showError(context,
-            "Hoje é feriado/ponto facultativo. Registros não são permitidos.");
+        CustomSnackbar.showError(
+            context, "Hoje é feriado. Registros não são permitidos.");
       }
       return; // Mata a execução aqui e não chama o cubit.registrar
     }

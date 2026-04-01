@@ -118,7 +118,6 @@ class HistoryModeCalendarView extends StatelessWidget {
     if (onRefresh == null) {
       return Column(children: content);
     }
-
     return RefreshIndicator(
       onRefresh: onRefresh!,
       color: AppColors.primary,

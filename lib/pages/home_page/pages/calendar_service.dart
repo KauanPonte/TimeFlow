@@ -109,7 +109,7 @@ class CalendarService {
     final snapshot = await _db
         .collection(_collectionPath)
         .where('dateId', isEqualTo: dateId)
-        .where('type', whereIn: ['feriado', 'recesso', 'ponto_facultativo'])
+        .where('type', whereIn: ['feriado', 'recesso'])
         .limit(1)
         .get();
 

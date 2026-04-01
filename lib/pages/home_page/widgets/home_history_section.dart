@@ -4,6 +4,10 @@ import 'package:flutter_application_appdeponto/services/ponto_service.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/ponto_history/ponto_history_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/ponto_history/ponto_history_state.dart';
+import 'package:flutter_application_appdeponto/blocs/justificativa/justificativa_bloc.dart';
+import 'package:flutter_application_appdeponto/blocs/justificativa/justificativa_event.dart';
+import 'package:flutter_application_appdeponto/blocs/justificativa/justificativa_state.dart';
+import 'package:flutter_application_appdeponto/models/justificativa_model.dart';
 import 'package:flutter_application_appdeponto/blocs/solicitations/solicitation_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/solicitations/solicitation_event.dart';
 import 'package:flutter_application_appdeponto/blocs/solicitations/solicitation_state.dart';
@@ -313,6 +317,18 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
                   ? <String>{}
                   : pendingSolicitations.map((s) => s.diaId).toSet();
 
+              // Justificativas do funcionário
+              final justState = context.watch<JustificativaBloc>().state;
+              final Map<String, JustificativaModel> justificativasMap;
+              if (!widget.isAdmin) {
+                List<JustificativaModel> jList = [];
+                if (justState is JustificativaLoaded) jList = justState.justificativas;
+                if (justState is JustificativaActionSuccess) jList = justState.justificativas;
+                justificativasMap = {for (final j in jList) j.diaId: j};
+              } else {
+                justificativasMap = {};
+              }
+
               DayCard buildDayCard(String diaId) {
                 final eventos = daysMap[diaId] ?? [];
                 final daySolicitations = widget.isAdmin
@@ -342,6 +358,7 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
                   isAdmin: widget.isAdmin,
                   holidayName: holidayName,
                   pendingSolicitations: daySolicitations,
+                  justificativa: justificativasMap[diaId],
                   onBatchEdit: canEdit
                       ? (d, evs) => showBatchEditDayDialog(
                             context: context,
@@ -467,24 +484,34 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
     if (result != null && context.mounted) {
       final items = result['items'] as List<SolicitationItem>;
       final reason = result['reason'] as String?;
+      final justificativaText = result['justificativa'] as String?;
 
-      if (existing != null) {
-        context.read<SolicitationBloc>().add(
-              UpdateSolicitationEvent(
-                existingSolicitationId: existing.id,
-                diaId: diaId,
-                items: items,
-                reason: reason,
-              ),
+      if (justificativaText != null) {
+        context.read<JustificativaBloc>().add(
+              SubmitJustificativaEvent(
+                  diaId: diaId, justificativa: justificativaText),
             );
-      } else {
-        context.read<SolicitationBloc>().add(
-              CreateSolicitationEvent(
-                diaId: diaId,
-                items: items,
-                reason: reason,
-              ),
-            );
+      }
+
+      if (items.isNotEmpty) {
+        if (existing != null) {
+          context.read<SolicitationBloc>().add(
+                UpdateSolicitationEvent(
+                  existingSolicitationId: existing.id,
+                  diaId: diaId,
+                  items: items,
+                  reason: reason,
+                ),
+              );
+        } else {
+          context.read<SolicitationBloc>().add(
+                CreateSolicitationEvent(
+                  diaId: diaId,
+                  items: items,
+                  reason: reason,
+                ),
+              );
+        }
       }
     }
   }
