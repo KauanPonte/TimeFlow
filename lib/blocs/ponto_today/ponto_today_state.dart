@@ -11,6 +11,7 @@ class PontoTodayState extends Equatable {
   final int monthWorkedMinutes;
   final int monthExpectedMinutes;
   final int monthBusinessDays;
+  final int workloadMinutes;
 
   const PontoTodayState({
     this.loading = true,
@@ -23,6 +24,7 @@ class PontoTodayState extends Equatable {
     this.monthWorkedMinutes = 0,
     this.monthExpectedMinutes = 0,
     this.monthBusinessDays = 0,
+    this.workloadMinutes = 8 * 60,
   });
 
   PontoTodayState copyWith({
@@ -38,6 +40,7 @@ class PontoTodayState extends Equatable {
     int? monthWorkedMinutes,
     int? monthExpectedMinutes,
     int? monthBusinessDays,
+    int? workloadMinutes,
   }) {
     return PontoTodayState(
       loading: loading ?? this.loading,
@@ -52,6 +55,7 @@ class PontoTodayState extends Equatable {
       monthWorkedMinutes: monthWorkedMinutes ?? this.monthWorkedMinutes,
       monthExpectedMinutes: monthExpectedMinutes ?? this.monthExpectedMinutes,
       monthBusinessDays: monthBusinessDays ?? this.monthBusinessDays,
+      workloadMinutes: workloadMinutes ?? this.workloadMinutes,
     );
   }
 
@@ -67,5 +71,6 @@ class PontoTodayState extends Equatable {
         monthWorkedMinutes,
         monthExpectedMinutes,
         monthBusinessDays,
+        workloadMinutes,
       ];
 }
