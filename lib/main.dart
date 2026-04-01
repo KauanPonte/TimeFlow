@@ -20,6 +20,10 @@ import 'package:flutter_application_appdeponto/blocs/atestado/atestado_bloc.dart
 import 'package:flutter_application_appdeponto/blocs/atestado/atestado_event.dart';
 import 'package:flutter_application_appdeponto/blocs/atestado/atestado_state.dart';
 import 'package:flutter_application_appdeponto/repositories/atestado_repository.dart';
+import 'package:flutter_application_appdeponto/blocs/justificativa/justificativa_bloc.dart';
+import 'package:flutter_application_appdeponto/blocs/justificativa/justificativa_event.dart';
+import 'package:flutter_application_appdeponto/blocs/justificativa/justificativa_state.dart';
+import 'package:flutter_application_appdeponto/repositories/justificativa_repository.dart';
 import 'package:flutter_application_appdeponto/repositories/auth_repository.dart';
 import 'package:flutter_application_appdeponto/repositories/history_view_preference_repository.dart';
 import 'package:flutter_application_appdeponto/repositories/ponto_history_repository.dart';
@@ -118,6 +122,12 @@ class TimeFlow extends StatelessWidget {
             globalLoading: context.read<GlobalLoadingCubit>(),
           ),
         ),
+        BlocProvider<JustificativaBloc>(
+          create: (context) => JustificativaBloc(
+            repository: JustificativaRepository(),
+            globalLoading: context.read<GlobalLoadingCubit>(),
+          ),
+        ),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
@@ -135,6 +145,7 @@ class TimeFlow extends StatelessWidget {
               context.read<AdminHomeBloc>().reset();
               context.read<SolicitationBloc>().reset();
               context.read<AtestadoBloc>().reset();
+              context.read<JustificativaBloc>().reset();
               HistoryViewPreferenceRepository.clearCache();
             },
             child: BlocListener<AuthBloc, AuthState>(
@@ -167,6 +178,13 @@ class TimeFlow extends StatelessWidget {
                     context
                         .read<AtestadoBloc>()
                         .add(const LoadAtestadosEvent(isAdmin: false));
+                  }
+                  final justState = context.read<JustificativaBloc>().state;
+                  if (justState is! JustificativaLoaded &&
+                      justState is! JustificativaLoading) {
+                    context
+                        .read<JustificativaBloc>()
+                        .add(const LoadJustificativasEvent(isAdmin: false));
                   }
                 }
               },

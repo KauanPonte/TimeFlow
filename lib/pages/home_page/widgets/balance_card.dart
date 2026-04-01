@@ -59,7 +59,7 @@ class BalanceCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Saldo do mês',
+                  'Saldo acumulado',
                   style: AppTextStyles.bodySmall
                       .copyWith(color: AppColors.textSecondary),
                 ),
@@ -72,7 +72,7 @@ class BalanceCard extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  'horas positivas ou negativas',
+                  'total de horas acumuladas',
                   style: AppTextStyles.bodySmall
                       .copyWith(color: AppColors.textSecondary),
                 ),

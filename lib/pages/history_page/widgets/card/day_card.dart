@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/models/justificativa_model.dart';
 import 'package:flutter_application_appdeponto/models/solicitation_model.dart';
 import 'widgets/empty_day_card.dart';
 import 'widgets/filled_day_card.dart';
@@ -13,6 +14,8 @@ class DayCard extends StatelessWidget {
   final bool isFuture;
   final VoidCallback? onAddEvento;
   final VoidCallback? onRequestSolicitation;
+  final VoidCallback? onJustify;
+  final JustificativaModel? justificativa;
   final List<SolicitationModel> pendingSolicitations;
   final void Function(String solicitationId)? onCancelSolicitation;
 
@@ -28,6 +31,8 @@ class DayCard extends StatelessWidget {
     this.isFuture = false,
     this.onAddEvento,
     this.onRequestSolicitation,
+    this.onJustify,
+    this.justificativa,
     this.pendingSolicitations = const [],
     this.onCancelSolicitation,
     this.onBatchEdit,
@@ -60,6 +65,8 @@ class DayCard extends StatelessWidget {
             ? () => onBatchEdit!(diaId, [])
             : null,
         onRequestSolicitation: disabled ? null : onRequestSolicitation,
+        onJustify: disabled ? null : onJustify,
+        justificativa: justificativa,
       );
     }
     if (eventos.isEmpty && pendingSolicitations.isNotEmpty) {

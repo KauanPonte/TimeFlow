@@ -23,6 +23,14 @@ class PontoService {
     return (userSnap.data()?['workloadMinutes'] as int?) ?? (8 * 60);
   }
 
+  static Future<DateTime?> _getUserCreatedAt(String uid) async {
+    final userSnap =
+        await FirebaseFirestore.instance.collection('usuarios').doc(uid).get();
+    final ts = userSnap.data()?['createdAt'];
+    if (ts is Timestamp) return _startOfDay(ts.toDate());
+    return null;
+  }
+
   static Future<int> getCargaHorariaUsuarioAtual() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return 8 * 60;
@@ -493,6 +501,10 @@ class PontoService {
     final nextMonthStart = DateTime(now.year, now.month + 1, 1);
 
     final workloadMinutes = await _getWorkloadMinutes(uid);
+    final userCreatedAt = await _getUserCreatedAt(uid);
+    final balanceStart = (userCreatedAt != null && userCreatedAt.isAfter(monthStart))
+        ? userCreatedAt
+        : monthStart;
 
     final holidays = getBrazilHolidays(now.year);
 
@@ -547,7 +559,7 @@ class PontoService {
     double monthBalance;
     int expected = 0;
     final today = DateTime(now.year, now.month, now.day);
-    for (var d = DateTime(now.year, now.month, 1);
+    for (var d = balanceStart;
         d.isBefore(today) || (d.isAtSameMomentAs(today) && contarHoje);
         d = d.add(const Duration(days: 1))) {
       final isWeekend =
@@ -558,13 +570,60 @@ class PontoService {
         expected += workloadMinutes;
       }
     }
+    // Dias anteriores ao balanceStart com registro manual real (workedMinutes > 0)
+    // também entram no esperado, para que as horas sejam tratadas como dia normal
+    // (trabalhado - esperado) e não como bônus puro.
+    // Docs com workedMinutes == 0 são apenas placeholders de falta auto-gerados
+    // e são ignorados aqui.
+    if (balanceStart.isAfter(monthStart)) {
+      for (final doc in diasSnap.docs) {
+        final d = _startOfDay(DateTime.parse(doc.id));
+        if (!d.isBefore(balanceStart)) continue;
+        final hasWork = ((doc.data()['workedMinutes'] as int?) ?? 0) > 0;
+        if (!hasWork) continue;
+        final isWeekend =
+            d.weekday == DateTime.saturday || d.weekday == DateTime.sunday;
+        final isHoliday = holidays.containsKey(d);
+        final isExcused = excusedDayIds.contains(doc.id);
+        if (!isWeekend && !isHoliday && !isExcused) {
+          expected += workloadMinutes;
+        }
+      }
+    }
     todayExpectedMinutes = expected;
 
     // Se hoje não entra no saldo esperado, também não conta as horas
     // trabalhadas hoje para evitar que horas parciais inflem o saldo
     final int todayWorked = (todayDoc?.data()['workedMinutes'] as int?) ?? 0;
     final int workedForBalance = contarHoje ? workedMinutes : workedMinutes - todayWorked;
-    monthBalance = (workedForBalance - todayExpectedMinutes).toDouble();
+
+    // Carry-over de meses anteriores: só conta dias que têm registro de ponto.
+    // Dias sem registro não geram débito (não são tratados como falta retroativa).
+    // Para cada dia com registro: pastBalance += workedMinutes - workloadMinutes.
+    int pastBalance = 0;
+    final currentMonthStartId = _diaId(monthStart);
+    final pastDiasSnap = await FirebaseFirestore.instance
+        .collection(_root)
+        .doc(uid)
+        .collection('dias')
+        .where('date', isLessThan: currentMonthStartId)
+        .get();
+
+    for (final doc in pastDiasSnap.docs) {
+      final worked = (doc.data()['workedMinutes'] as int?) ?? 0;
+      if (worked == 0) continue;
+      final d = _startOfDay(DateTime.parse(doc.id));
+      final isWeekend =
+          d.weekday == DateTime.saturday || d.weekday == DateTime.sunday;
+      final yearHolidays = getBrazilHolidays(d.year);
+      final isHoliday = yearHolidays.containsKey(d);
+      final isExcused = (doc.data()['isExcused'] as bool?) == true;
+      if (!isWeekend && !isHoliday && !isExcused) {
+        pastBalance += worked - workloadMinutes;
+      }
+    }
+
+    monthBalance = (workedForBalance - todayExpectedMinutes + pastBalance).toDouble();
 
     return MesResumo(
       workedMinutes: workedMinutes,
@@ -602,6 +661,11 @@ class PontoService {
     final monthStart = DateTime(now.year, now.month, 1);
     final nextMonthStart = DateTime(now.year, now.month + 1, 1);
 
+    final userCreatedAt = await _getUserCreatedAt(uid);
+    final balanceStart = (userCreatedAt != null && userCreatedAt.isAfter(monthStart))
+        ? userCreatedAt
+        : monthStart;
+
     final prefix =
         '${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}';
     final startId = '$prefix-01';
@@ -622,7 +686,21 @@ class PontoService {
       DateTime(now.year, now.month, now.day, cutoffHour, cutoffMinute),
     );
 
-    for (var d = monthStart;
+    // Remove docs de falta auto-gerados para dias antes do balanceStart.
+    // Docs com workedMinutes > 0 são registros manuais e são preservados.
+    if (balanceStart.isAfter(monthStart)) {
+      for (final doc in diasSnap.docs) {
+        final docDate = _startOfDay(DateTime.parse(doc.id));
+        if (!docDate.isBefore(balanceStart)) continue;
+        final hasWork = ((doc.data()['workedMinutes'] as int?) ?? 0) > 0;
+        if (!hasWork) {
+          await doc.reference.delete();
+          existingDays.remove(doc.id);
+        }
+      }
+    }
+
+    for (var d = balanceStart;
         d.isBefore(nextMonthStart);
         d = d.add(const Duration(days: 1))) {
       final day = _startOfDay(d);
@@ -641,7 +719,6 @@ class PontoService {
     }
   }
 
-  static String newMethod(String mesId) => mesId;
 
   static Map<DateTime, String> getBrazilHolidays(int year) {
     Map<DateTime, String> holidays = {

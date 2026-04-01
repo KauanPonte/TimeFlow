@@ -68,7 +68,12 @@ class _DayEditDialogState extends State<DayEditDialog> {
   /// Observação (apenas solicitation).
   final _reasonController = TextEditingController();
 
+  /// Justificativa de falta (apenas solicitation, dias sem eventos).
+  final _justificativaController = TextEditingController();
+
   bool get _isSolicitation => widget.mode == DayEditMode.solicitation;
+
+  bool get _isAbsentDay => _existing.isEmpty;
 
   @override
   void initState() {
@@ -129,6 +134,7 @@ class _DayEditDialogState extends State<DayEditDialog> {
   @override
   void dispose() {
     _reasonController.dispose();
+    _justificativaController.dispose();
     super.dispose();
   }
 
@@ -142,6 +148,8 @@ class _DayEditDialogState extends State<DayEditDialog> {
   }
 
   bool get _hasChanges {
+    if (_isSolicitation && _isAbsentDay &&
+        _justificativaController.text.trim().isNotEmpty) { return true; }
     if (_newEntries.isNotEmpty) return true;
     return _existing.any((e) =>
         e.mode == RowMode.deleting ||
@@ -305,11 +313,13 @@ class _DayEditDialogState extends State<DayEditDialog> {
       ));
     }
 
+    final justificativaText = _justificativaController.text.trim();
     Navigator.pop(context, {
       'items': items,
       'reason': _reasonController.text.trim().isEmpty
           ? null
           : _reasonController.text.trim(),
+      'justificativa': justificativaText.isEmpty ? null : justificativaText,
     });
   }
 
@@ -381,6 +391,32 @@ class _DayEditDialogState extends State<DayEditDialog> {
                             foregroundColor: AppColors.primary),
                       ),
                     ),
+                    if (_isSolicitation && _isAbsentDay) ...[
+                      const Divider(height: 24),
+                      const SolicitationSectionLabel(
+                        'Justificar Falta',
+                        subtitle: 'Informe o motivo da ausência (opcional)',
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: _justificativaController,
+                        maxLines: 3,
+                        maxLength: 300,
+                        decoration: InputDecoration(
+                          hintText: 'Ex: Consulta médica, problema familiar...',
+                          hintStyle: const TextStyle(
+                            fontSize: 13,
+                            color: Color(0xFF9E9E9E),
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 10),
+                        ),
+                        onChanged: (_) => setState(() {}),
+                      ),
+                    ],
                     if (_validationError != null)
                       ValidationErrorBanner(message: _validationError!),
                     const SizedBox(height: 8),
