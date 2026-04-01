@@ -38,6 +38,7 @@ import 'pages/admin/users_management/users_management_page.dart';
 import 'pages/ponto_page/ponto_page.dart';
 import 'pages/profile_page/profile_page.dart';
 import 'pages/history_page/history_page.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -120,7 +121,17 @@ class TimeFlow extends StatelessWidget {
         ),
       ],
       child: MaterialApp(
+        title: 'Seu App',
         debugShowCheckedModeBanner: false,
+        // Adicione estas linhas:
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [
+          Locale('pt', 'BR'), // Português Brasil
+        ],
         builder: (context, child) {
           return BlocListener<AuthBloc, AuthState>(
             // Logout: limpa todos os dados ao sair de qualquer conta

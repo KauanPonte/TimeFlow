@@ -115,7 +115,7 @@ class CalendarDayStatusHelper {
     bool isHoliday = false,
   }) {
     final isWarning = _isWarningStatus(status);
-    final isFuture = isFutureDate(day);
+    //final isFuture = isFutureDate(day);
 
     BoxDecoration? decoration;
     if (isSelected) {
@@ -153,13 +153,11 @@ class CalendarDayStatusHelper {
       );
     }
 
-    final textColor = isFuture
-        ? AppColors.textSecondary.withValues(alpha: 0.45)
-        : isHoliday
-            ? Colors.green[700]!
-            : isWarning
-                ? AppColors.warning
-                : AppColors.textPrimary;
+    final textColor = isHoliday
+        ? Colors.green[700]!
+        : isWarning
+            ? AppColors.warning
+            : Colors.black;
 
     return Container(
       alignment: Alignment.center,

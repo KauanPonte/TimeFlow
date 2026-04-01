@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // Necessário para TextInputFormatter
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 
 class CustomTextField extends StatelessWidget {
   final TextEditingController controller;
   final String labelText;
+  final String? hintText;
   final IconData prefixIcon;
   final bool obscureText;
   final TextInputType? keyboardType;
@@ -13,12 +15,14 @@ class CustomTextField extends StatelessWidget {
   final Function(String)? onChanged;
   final TextInputAction? textInputAction;
   final Function(String)? onFieldSubmitted;
+  final List<TextInputFormatter>? inputFormatters;
 
   const CustomTextField({
     super.key,
     required this.controller,
     required this.labelText,
     required this.prefixIcon,
+    this.hintText,
     this.obscureText = false,
     this.keyboardType,
     this.suffixIcon,
@@ -27,10 +31,18 @@ class CustomTextField extends StatelessWidget {
     this.onChanged,
     this.textInputAction,
     this.onFieldSubmitted,
+    this.inputFormatters,
   });
 
   @override
   Widget build(BuildContext context) {
+    // Lógica de cor centralizada
+    final Color stateColor = errorText != null
+        ? Colors.red
+        : isValid
+            ? Colors.green
+            : AppColors.primary;
+
     final borderColor = errorText != null
         ? Colors.red
         : isValid
@@ -44,20 +56,22 @@ class CustomTextField extends StatelessWidget {
       textInputAction: textInputAction,
       onSubmitted: onFieldSubmitted,
       onChanged: onChanged,
+      inputFormatters: inputFormatters,
       decoration: InputDecoration(
         labelText: labelText,
+        hintText: hintText,
         prefixIcon: Icon(
           prefixIcon,
-          color: errorText != null
-              ? Colors.red
-              : isValid
-                  ? Colors.green
-                  : null,
+          color: (errorText != null || isValid)
+              ? stateColor
+              : AppColors.textSecondary,
         ),
-        suffixIcon: (isValid && errorText == null && suffixIcon == null)
+        suffixIcon: (isValid && errorText == null)
             ? const Icon(Icons.check_circle, color: Colors.green)
             : suffixIcon,
         errorText: errorText,
+        filled: true,
+        fillColor: AppColors.surface,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
         ),
@@ -67,14 +81,7 @@ class CustomTextField extends StatelessWidget {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(
-            color: errorText != null
-                ? Colors.red
-                : isValid
-                    ? Colors.green
-                    : AppColors.primary,
-            width: 2,
-          ),
+          borderSide: BorderSide(color: stateColor, width: 2),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -84,8 +91,6 @@ class CustomTextField extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: Colors.red, width: 2),
         ),
-        filled: true,
-        fillColor: AppColors.surface,
       ),
     );
   }

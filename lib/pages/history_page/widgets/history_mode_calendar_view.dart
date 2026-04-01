@@ -64,12 +64,21 @@ class HistoryModeCalendarView extends StatelessWidget {
           selectedDayPredicate: (day) => isSameDay(day, selectedDay),
           availableCalendarFormats: const {CalendarFormat.month: 'Mês'},
           calendarFormat: CalendarFormat.month,
-          enabledDayPredicate: (day) => !isFutureDate(day),
+          //enabledDayPredicate: (day) => !isFutureDate(day),
           eventLoader: statusHelper.eventLoader,
+
           onDaySelected: (selected, _) {
-            if (isFutureDate(selected)) return;
+            final isFuture = isFutureDate(selected);
+            final isHoliday = statusHelper.isHoliday(selected);
+            final status = statusHelper.statusForDay(selected);
+
+            final isAdminMarked = status != CalendarDayStatus.none;
+
+            if (isFuture && !isHoliday && !isAdminMarked) return;
+
             onDaySelected(
-                DateTime(selected.year, selected.month, selected.day));
+              DateTime(selected.year, selected.month, selected.day),
+            );
           },
           headerStyle: HeaderStyle(
             titleCentered: true,
@@ -80,6 +89,9 @@ class HistoryModeCalendarView extends StatelessWidget {
           ),
           calendarStyle: CalendarStyle(
             outsideDaysVisible: false,
+            disabledTextStyle: const TextStyle(
+              color: Colors.black,
+            ),
             todayDecoration: BoxDecoration(
               color: AppColors.primaryLight10,
               shape: BoxShape.circle,
