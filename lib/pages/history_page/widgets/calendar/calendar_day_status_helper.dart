@@ -16,13 +16,19 @@ class CalendarDayStatusHelper {
   final Set<String> pendingDayIds;
   final String Function(DateTime day) dayIdFor;
   final bool Function(DateTime day) isFutureDate;
+  final Set<String> holidayDayIds;
 
   const CalendarDayStatusHelper({
     required this.daysMap,
     required this.pendingDayIds,
     required this.dayIdFor,
     required this.isFutureDate,
+    this.holidayDayIds = const {},
   });
+
+  bool isHoliday(DateTime day) {
+    return holidayDayIds.contains(dayIdFor(day));
+  }
 
   List<Map<String, dynamic>> eventLoader(DateTime day) {
     final dayId = dayIdFor(day);
@@ -76,16 +82,19 @@ class CalendarDayStatusHelper {
       defaultBuilder: (context, day, _) => _buildDayCell(
         day: day,
         status: statusForDay(day),
+        isHoliday: isHoliday(day),
       ),
       todayBuilder: (context, day, _) => _buildDayCell(
         day: day,
         status: statusForDay(day),
         isToday: true,
+        isHoliday: isHoliday(day),
       ),
       selectedBuilder: (context, day, _) => _buildDayCell(
         day: day,
         status: statusForDay(day),
         isSelected: isSameDay(day, selectedDay),
+        isHoliday: isHoliday(day),
       ),
     );
   }
@@ -95,6 +104,7 @@ class CalendarDayStatusHelper {
     required CalendarDayStatus status,
     bool isToday = false,
     bool isSelected = false,
+    bool isHoliday = false,
   }) {
     final isWarning = _isWarningStatus(status);
     final isFuture = isFutureDate(day);
@@ -102,18 +112,34 @@ class CalendarDayStatusHelper {
     BoxDecoration? decoration;
     if (isSelected) {
       decoration = BoxDecoration(
-        color: isWarning ? AppColors.warningLight20 : AppColors.primaryLight10,
+        color: isHoliday
+            ? Colors.green.withValues(alpha: 0.15)
+            : isWarning
+                ? AppColors.warningLight20
+                : AppColors.primaryLight10,
         shape: BoxShape.circle,
         border: Border.all(
-          color: isWarning ? AppColors.warning : AppColors.primary,
+          color: isHoliday
+              ? Colors.green
+              : isWarning
+                  ? AppColors.warning
+                  : AppColors.primary,
         ),
       );
     } else if (isToday) {
       decoration = BoxDecoration(
-        color: isWarning ? AppColors.warningLight10 : AppColors.primaryLight10,
+        color: isHoliday
+            ? Colors.green.withValues(alpha: 0.08)
+            : isWarning
+                ? AppColors.warningLight10
+                : AppColors.primaryLight10,
         shape: BoxShape.circle,
         border: Border.all(
-          color: (isWarning ? AppColors.warning : AppColors.primary)
+          color: (isHoliday
+                  ? Colors.green
+                  : isWarning
+                      ? AppColors.warning
+                      : AppColors.primary)
               .withValues(alpha: 0.45),
         ),
       );
@@ -121,9 +147,11 @@ class CalendarDayStatusHelper {
 
     final textColor = isFuture
         ? AppColors.textSecondary.withValues(alpha: 0.45)
-        : isWarning
-            ? AppColors.warning
-            : AppColors.textPrimary;
+        : isHoliday
+            ? Colors.green[700]!
+            : isWarning
+                ? AppColors.warning
+                : AppColors.textPrimary;
 
     return Column(
       mainAxisSize: MainAxisSize.min,

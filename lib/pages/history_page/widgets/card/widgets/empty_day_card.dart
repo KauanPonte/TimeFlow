@@ -12,6 +12,7 @@ class EmptyDayCard extends StatelessWidget {
   final VoidCallback? onAddEvento;
   final VoidCallback? onBatchEdit;
   final VoidCallback? onRequestSolicitation;
+  final String? holidayName;
 
   /// Funcionário: abre dialog para enviar justificativa de falta.
   /// Admin: abre dialog para definir justificativa diretamente.
@@ -28,6 +29,7 @@ class EmptyDayCard extends StatelessWidget {
     this.onRequestSolicitation,
     this.onJustify,
     this.justificativa,
+    this.holidayName,
   });
 
   bool get _isAbsentDay => !disabled && !isWeekendOrHoliday(diaId);
@@ -100,6 +102,13 @@ class EmptyDayCard extends StatelessWidget {
                   ),
             trailing: _buildTrailing(),
           ),
+
+          // Feriado / recesso banner
+          if (holidayName != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              child: buildHolidayBanner(holidayName!),
+            ),
 
           // Justificativa chip (funcionário e admin)
           if (_isAbsentDay && justificativa != null)

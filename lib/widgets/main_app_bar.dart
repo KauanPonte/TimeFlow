@@ -132,7 +132,8 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
               .where((s) => !s.seenByEmployee && !seenInSession.contains(s.id))
               .length;
           final unseenAtestadoCount = reviewedAtestados
-              .where((a) => !a.seenByEmployee && !atestadoSeenInSession.contains(a.id))
+              .where((a) =>
+                  !a.seenByEmployee && !atestadoSeenInSession.contains(a.id))
               .length;
           return SafeArea(
             child: Padding(
@@ -424,7 +425,8 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 8, vertical: 3),
                               decoration: BoxDecoration(
-                                color: AppColors.primary.withValues(alpha: 0.12),
+                                color:
+                                    AppColors.primary.withValues(alpha: 0.12),
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text(
@@ -443,7 +445,8 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                         ...reviewedAtestados.map((a) {
                           final isSeen = a.seenByEmployee ||
                               atestadoSeenInSession.contains(a.id);
-                          final isPending = atestadoPendingDismiss.contains(a.id);
+                          final isPending =
+                              atestadoPendingDismiss.contains(a.id);
                           return _buildReviewedAtestadoTile(
                             context,
                             a,
@@ -460,7 +463,8 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                                     Future.delayed(
                                         const Duration(milliseconds: 800),
                                         () => setSheetState(() {
-                                              atestadoPendingDismiss.remove(a.id);
+                                              atestadoPendingDismiss
+                                                  .remove(a.id);
                                               atestadoSeenInSession.add(a.id);
                                             }));
                                   },
@@ -484,7 +488,8 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 8, vertical: 3),
                               decoration: BoxDecoration(
-                                color: AppColors.warning.withValues(alpha: 0.15),
+                                color:
+                                    AppColors.warning.withValues(alpha: 0.15),
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text(
@@ -511,7 +516,8 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                             leading: Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: AppColors.warning.withValues(alpha: 0.12),
+                                color:
+                                    AppColors.warning.withValues(alpha: 0.12),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: const Icon(
@@ -522,8 +528,7 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                             title: Text(a.employeeName,
                                 style: AppTextStyles.bodyMedium
                                     .copyWith(fontWeight: FontWeight.w600)),
-                            subtitle: Text(
-                                mesmodia ? inicio : '$inicio → $fim',
+                            subtitle: Text(mesmodia ? inicio : '$inicio → $fim',
                                 style: AppTextStyles.bodySmall
                                     .copyWith(color: AppColors.warning)),
                             trailing: const Icon(Icons.chevron_right,
@@ -1823,8 +1828,7 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
         onConfirm: () {
           Navigator.pop(context);
           context.read<AuthBloc>().add(const LogoutRequested());
-          Navigator.pushNamedAndRemoveUntil(
-              context, '/welcome', (r) => false);
+          Navigator.pushNamedAndRemoveUntil(context, '/welcome', (r) => false);
         },
         children: const [],
       ),
@@ -2054,12 +2058,22 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
             ],
             PopupMenuItem<String>(
               value: 'solicitacoes',
-              child: Row(children: [
-                const Icon(Icons.assignment_turned_in_outlined,
-                    color: AppColors.primary, size: 20),
-                const SizedBox(width: 12),
-                Text('Solicitações', style: AppTextStyles.bodyMedium),
-              ]),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.assignment_turned_in_outlined,
+                    color: AppColors.primary,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Solicitações',
+                    style: AppTextStyles.bodyMedium.copyWith(
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                ],
+              ),
             ),
             const PopupMenuDivider(),
             PopupMenuItem<String>(

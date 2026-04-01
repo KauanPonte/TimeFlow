@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/services/ponto_service.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../blocs/global_loading/global_loading_cubit.dart';
 import '../../blocs/ponto_today/ponto_today_cubit.dart';
@@ -25,6 +26,7 @@ class PontoPage extends StatefulWidget {
 
 class _PontoPageState extends State<PontoPage> {
   bool registering = false;
+  bool _hojeEhFeriado = false;
   bool _validatingLocation = false;
   late DateTime _now;
   Timer? _clockTimer;
@@ -42,6 +44,7 @@ class _PontoPageState extends State<PontoPage> {
   @override
   void initState() {
     super.initState();
+    _checkFeriadoStatus();
     _now = DateTime.now();
     _clockTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted) setState(() => _now = DateTime.now());
@@ -56,6 +59,11 @@ class _PontoPageState extends State<PontoPage> {
 
     // Garante que o cubit tenha dados carregados.
     context.read<PontoTodayCubit>().load();
+  }
+
+  Future<void> _checkFeriadoStatus() async {
+    bool feriado = await PontoService.isFeriado(DateTime.now());
+    if (mounted) setState(() => _hojeEhFeriado = feriado);
   }
 
   @override
@@ -96,6 +104,20 @@ class _PontoPageState extends State<PontoPage> {
 
     setState(() => registering = true);
     final globalLoading = context.read<GlobalLoadingCubit>();
+
+    // ---  TRAVA DE FERIADO AQUI ---
+    globalLoading.show('Verificando calendário...');
+    bool ehFeriado = await PontoService.isFeriado(DateTime.now());
+
+    if (ehFeriado) {
+      globalLoading.hide();
+      if (mounted) {
+        setState(() => registering = false);
+        CustomSnackbar.showError(
+            context, "Hoje é feriado. Registros não são permitidos.");
+      }
+      return; // Mata a execução aqui e não chama o cubit.registrar
+    }
     final cubit = context.read<PontoTodayCubit>();
     globalLoading.show('Registrando ponto...');
     try {
@@ -241,7 +263,7 @@ class _PontoPageState extends State<PontoPage> {
     final hoje = _hojeMapComputed(pontoState);
     final proximas = _proximasAcoes(pontoState);
     final effectiveMode = _effectiveWorkMode(pontoState);
-    final bool isPanelAccessible = effectiveMode != null;
+    final bool isPanelAccessible = effectiveMode != null && !_hojeEhFeriado;
 
     return Scaffold(
       backgroundColor: AppColors.bgLight,

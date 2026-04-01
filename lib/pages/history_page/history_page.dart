@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/ponto_history/ponto_history_bloc.dart';
@@ -28,11 +29,8 @@ import 'widgets/history_view_mode_icon_button.dart';
 import 'widgets/month_selector.dart';
 
 class HistoryPage extends StatelessWidget {
-  /// Se [targetUid] e [targetName] forem passados, exibe o histórico desse user (admin mode).
   final String? targetUid;
   final String? targetName;
-
-  /// Quando fornecido, abre o histórico já no mês desta data.
   final DateTime? initialDate;
 
   const HistoryPage({
@@ -82,6 +80,9 @@ class _HistoryViewState extends State<_HistoryView> {
   HistoryViewPreference _viewPreference =
       HistoryViewPreferenceRepository.currentMode;
 
+  // ← NOVO
+  Set<String> _calendarBlockedDays = {};
+
   /// Justificativas do funcionário sendo visualizado (admin mode).
   Map<String, JustificativaModel> _adminJustificativas = {};
 
@@ -96,6 +97,34 @@ class _HistoryViewState extends State<_HistoryView> {
         : DateTime(now.year, now.month);
     _selectedCalendarDay =
         HistorySharedUtils.defaultSelectedDayForMonth(_currentMonth);
+    _loadCalendarBlockedDays();
+  }
+
+  Future<void> _loadCalendarBlockedDays() async {
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('calendar_events')
+          .where('date',
+              isGreaterThanOrEqualTo: Timestamp.fromDate(
+                  DateTime(_currentMonth.year, _currentMonth.month, 1)))
+          .where('date',
+              isLessThanOrEqualTo: Timestamp.fromDate(
+                  DateTime(_currentMonth.year, _currentMonth.month + 1, 0)))
+          .where('type', whereIn: ['feriado', 'recesso']).get();
+
+      final blocked = <String>{};
+      for (final doc in snapshot.docs) {
+        final ts = doc.data()['date'] as Timestamp?;
+        if (ts == null) continue;
+        final d = ts.toDate();
+        blocked.add(
+          '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}',
+        );
+      }
+      if (mounted) setState(() => _calendarBlockedDays = blocked);
+    } catch (_) {
+      // falha silenciosa — dias do Firestore não bloqueiam, feriados fixos ainda funcionam
+    }
 
     if (isAdmin) {
       _loadAdminJustificativas();
@@ -117,12 +146,9 @@ class _HistoryViewState extends State<_HistoryView> {
   Future<void> _setPreferredView(HistoryViewPreference value) async {
     if (_viewPreference == value) return;
     setState(() => _viewPreference = value);
-
     try {
       await _viewPreferenceRepository.savePreferredMode(value);
-    } catch (_) {
-      // Mantém a UI responsiva mesmo sem persistência temporária.
-    }
+    } catch (_) {}
   }
 
   void _goToPreviousMonth() {
@@ -134,6 +160,7 @@ class _HistoryViewState extends State<_HistoryView> {
     context.read<PontoHistoryBloc>().add(
           LoadHistoryEvent(uid: widget.targetUid, month: _currentMonth),
         );
+    _loadCalendarBlockedDays(); // ← NOVO
   }
 
   void _goToNextMonth() {
@@ -151,6 +178,7 @@ class _HistoryViewState extends State<_HistoryView> {
     context.read<PontoHistoryBloc>().add(
           LoadHistoryEvent(uid: widget.targetUid, month: _currentMonth),
         );
+    _loadCalendarBlockedDays(); // ← NOVO
   }
 
   void _showAddDialogForDay(BuildContext context, String diaId) =>
@@ -307,6 +335,7 @@ class _HistoryViewState extends State<_HistoryView> {
       diaId: diaId,
       eventos: eventos,
       isAdmin: isAdmin,
+      calendarBlockedDays: _calendarBlockedDays, // ← NOVO
       justificativa: justificativa,
       onBatchEdit: isAdmin
           ? (d, evs) => showBatchEditDayDialog(
@@ -334,6 +363,7 @@ class _HistoryViewState extends State<_HistoryView> {
             month: _currentMonth,
           ),
         );
+    _loadCalendarBlockedDays(); // ← NOVO
     if (isAdmin) await _loadAdminJustificativas();
   }
 
@@ -470,7 +500,6 @@ class _HistoryViewState extends State<_HistoryView> {
       );
     }
 
-    // Gera todos os dias do mês (sem futuros)
     final allDays = HistorySharedUtils.generateMonthDays(_currentMonth);
 
     if (allDays.isEmpty) {
@@ -507,6 +536,7 @@ class _HistoryViewState extends State<_HistoryView> {
         onDaySelected: (day) => setState(() => _selectedCalendarDay = day),
         dayBuilder: buildDayCardById,
         onRefresh: _refreshHistory,
+        calendarEvents: {},
       );
     }
 
