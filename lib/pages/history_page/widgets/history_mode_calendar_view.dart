@@ -55,50 +55,59 @@ class HistoryModeCalendarView extends StatelessWidget {
             ),
           ],
         ),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(8, 8, 8, 16),
-          child: TableCalendar<Map<String, dynamic>>(
-            locale: 'pt_BR',
-            firstDay: DateTime(month.year, month.month, 1),
-            lastDay: DateTime(month.year, month.month + 1, 0),
-            headerVisible: false,
-            rowHeight: 48,
-            availableGestures: AvailableGestures.none,
-            focusedDay: selectedDay,
-            selectedDayPredicate: (day) => isSameDay(day, selectedDay),
-            availableCalendarFormats: const {CalendarFormat.month: 'Mês'},
-            calendarFormat: CalendarFormat.month,
-            enabledDayPredicate: (day) => !isFutureDate(day),
-            eventLoader: statusHelper.eventLoader,
-            onDaySelected: (selected, _) {
-              if (isFutureDate(selected)) return;
-              onDaySelected(
-                DateTime(selected.year, selected.month, selected.day),
-              );
-            },
-            calendarStyle: CalendarStyle(
-              outsideDaysVisible: false,
-              cellMargin: const EdgeInsets.symmetric(
-                horizontal: 2,
-                vertical: 4,
-              ),
-              todayDecoration: BoxDecoration(
-                color: AppColors.primaryLight10,
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: AppColors.primary.withValues(alpha: 0.4),
-                ),
-              ),
-              selectedDecoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.18),
-                shape: BoxShape.circle,
-                border: Border.all(color: AppColors.primary),
-              ),
-              markersMaxCount: 1,
+        child: TableCalendar<Map<String, dynamic>>(
+          locale: 'pt_BR',
+          firstDay: DateTime(month.year, month.month, 1),
+          lastDay: DateTime(month.year, month.month + 1, 0),
+          availableGestures: AvailableGestures.none,
+          focusedDay: selectedDay,
+          selectedDayPredicate: (day) => isSameDay(day, selectedDay),
+          availableCalendarFormats: const {CalendarFormat.month: 'Mês'},
+          calendarFormat: CalendarFormat.month,
+          //enabledDayPredicate: (day) => !isFutureDate(day),
+          eventLoader: statusHelper.eventLoader,
+
+          onDaySelected: (selected, _) {
+            final isFuture = isFutureDate(selected);
+            final isHoliday = statusHelper.isHoliday(selected);
+            final status = statusHelper.statusForDay(selected);
+
+            final isAdminMarked = status != CalendarDayStatus.none;
+
+            if (isFuture && !isHoliday && !isAdminMarked) return;
+
+            onDaySelected(
+              DateTime(selected.year, selected.month, selected.day),
+            );
+          },
+          headerStyle: HeaderStyle(
+            titleCentered: true,
+            formatButtonVisible: false,
+            leftChevronVisible: false,
+            rightChevronVisible: false,
+            titleTextFormatter: (date, locale) => '',
+          ),
+          calendarStyle: CalendarStyle(
+            outsideDaysVisible: false,
+            disabledTextStyle: const TextStyle(
+              color: Colors.black,
             ),
-            calendarBuilders: statusHelper.builders(
-              selectedDay: selectedDay,
+            todayDecoration: BoxDecoration(
+              color: AppColors.primaryLight10,
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: AppColors.primary.withValues(alpha: 0.4),
+              ),
             ),
+            selectedDecoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.18),
+              shape: BoxShape.circle,
+              border: Border.all(color: AppColors.primary),
+            ),
+            markersMaxCount: 1,
+          ),
+          calendarBuilders: statusHelper.builders(
+            selectedDay: selectedDay,
           ),
         ),
       ),
