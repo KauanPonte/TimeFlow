@@ -55,47 +55,50 @@ class HistoryModeCalendarView extends StatelessWidget {
             ),
           ],
         ),
-        child: TableCalendar<Map<String, dynamic>>(
-          locale: 'pt_BR',
-          firstDay: DateTime(month.year, month.month, 1),
-          lastDay: DateTime(month.year, month.month + 1, 0),
-          availableGestures: AvailableGestures.none,
-          focusedDay: selectedDay,
-          selectedDayPredicate: (day) => isSameDay(day, selectedDay),
-          availableCalendarFormats: const {CalendarFormat.month: 'Mês'},
-          calendarFormat: CalendarFormat.month,
-          enabledDayPredicate: (day) => !isFutureDate(day),
-          eventLoader: statusHelper.eventLoader,
-          onDaySelected: (selected, _) {
-            if (isFutureDate(selected)) return;
-            onDaySelected(
-                DateTime(selected.year, selected.month, selected.day));
-          },
-          headerStyle: HeaderStyle(
-            titleCentered: true,
-            formatButtonVisible: false,
-            leftChevronVisible: false,
-            rightChevronVisible: false,
-            titleTextFormatter: (date, locale) => '',
-          ),
-          calendarStyle: CalendarStyle(
-            outsideDaysVisible: false,
-            todayDecoration: BoxDecoration(
-              color: AppColors.primaryLight10,
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: AppColors.primary.withValues(alpha: 0.4),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(8, 8, 8, 16),
+          child: TableCalendar<Map<String, dynamic>>(
+            locale: 'pt_BR',
+            firstDay: DateTime(month.year, month.month, 1),
+            lastDay: DateTime(month.year, month.month + 1, 0),
+            headerVisible: false,
+            rowHeight: 48,
+            availableGestures: AvailableGestures.none,
+            focusedDay: selectedDay,
+            selectedDayPredicate: (day) => isSameDay(day, selectedDay),
+            availableCalendarFormats: const {CalendarFormat.month: 'Mês'},
+            calendarFormat: CalendarFormat.month,
+            enabledDayPredicate: (day) => !isFutureDate(day),
+            eventLoader: statusHelper.eventLoader,
+            onDaySelected: (selected, _) {
+              if (isFutureDate(selected)) return;
+              onDaySelected(
+                DateTime(selected.year, selected.month, selected.day),
+              );
+            },
+            calendarStyle: CalendarStyle(
+              outsideDaysVisible: false,
+              cellMargin: const EdgeInsets.symmetric(
+                horizontal: 2,
+                vertical: 4,
               ),
+              todayDecoration: BoxDecoration(
+                color: AppColors.primaryLight10,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: AppColors.primary.withValues(alpha: 0.4),
+                ),
+              ),
+              selectedDecoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.18),
+                shape: BoxShape.circle,
+                border: Border.all(color: AppColors.primary),
+              ),
+              markersMaxCount: 1,
             ),
-            selectedDecoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.18),
-              shape: BoxShape.circle,
-              border: Border.all(color: AppColors.primary),
+            calendarBuilders: statusHelper.builders(
+              selectedDay: selectedDay,
             ),
-            markersMaxCount: 1,
-          ),
-          calendarBuilders: statusHelper.builders(
-            selectedDay: selectedDay,
           ),
         ),
       ),
@@ -106,7 +109,6 @@ class HistoryModeCalendarView extends StatelessWidget {
     if (onRefresh == null) {
       return Column(children: content);
     }
-
     return RefreshIndicator(
       onRefresh: onRefresh!,
       color: AppColors.primary,

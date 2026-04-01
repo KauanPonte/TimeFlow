@@ -17,13 +17,24 @@ import 'package:flutter_application_appdeponto/blocs/atestado/atestado_bloc.dart
 import 'package:flutter_application_appdeponto/blocs/atestado/atestado_event.dart';
 import 'package:flutter_application_appdeponto/blocs/atestado/atestado_state.dart';
 import 'package:flutter_application_appdeponto/models/atestado_model.dart';
+import 'package:flutter_application_appdeponto/blocs/justificativa/justificativa_bloc.dart';
+import 'package:flutter_application_appdeponto/blocs/justificativa/justificativa_event.dart';
+import 'package:flutter_application_appdeponto/blocs/justificativa/justificativa_state.dart';
+import 'package:flutter_application_appdeponto/models/justificativa_model.dart';
 import 'package:flutter_application_appdeponto/pages/admin/solicitations/solicitation_review_dialog.dart';
 import 'package:flutter_application_appdeponto/repositories/solicitation_repository.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
 import 'package:flutter_application_appdeponto/widgets/app_dialog_components.dart';
+import 'package:flutter_application_appdeponto/blocs/admin_home/admin_home_bloc.dart';
+import 'package:flutter_application_appdeponto/blocs/admin_home/admin_home_event.dart';
+import 'package:flutter_application_appdeponto/blocs/admin_home/admin_home_state.dart';
+import 'package:flutter_application_appdeponto/repositories/user_repository.dart';
 import '../pages/solicitacoes_page/solicitacoes_page.dart';
 import '../pages/admin/settings/settings_hub_page.dart';
+import '../pages/admin/users_management/widgets/pending_request_card.dart';
+import '../pages/admin/users_management/widgets/dialogs/approve_request_dialog.dart';
+import '../pages/admin/users_management/widgets/dialogs/reject_request_dialog.dart';
 
 /// AppBar padrão para as telas principais (Painel, Meu Ponto, Perfil).
 /// Logo + subtítulo configurável + menu com "Sair" (e "Configurações" opcional).
@@ -82,6 +93,9 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
     List<SolicitationModel> reviewedSolicitations = const [],
     List<AtestadoModel> pendingAtestados = const [],
     List<AtestadoModel> reviewedAtestados = const [],
+    List<JustificativaModel> pendingJustificativas = const [],
+    List<JustificativaModel> reviewedJustificativas = const [],
+    int pendingUsers = 0,
   }) {
     // Obtém solicitações pendentes para admin
     List<SolicitationModel> solicitations = [];
@@ -109,6 +123,8 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
         final Set<String> seenInSession = {};
         final Set<String> atestadoPendingDismiss = {};
         final Set<String> atestadoSeenInSession = {};
+        final Set<String> justPendingDismiss = {};
+        final Set<String> justSeenInSession = {};
         return StatefulBuilder(builder: (_, setSheetState) {
           // Mostra todo o histórico (repo já ordena: não vistos mais recentes primeiro).
           final allReviewed = reviewedSolicitations;
@@ -148,7 +164,10 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                           allReviewed.isEmpty &&
                           solicitations.isEmpty &&
                           pendingAtestados.isEmpty &&
-                          reviewedAtestados.isEmpty) ...[
+                          reviewedAtestados.isEmpty &&
+                          pendingJustificativas.isEmpty &&
+                          reviewedJustificativas.isEmpty &&
+                          pendingUsers == 0) ...[
                         const SizedBox(height: 32),
                         Center(
                           child: Column(
@@ -585,6 +604,213 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                             },
                           );
                         }),
+                      ],
+
+                      //  Seção: Justificativas de falta pendentes (admin)
+                      if (isAdmin && pendingJustificativas.isNotEmpty) ...[
+                        if (incompletos.isNotEmpty ||
+                            solicitations.isNotEmpty ||
+                            pendingAtestados.isNotEmpty)
+                          const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            const Icon(Icons.assignment_late_outlined,
+                                color: AppColors.error),
+                            const SizedBox(width: 10),
+                            const Text('Justificativas de Falta',
+                                style: AppTextStyles.h3),
+                            const Spacer(),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: AppColors.error.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                '${pendingJustificativas.length}',
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.error,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        const Divider(),
+                        ...pendingJustificativas.map((j) {
+                          final date = DateTime.tryParse(j.diaId);
+                          final dateLabel = date != null
+                              ? DateFormat('dd/MM/yyyy', 'pt_BR').format(date)
+                              : j.diaId;
+                          return ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            leading: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: AppColors.error.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(Icons.assignment_late_outlined,
+                                  size: 18, color: AppColors.error),
+                            ),
+                            title: Text(j.employeeName,
+                                style: AppTextStyles.bodyMedium
+                                    .copyWith(fontWeight: FontWeight.w600)),
+                            subtitle: Text(dateLabel,
+                                style: AppTextStyles.bodySmall
+                                    .copyWith(color: AppColors.error)),
+                            trailing: const Icon(Icons.chevron_right,
+                                color: AppColors.textSecondary),
+                            onTap: () {
+                              Navigator.pop(sheetCtx);
+                              _openJustificativaReview(context, j);
+                            },
+                          );
+                        }),
+                      ],
+
+                      //  Seção: Resultado de justificativas (funcionário)
+                      if (!isAdmin && reviewedJustificativas.isNotEmpty) ...[
+                        if (incompletos.isNotEmpty || allReviewed.isNotEmpty)
+                          const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            const Icon(Icons.assignment_late_outlined,
+                                color: AppColors.primary),
+                            const SizedBox(width: 10),
+                            const Expanded(
+                              child: Text('Resultado de Justificativas',
+                                  style: AppTextStyles.h3),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                '${reviewedJustificativas.length}',
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        const Divider(),
+                        ...reviewedJustificativas.map((j) {
+                          final approved =
+                              j.status == JustificativaStatus.approved;
+                          final statusColor =
+                              approved ? AppColors.success : AppColors.error;
+                          final statusLabel =
+                              approved ? 'Aprovada' : 'Recusada';
+                          final date = DateTime.tryParse(j.diaId);
+                          final dateLabel = date != null
+                              ? DateFormat('dd/MM/yyyy', 'pt_BR').format(date)
+                              : j.diaId;
+                          final isPending = justPendingDismiss.contains(j.id);
+                          final isSeen = j.seenByEmployee ||
+                              justSeenInSession.contains(j.id);
+                          return _buildReviewedJustificativaTile(
+                            context,
+                            j,
+                            statusColor: statusColor,
+                            statusLabel: statusLabel,
+                            dateLabel: dateLabel,
+                            isPendingDismiss: isPending,
+                            onLocalDismiss: (isSeen || isPending)
+                                ? null
+                                : () {
+                                    setSheetState(
+                                        () => justPendingDismiss.add(j.id));
+                                    context.read<JustificativaBloc>().add(
+                                          DismissReviewedJustificativaEvent(
+                                              j.id),
+                                        );
+                                    Future.delayed(
+                                      const Duration(milliseconds: 800),
+                                      () => setSheetState(() {
+                                        justPendingDismiss.remove(j.id);
+                                        justSeenInSession.add(j.id);
+                                      }),
+                                    );
+                                  },
+                          );
+                        }),
+                      ],
+
+                      //  Seção: Contas aguardando aprovação (admin)
+                      if (isAdmin && pendingUsers > 0) ...[
+                        if (incompletos.isNotEmpty ||
+                            solicitations.isNotEmpty ||
+                            pendingAtestados.isNotEmpty ||
+                            pendingJustificativas.isNotEmpty)
+                          const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            const Icon(Icons.person_add_rounded,
+                                color: AppColors.primary),
+                            const SizedBox(width: 10),
+                            const Text('Contas Aguardando Aprovação',
+                                style: AppTextStyles.h3),
+                            const Spacer(),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color:
+                                    AppColors.primary.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                '$pendingUsers',
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        const Divider(),
+                        ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(Icons.group_rounded,
+                                size: 18, color: AppColors.primary),
+                          ),
+                          title: Text(
+                            '$pendingUsers conta(s) aguardando aprovação',
+                            style: AppTextStyles.bodyMedium
+                                .copyWith(fontWeight: FontWeight.w600),
+                          ),
+                          subtitle: Text(
+                            'Toque para revisar',
+                            style: AppTextStyles.bodySmall
+                                .copyWith(color: AppColors.primary),
+                          ),
+                          trailing: const Icon(Icons.chevron_right,
+                              color: AppColors.textSecondary),
+                          onTap: () {
+                            Navigator.pop(sheetCtx);
+                            _showPendingUsersSheet(context);
+                          },
+                        ),
                       ],
                     ],
                   ),
@@ -1278,6 +1504,318 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
     );
   }
 
+  void _openJustificativaReview(
+      BuildContext context, JustificativaModel just) {
+    final date = DateTime.tryParse(just.diaId);
+    final dateLabel = date != null
+        ? DateFormat('dd/MM/yyyy', 'pt_BR').format(date)
+        : just.diaId;
+    final rejectController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (dialogCtx) {
+        return StatefulBuilder(builder: (_, setState) {
+          return Dialog(
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            insetPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppColors.error.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.assignment_late_outlined,
+                            color: AppColors.error, size: 20),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('Revisar Justificativa',
+                                style: AppTextStyles.h3),
+                            Text(
+                              just.employeeName,
+                              style: AppTextStyles.bodySmall.copyWith(
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      const Icon(Icons.calendar_today_rounded,
+                          size: 13, color: AppColors.textSecondary),
+                      const SizedBox(width: 5),
+                      Text(
+                        'Dia de falta: $dateLabel',
+                        style: AppTextStyles.bodySmall
+                            .copyWith(color: AppColors.textSecondary),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  const Divider(height: 1),
+                  const SizedBox(height: 12),
+
+                  // Justificativa
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.bgLight,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: AppColors.borderLight),
+                    ),
+                    child: Text(
+                      just.justificativa,
+                      style: AppTextStyles.bodyMedium,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Campo de motivo (recusa)
+                  TextField(
+                    controller: rejectController,
+                    maxLines: 2,
+                    decoration: InputDecoration(
+                      hintText: 'Observação (opcional, para recusa)',
+                      hintStyle: AppTextStyles.bodySmall
+                          .copyWith(color: AppColors.textSecondary),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide:
+                            const BorderSide(color: AppColors.borderLight),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide:
+                            const BorderSide(color: AppColors.borderLight),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(color: AppColors.primary),
+                      ),
+                    ),
+                    style: AppTextStyles.bodySmall,
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Botões
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextButton(
+                          onPressed: () => Navigator.pop(dialogCtx),
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              side: const BorderSide(
+                                  color: AppColors.borderLight),
+                            ),
+                          ),
+                          child: Text(
+                            'Voltar',
+                            style: AppTextStyles.bodyMedium
+                                .copyWith(color: AppColors.textSecondary),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () {
+                            final reason = rejectController.text.trim();
+                            Navigator.pop(dialogCtx);
+                            context.read<JustificativaBloc>().add(
+                                  RejectJustificativaEvent(just.id,
+                                      reason: reason.isEmpty ? null : reason),
+                                );
+                          },
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            foregroundColor: AppColors.error,
+                            side: const BorderSide(color: AppColors.error),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10)),
+                          ),
+                          child: const Text('Recusar'),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.pop(dialogCtx);
+                            context.read<JustificativaBloc>().add(
+                                  ApproveJustificativaEvent(just.id),
+                                );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            backgroundColor: AppColors.success,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10)),
+                          ),
+                          child: const Text('Aprovar'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          );
+        });
+      },
+    );
+  }
+
+  Widget _buildReviewedJustificativaTile(
+    BuildContext context,
+    JustificativaModel j, {
+    required Color statusColor,
+    required String statusLabel,
+    required String dateLabel,
+    bool isPendingDismiss = false,
+    VoidCallback? onLocalDismiss,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: statusColor.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: statusColor.withValues(alpha: 0.25)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.calendar_today_outlined, size: 14, color: statusColor),
+              const SizedBox(width: 6),
+              Text(dateLabel,
+                  style: AppTextStyles.bodySmall.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  )),
+              const Spacer(),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                decoration: BoxDecoration(
+                  color: statusColor.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(statusLabel,
+                    style: AppTextStyles.bodySmall.copyWith(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      color: statusColor,
+                    )),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(j.justificativa,
+              style: AppTextStyles.bodySmall
+                  .copyWith(color: AppColors.textPrimary)),
+          if (j.reason != null && j.reason!.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.borderLight.withValues(alpha: 0.4),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(Icons.comment_outlined,
+                      size: 12, color: AppColors.textSecondary),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(j.reason!,
+                        style: AppTextStyles.bodySmall.copyWith(
+                          fontSize: 11,
+                          color: AppColors.textSecondary,
+                          fontStyle: FontStyle.italic,
+                        )),
+                  ),
+                ],
+              ),
+            ),
+          ],
+          const SizedBox(height: 8),
+          if (onLocalDismiss != null || isPendingDismiss)
+            Align(
+              alignment: Alignment.centerRight,
+              child: InkWell(
+                onTap: isPendingDismiss ? null : onLocalDismiss,
+                borderRadius: BorderRadius.circular(6),
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        isPendingDismiss
+                            ? Icons.check_circle
+                            : Icons.check_circle_outline,
+                        size: 14,
+                        color: isPendingDismiss
+                            ? AppColors.success
+                            : AppColors.primary,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        isPendingDismiss ? 'Visto!' : 'Marcar como visto',
+                        style: AppTextStyles.bodySmall.copyWith(
+                          fontSize: 11,
+                          color: isPendingDismiss
+                              ? AppColors.success
+                              : AppColors.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  void _showPendingUsersSheet(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (_) => _PendingUsersSheet(parentContext: context),
+    );
+  }
+
   void _showLogoutDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -1361,10 +1899,13 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
 
             final solState = context.watch<SolicitationBloc>().state;
             final atestadoState = context.watch<AtestadoBloc>().state;
+            final justState = context.watch<JustificativaBloc>().state;
             int solCount = 0;
             List<SolicitationModel> reviewedSolicitations = [];
             List<AtestadoModel> pendingAtestados = [];
             List<AtestadoModel> reviewedAtestados = [];
+            List<JustificativaModel> pendingJustificativas = [];
+            List<JustificativaModel> reviewedJustificativas = [];
 
             if (isAdmin) {
               if (solState is SolicitationLoaded) {
@@ -1376,6 +1917,11 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
               }
               if (atestadoState is AtestadoLoaded && atestadoState.isAdmin) {
                 pendingAtestados = atestadoState.atestados;
+              }
+              if (justState is JustificativaLoaded && justState.isAdmin) {
+                pendingJustificativas = justState.justificativas;
+              } else if (justState is JustificativaActionSuccess) {
+                pendingJustificativas = justState.justificativas;
               }
             } else {
               if (solState is SolicitationLoaded) {
@@ -1400,20 +1946,46 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                   .where((a) =>
                       a.status != AtestadoStatus.pending && !a.seenByEmployee)
                   .toList();
+
+              // Justificativas revisadas para funcionário
+              List<JustificativaModel> allJust = [];
+              if (justState is JustificativaLoaded && !justState.isAdmin) {
+                allJust = justState.justificativas;
+              } else if (justState is JustificativaActionSuccess) {
+                allJust = justState.justificativas;
+              }
+              reviewedJustificativas = allJust
+                  .where((j) =>
+                      j.status != JustificativaStatus.pending &&
+                      !j.seenByEmployee)
+                  .toList();
+            }
+
+            int pendingUsers = 0;
+            if (isAdmin) {
+              final adminState = context.watch<AdminHomeBloc>().state;
+              if (adminState is AdminHomeLoaded) {
+                pendingUsers = adminState.pendingRequests;
+              }
             }
 
             final totalCount = incompletos.length +
                 solCount +
                 pendingAtestados.length +
-                reviewedAtestados.length;
+                reviewedAtestados.length +
+                pendingJustificativas.length +
+                reviewedJustificativas.length +
+                pendingUsers;
             final hasNotification = totalCount > 0;
             final badgeColor = isAdmin
-                ? (pendingAtestados.isNotEmpty
+                ? (pendingAtestados.isNotEmpty || pendingJustificativas.isNotEmpty
                     ? AppColors.warning
                     : solCount > 0
                         ? AppColors.primary
                         : AppColors.warning)
-                : (solCount > 0 || reviewedAtestados.isNotEmpty
+                : (solCount > 0 ||
+                        reviewedAtestados.isNotEmpty ||
+                        reviewedJustificativas.isNotEmpty
                     ? AppColors.success
                     : AppColors.warning);
 
@@ -1440,6 +2012,9 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                   reviewedSolicitations: reviewedSolicitations,
                   pendingAtestados: pendingAtestados,
                   reviewedAtestados: reviewedAtestados,
+                  pendingJustificativas: pendingJustificativas,
+                  reviewedJustificativas: reviewedJustificativas,
+                  pendingUsers: pendingUsers,
                 ),
               ),
             );
@@ -1514,6 +2089,158 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
           ],
         ),
       ],
+    );
+  }
+}
+
+class _PendingUsersSheet extends StatefulWidget {
+  final BuildContext parentContext;
+  const _PendingUsersSheet({required this.parentContext});
+
+  @override
+  State<_PendingUsersSheet> createState() => _PendingUsersSheetState();
+}
+
+class _PendingUsersSheetState extends State<_PendingUsersSheet> {
+  List<Map<String, dynamic>>? _requests;
+  bool _loading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final requests = await UserRepository.getPendingRequests();
+      if (mounted) setState(() { _requests = requests; _loading = false; });
+    } catch (e) {
+      if (mounted) setState(() { _error = e.toString(); _loading = false; });
+    }
+  }
+
+  Future<void> _showApproveDialog(String id, String name) async {
+    final adminBloc = widget.parentContext.read<AdminHomeBloc>();
+    await showDialog(
+      context: context,
+      builder: (_) => ApproveRequestDialog(
+        userName: name,
+        onApprove: (role, cargaHoraria) async {
+          final success = await UserRepository.approveRequest(
+            requestId: id,
+            cargaHoraria: cargaHoraria,
+            role: role,
+          );
+          if (success && mounted) {
+            setState(() => _requests?.removeWhere((r) => r['id'] == id));
+            adminBloc.add(const RefreshAdminStatsEvent());
+          }
+        },
+      ),
+    );
+  }
+
+  Future<void> _showRejectDialog(String id, String name) async {
+    final adminBloc = widget.parentContext.read<AdminHomeBloc>();
+    await showDialog(
+      context: context,
+      builder: (dialogCtx) => RejectRequestDialog(
+        userName: name,
+        onConfirm: () async {
+          Navigator.pop(dialogCtx);
+          final success = await UserRepository.rejectRequest(id);
+          if (success && mounted) {
+            setState(() => _requests?.removeWhere((r) => r['id'] == id));
+            adminBloc.add(const RefreshAdminStatsEvent());
+          }
+        },
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.85,
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.person_add_rounded,
+                        color: AppColors.primary, size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  const Text('Contas Aguardando Aprovação',
+                      style: AppTextStyles.h3),
+                ],
+              ),
+              const SizedBox(height: 16),
+              const Divider(height: 1),
+              const SizedBox(height: 8),
+              if (_loading)
+                const Padding(
+                  padding: EdgeInsets.all(32),
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              else if (_error != null)
+                Padding(
+                  padding: const EdgeInsets.all(32),
+                  child: Center(
+                    child: Text(_error!,
+                        style: const TextStyle(color: AppColors.error)),
+                  ),
+                )
+              else if (_requests == null || _requests!.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.all(32),
+                  child: Center(child: Text('Nenhuma conta pendente.')),
+                )
+              else
+                Flexible(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: _requests!
+                          .map((r) => PendingRequestCard(
+                                request: r,
+                                onApprove: () =>
+                                    _showApproveDialog(r['id'], r['name']),
+                                onReject: () =>
+                                    _showRejectDialog(r['id'], r['name']),
+                              ))
+                          .toList(),
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Fechar'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

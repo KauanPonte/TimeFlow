@@ -78,15 +78,7 @@ class CalendarDayStatusHelper {
     required DateTime selectedDay,
   }) {
     return CalendarBuilders<Map<String, dynamic>>(
-      markerBuilder: (context, day, _) {
-        final holiday = isHoliday(day);
-        final status = statusForDay(day);
-
-        if (holiday) return _buildHolidayMarker();
-        if (status == CalendarDayStatus.none) return const SizedBox.shrink();
-
-        return _buildDayMarker(status);
-      },
+      markerBuilder: (context, day, _) => const SizedBox.shrink(),
       defaultBuilder: (context, day, _) => _buildDayCell(
         day: day,
         status: statusForDay(day),
@@ -161,18 +153,29 @@ class CalendarDayStatusHelper {
                 ? AppColors.warning
                 : AppColors.textPrimary;
 
-    return Container(
-      alignment: Alignment.center,
-      margin: const EdgeInsets.all(6),
-      decoration: decoration,
-      child: Text(
-        '${day.day}',
-        style: TextStyle(
-          color: textColor,
-          fontWeight:
-              isHoliday || isWarning ? FontWeight.w700 : FontWeight.w500,
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Container(
+          width: 28,
+          height: 28,
+          alignment: Alignment.center,
+          decoration: decoration,
+          child: Text(
+            '${day.day}',
+            style: TextStyle(
+              color: textColor,
+              fontWeight: isWarning ? FontWeight.w700 : FontWeight.w500,
+            ),
+          ),
         ),
-      ),
+        const SizedBox(height: 2),
+        if (status != CalendarDayStatus.none)
+          _buildDayMarkerInline(status)
+        else
+          const SizedBox(height: 6),
+      ],
     );
   }
 
@@ -182,77 +185,50 @@ class CalendarDayStatusHelper {
         status == CalendarDayStatus.incompleteWithPending;
   }
 
-  Widget _buildHolidayMarker() {
-    return Align(
-      alignment: Alignment.bottomCenter,
-      child: Container(
-        width: 7,
-        height: 7,
-        margin: const EdgeInsets.only(bottom: 5),
-        decoration: const BoxDecoration(
-          color: Colors.green,
-          shape: BoxShape.circle,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDayMarker(CalendarDayStatus status) {
+  Widget _buildDayMarkerInline(CalendarDayStatus status) {
     final warning = _isWarningStatus(status);
     final color = warning ? AppColors.warning : AppColors.primary;
 
     if (status == CalendarDayStatus.pending) {
-      return Align(
-        alignment: Alignment.bottomCenter,
-        child: Container(
-          width: 7,
-          height: 7,
-          margin: const EdgeInsets.only(bottom: 5),
-          decoration: BoxDecoration(
-            color: Colors.transparent,
-            shape: BoxShape.circle,
-            border: Border.all(color: color, width: 1.6),
-          ),
+      return Container(
+        width: 6,
+        height: 6,
+        decoration: BoxDecoration(
+          color: Colors.transparent,
+          shape: BoxShape.circle,
+          border: Border.all(color: color, width: 1.4),
         ),
       );
     }
 
     if (status == CalendarDayStatus.incompleteWithPending) {
-      return Align(
-        alignment: Alignment.bottomCenter,
-        child: Container(
-          width: 9,
-          height: 9,
-          margin: const EdgeInsets.only(bottom: 4),
-          decoration: BoxDecoration(
-            color: Colors.transparent,
-            shape: BoxShape.circle,
-            border: Border.all(color: color, width: 1.6),
-          ),
-          child: Center(
-            child: Container(
-              width: 4,
-              height: 4,
-              decoration: BoxDecoration(
-                color: color,
-                shape: BoxShape.circle,
-              ),
+      return Container(
+        width: 7,
+        height: 7,
+        decoration: BoxDecoration(
+          color: Colors.transparent,
+          shape: BoxShape.circle,
+          border: Border.all(color: color, width: 1.4),
+        ),
+        child: Center(
+          child: Container(
+            width: 4,
+            height: 4,
+            decoration: BoxDecoration(
+              color: color,
+              shape: BoxShape.circle,
             ),
           ),
         ),
       );
     }
 
-    return Align(
-      alignment: Alignment.bottomCenter,
-      child: Container(
-        width: 7,
-        height: 7,
-        margin: const EdgeInsets.only(bottom: 5),
-        decoration: BoxDecoration(
-          color: color,
-          shape: BoxShape.circle,
-        ),
+    return Container(
+      width: 6,
+      height: 6,
+      decoration: BoxDecoration(
+        color: color,
+        shape: BoxShape.circle,
       ),
     );
   }

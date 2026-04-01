@@ -5,12 +5,21 @@ import 'package:flutter_application_appdeponto/blocs/ponto_history/ponto_history
 import 'package:flutter_application_appdeponto/blocs/ponto_history/ponto_history_event.dart';
 import 'package:flutter_application_appdeponto/blocs/ponto_history/ponto_history_state.dart';
 import 'package:flutter_application_appdeponto/blocs/global_loading/global_loading_cubit.dart';
+import 'package:flutter_application_appdeponto/blocs/justificativa/justificativa_bloc.dart';
+import 'package:flutter_application_appdeponto/blocs/justificativa/justificativa_event.dart';
+import 'package:flutter_application_appdeponto/blocs/justificativa/justificativa_state.dart';
+import 'package:flutter_application_appdeponto/blocs/solicitations/solicitation_bloc.dart';
+import 'package:flutter_application_appdeponto/blocs/solicitations/solicitation_event.dart';
+import 'package:flutter_application_appdeponto/models/justificativa_model.dart';
+import 'package:flutter_application_appdeponto/models/solicitation_model.dart';
+import 'package:flutter_application_appdeponto/repositories/justificativa_repository.dart';
 import 'package:flutter_application_appdeponto/repositories/ponto_history_repository.dart';
 import 'package:flutter_application_appdeponto/repositories/history_view_preference_repository.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
 import 'package:flutter_application_appdeponto/widgets/custom_snackbar.dart';
 import 'package:flutter_application_appdeponto/services/ponto_edit_dialogs.dart';
+import 'widgets/dialogs/day_edit_dialog.dart';
 import 'widgets/card/day_card.dart';
 import 'widgets/empty_history_state.dart';
 import 'widgets/history_mode_calendar_view.dart';
@@ -64,6 +73,7 @@ class _HistoryView extends StatefulWidget {
 
 class _HistoryViewState extends State<_HistoryView> {
   final _viewPreferenceRepository = HistoryViewPreferenceRepository();
+  final _justificativaRepository = JustificativaRepository();
 
   late DateTime _currentMonth;
   late DateTime _selectedCalendarDay;
@@ -72,6 +82,9 @@ class _HistoryViewState extends State<_HistoryView> {
 
   // ← NOVO
   Set<String> _calendarBlockedDays = {};
+
+  /// Justificativas do funcionário sendo visualizado (admin mode).
+  Map<String, JustificativaModel> _adminJustificativas = {};
 
   bool get isAdmin => widget.targetUid != null;
 
@@ -112,6 +125,22 @@ class _HistoryViewState extends State<_HistoryView> {
     } catch (_) {
       // falha silenciosa — dias do Firestore não bloqueiam, feriados fixos ainda funcionam
     }
+
+    if (isAdmin) {
+      _loadAdminJustificativas();
+    }
+  }
+
+  Future<void> _loadAdminJustificativas() async {
+    try {
+      final list = await _justificativaRepository
+          .getJustificativasForEmployee(widget.targetUid!);
+      if (mounted) {
+        setState(() {
+          _adminJustificativas = {for (final j in list) j.diaId: j};
+        });
+      }
+    } catch (_) {}
   }
 
   Future<void> _setPreferredView(HistoryViewPreference value) async {
@@ -159,16 +188,155 @@ class _HistoryViewState extends State<_HistoryView> {
         diaId: diaId,
       );
 
+  /// Abre o diálogo de solicitação de alteração (inclui campo de justificativa de falta).
+  Future<void> _showSolicitationDialog(
+    BuildContext context,
+    String diaId,
+    List<Map<String, dynamic>> eventos,
+  ) async {
+    final result = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (_) => DayEditDialog(
+        mode: DayEditMode.solicitation,
+        diaId: diaId,
+        eventos: eventos,
+      ),
+    );
+
+    if (result != null && context.mounted) {
+      final items = result['items'] as List<SolicitationItem>;
+      final reason = result['reason'] as String?;
+      final justificativaText = result['justificativa'] as String?;
+
+      if (justificativaText != null) {
+        context.read<JustificativaBloc>().add(
+              SubmitJustificativaEvent(
+                  diaId: diaId, justificativa: justificativaText),
+            );
+      }
+
+      if (items.isNotEmpty) {
+        context.read<SolicitationBloc>().add(
+              CreateSolicitationEvent(
+                  diaId: diaId, items: items, reason: reason),
+            );
+      }
+    }
+  }
+
+  /// Admin define justificativa diretamente sem fluxo de aprovação.
+  void _showAdminSetJustificativaDialog(
+      BuildContext context, String diaId, String? existing) {
+    final controller = TextEditingController(text: existing ?? '');
+    showDialog(
+      context: context,
+      builder: (dialogCtx) {
+        return AlertDialog(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Row(
+            children: [
+              const Icon(Icons.assignment_late_outlined,
+                  color: AppColors.error, size: 20),
+              const SizedBox(width: 8),
+              Text(existing != null
+                  ? 'Editar Justificativa'
+                  : 'Adicionar Justificativa'),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'A justificativa será salva diretamente sem necessidade de aprovação.',
+                style: AppTextStyles.bodySmall
+                    .copyWith(color: AppColors.textSecondary),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: controller,
+                maxLines: 4,
+                maxLength: 300,
+                autofocus: true,
+                decoration: InputDecoration(
+                  hintText: 'Descreva a justificativa...',
+                  hintStyle: AppTextStyles.bodySmall
+                      .copyWith(color: AppColors.textSecondary),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide:
+                        const BorderSide(color: AppColors.borderLight),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide:
+                        const BorderSide(color: AppColors.borderLight),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide:
+                        const BorderSide(color: AppColors.primary),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogCtx),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
+              ),
+              onPressed: () async {
+                final text = controller.text.trim();
+                if (text.isEmpty) return;
+                Navigator.pop(dialogCtx);
+                try {
+                  await _justificativaRepository.adminSetJustificativa(
+                    uid: widget.targetUid!,
+                    diaId: diaId,
+                    justificativa: text,
+                  );
+                  await _loadAdminJustificativas();
+                  if (context.mounted) {
+                    CustomSnackbar.showSuccess(
+                        context, 'Justificativa salva.');
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    CustomSnackbar.showError(context,
+                        e.toString().replaceAll('Exception: ', ''));
+                  }
+                }
+              },
+              child: const Text('Salvar'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Widget _buildSingleDayCard(
     BuildContext context,
     String diaId,
     List<Map<String, dynamic>> eventos,
+    Map<String, JustificativaModel> justificativasMap,
   ) {
+    final justificativa = justificativasMap[diaId];
     return DayCard(
       diaId: diaId,
       eventos: eventos,
       isAdmin: isAdmin,
       calendarBlockedDays: _calendarBlockedDays, // ← NOVO
+      justificativa: justificativa,
       onBatchEdit: isAdmin
           ? (d, evs) => showBatchEditDayDialog(
                 context: context,
@@ -178,6 +346,13 @@ class _HistoryViewState extends State<_HistoryView> {
               )
           : null,
       onAddEvento: isAdmin ? () => _showAddDialogForDay(context, diaId) : null,
+      onJustify: isAdmin
+          ? () => _showAdminSetJustificativaDialog(
+              context, diaId, justificativa?.justificativa)
+          : null,
+      onRequestSolicitation: !isAdmin
+          ? () => _showSolicitationDialog(context, diaId, eventos)
+          : null,
     );
   }
 
@@ -189,6 +364,7 @@ class _HistoryViewState extends State<_HistoryView> {
           ),
         );
     _loadCalendarBlockedDays(); // ← NOVO
+    if (isAdmin) await _loadAdminJustificativas();
   }
 
   @override
@@ -330,9 +506,24 @@ class _HistoryViewState extends State<_HistoryView> {
       return const EmptyHistoryState();
     }
 
+    // Monta mapa de justificativas: admin usa _adminJustificativas,
+    // funcionário lê do JustificativaBloc.
+    Map<String, JustificativaModel> justificativasMap = {};
+    if (isAdmin) {
+      justificativasMap = _adminJustificativas;
+    } else {
+      final justState = context.watch<JustificativaBloc>().state;
+      List<JustificativaModel> list = [];
+      if (justState is JustificativaLoaded) list = justState.justificativas;
+      if (justState is JustificativaActionSuccess) {
+        list = justState.justificativas;
+      }
+      justificativasMap = {for (final j in list) j.diaId: j};
+    }
+
     Widget buildDayCardById(String diaId) {
       final eventos = daysMap[diaId] ?? [];
-      return _buildSingleDayCard(context, diaId, eventos);
+      return _buildSingleDayCard(context, diaId, eventos, justificativasMap);
     }
 
     if (_viewPreference == HistoryViewPreference.calendar) {
