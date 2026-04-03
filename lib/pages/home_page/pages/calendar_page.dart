@@ -155,6 +155,7 @@ class _CalendarPageState extends State<CalendarPage> {
             backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
             foregroundColor: isDark ? Colors.white : Colors.black,
             elevation: 0,
+            scrolledUnderElevation: 0,
           ),
           floatingActionButton: _isAdmin
               ? FloatingActionButton(

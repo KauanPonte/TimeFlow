@@ -60,6 +60,7 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
 
   // 1. Variável de estado para os feriados e eventos do admin
   Map<DateTime, List<Map<String, dynamic>>> _allVisibleEvents = {};
+  final Set<int> _loadedFixedHolidaysYears = {};
 
   HistoryViewPreference _viewPreference =
       HistoryViewPreferenceRepository.currentMode;
@@ -75,21 +76,26 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
   }
 
   Future<void> _loadCalendarEvents() async {
+    final year = widget.currentMonth.year;
+    if (_loadedFixedHolidaysYears.contains(year) && _allVisibleEvents.isNotEmpty) {
+      return;
+    }
+
     try {
       final snapshot =
           await FirebaseFirestore.instance.collection('calendar_events').get();
 
-      Map<DateTime, List<Map<String, dynamic>>> mappedEvents = {};
+      final Map<DateTime, List<Map<String, dynamic>>> newEvents = Map.from(_allVisibleEvents);
 
       // Carrega Feriados Fixos do Código (Nacionais/Estaduais)
-      final year = widget.currentMonth.year; // Usa o ano do mês visualizado
       final fixos = PontoService.getBrazilHolidays(year);
       fixos.forEach((date, name) {
         final cleanDate = DateTime(date.year, date.month, date.day);
-        mappedEvents[cleanDate] = [
-          {'title': name, 'type': 'feriado'}
-        ];
+        if (!newEvents.containsKey(cleanDate)) {
+          newEvents[cleanDate] = [{'title': name, 'type': 'feriado'}];
+        }
       });
+      _loadedFixedHolidaysYears.add(year);
 
       // Carrega Feriados dinâmicos do Firebase (gravados pelo Admin)
       for (var doc in snapshot.docs) {
@@ -99,17 +105,20 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
         final date = (data['date'] as Timestamp).toDate();
         final cleanDate = DateTime(date.year, date.month, date.day);
 
-        if (mappedEvents[cleanDate] == null) {
-          mappedEvents[cleanDate] = [data];
+        if (newEvents[cleanDate] == null) {
+          newEvents[cleanDate] = [data];
         } else {
-          // Se já existe um feriado fixo, adiciona o do admin à lista
-          mappedEvents[cleanDate]!.add(data);
+          // Evita duplicar se o evento já veio do Firestore antes ou é um fixo
+          final exists = newEvents[cleanDate]!.any((ev) => ev['id'] == doc.id || (ev['title'] == data['title'] && ev['type'] == data['type']));
+          if (!exists) {
+            newEvents[cleanDate]!.add(data);
+          }
         }
       }
 
       if (mounted) {
         setState(() {
-          _allVisibleEvents = mappedEvents;
+          _allVisibleEvents = newEvents;
         });
       }
     } catch (e) {

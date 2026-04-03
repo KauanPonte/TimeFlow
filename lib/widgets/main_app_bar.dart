@@ -1842,6 +1842,7 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
     return AppBar(
       backgroundColor: AppColors.surface,
       elevation: 0,
+      scrolledUnderElevation: 0,
       automaticallyImplyLeading: false,
       title: Row(
         children: [

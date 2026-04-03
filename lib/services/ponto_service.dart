@@ -483,6 +483,7 @@ class PontoService {
             {
               'balanceMinutes': oldBalance + diff,
               'updatedAt': FieldValue.serverTimestamp(),
+              'summaryCache': FieldValue.delete(),
             },
             SetOptions(merge: true));
       });
@@ -626,7 +627,20 @@ class PontoService {
   static Future<MesResumo> calcularResumoMensal(String uid, DateTime month) async {
     final now = DateTime.now();
     final isCurrentMonth = month.year == now.year && month.month == now.month;
-    
+    final mesId = DateFormat('yyyy-MM').format(month);
+    final refMes = _refMes(uid, mesId);
+
+    // Se NÃO for o mês atual, tenta carregar o cache persistente do Firestore.
+    if (!isCurrentMonth) {
+      try {
+        final snap = await refMes.get();
+        if (snap.exists && snap.data()!.containsKey('summaryCache')) {
+          final cacheData = snap.data()!['summaryCache'] as Map<String, dynamic>;
+          return MesResumo.fromMap(cacheData);
+        }
+      } catch (_) {}
+    }
+
     final calendarService = CalendarService();
     final folgas = await calendarService.getDaysThatReduceWorkload(month.year, month.month);
     final workloadMinutes = await _getWorkloadMinutes(uid);
@@ -680,12 +694,23 @@ class PontoService {
     // "subtrai isso (expectativa) pelo q realmente tem trabalhado e ent temos os saldo"
     final double monthBalance = (workedMinutes - expectedMinutesUntilLimit).toDouble();
 
-    return MesResumo(
+    final resumo = MesResumo(
       workedMinutes: workedMinutes,
       expectedMinutes: expectedMinutesTotal,
       businessDaysTotal: diasUteisNoMes,
       monthBalance: monthBalance,
     );
+
+    // Salva o cache persistente no Firestore para consultas futuras mais rápidas.
+    // Mesmo pro mês atual, serve de cache, mas pra meses passados é "eterno".
+    try {
+      await refMes.set({
+        'summaryCache': resumo.toMap(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    } catch (_) {}
+
+    return resumo;
   }
 
   /// Resumo do mês atual
@@ -861,4 +886,22 @@ class MesResumo {
     required this.businessDaysTotal,
     required this.monthBalance,
   });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'workedMinutes': workedMinutes,
+      'expectedMinutes': expectedMinutes,
+      'businessDaysTotal': businessDaysTotal,
+      'monthBalance': monthBalance,
+    };
+  }
+
+  factory MesResumo.fromMap(Map<String, dynamic> map) {
+    return MesResumo(
+      workedMinutes: (map['workedMinutes'] as num? ?? 0).toInt(),
+      expectedMinutes: (map['expectedMinutes'] as num? ?? 0).toInt(),
+      businessDaysTotal: (map['businessDaysTotal'] as num? ?? 0).toInt(),
+      monthBalance: (map['monthBalance'] as num? ?? 0).toDouble(),
+    );
+  }
 }

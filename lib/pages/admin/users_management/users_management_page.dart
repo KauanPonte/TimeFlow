@@ -46,6 +46,7 @@ class UsersManagementPage extends StatelessWidget {
             appBar: AppBar(
               backgroundColor: AppColors.surface,
               elevation: 0,
+              scrolledUnderElevation: 0,
               leading: IconButton(
                 icon:
                     const Icon(Icons.arrow_back, color: AppColors.textPrimary),

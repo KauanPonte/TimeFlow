@@ -23,6 +23,7 @@ import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
 import 'package:flutter_application_appdeponto/widgets/custom_snackbar.dart';
 import 'package:flutter_application_appdeponto/services/ponto_edit_dialogs.dart';
 import 'package:flutter_application_appdeponto/services/ponto_service.dart';
+import 'package:intl/intl.dart';
 import 'package:flutter_application_appdeponto/services/pdf_service.dart';
 import 'widgets/dialogs/day_edit_dialog.dart';
 import 'widgets/card/day_card.dart';
@@ -95,12 +96,19 @@ class _HistoryViewState extends State<_HistoryView> {
       HistoryViewPreferenceRepository.currentMode;
 
   // ← NOVO
-  Map<String, String> _calendarBlockedDays = {};
+  Map<DateTime, List<Map<String, dynamic>>> _allCalendarEvents = {};
+  final Set<int> _loadedFixedHolidaysYears = {};
 
   /// Justificativas do funcionário sendo visualizado (admin mode).
   Map<String, JustificativaModel> _adminJustificativas = {};
   
   Future<MesResumo>? _mesResumoFuture;
+  Uint8List? _profileBytesCache;
+  
+  // Cache para persistência durante a navegação entre meses
+  final Map<String, Map<String, String>> _blockedDaysCache = {};
+  final Map<String, MesResumo> _resumoCache = {};
+  final Map<String, List<JustificativaModel>> _justificativasCache = {};
 
   bool get isAdmin => widget.targetUid != null;
 
@@ -113,57 +121,110 @@ class _HistoryViewState extends State<_HistoryView> {
         : DateTime(now.year, now.month);
     _selectedCalendarDay =
         HistorySharedUtils.defaultSelectedDayForMonth(_currentMonth);
+    _profileBytesCache = _decodeProfileImage(widget.targetProfileImage);
     _loadCalendarBlockedDays();
     _loadMesResumo();
   }
 
-  void _loadMesResumo() {
-    final uid = widget.targetUid ?? FirebaseAuth.instance.currentUser?.uid;
-    if (uid != null) {
+  @override
+  void didUpdateWidget(_HistoryView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.targetProfileImage != widget.targetProfileImage) {
       setState(() {
-        _mesResumoFuture = PontoService.calcularResumoMensal(uid, _currentMonth);
+        _profileBytesCache = _decodeProfileImage(widget.targetProfileImage);
       });
     }
   }
 
-  Future<void> _loadCalendarBlockedDays() async {
-    final blocked = <String, String>{};
+  void _loadMesResumo() {
+    final uid = widget.targetUid ?? FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
 
-    try {
-      final fixos = PontoService.getBrazilHolidays(_currentMonth.year);
-      for (final date in fixos.keys) {
-        if (date.month == _currentMonth.month) {
-          blocked['${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}'] = fixos[date] ?? 'Feriado Nacional';
-        }
-      }
-    } catch (_) {}
-
-    try {
-      final snapshot = await FirebaseFirestore.instance
-          .collection('calendar_events')
-          .where('year', isEqualTo: _currentMonth.year)
-          .get();
-
-      // Feriados do Firebase (admin criados)
-      for (final doc in snapshot.docs) {
-        final data = doc.data();
-        final type = data['type']?.toString();
-        if (type != 'feriado' && type != 'recesso') continue;
-        
-        final ts = data['date'] as Timestamp?;
-        final title = (data['title'] ?? 'Feriado/Recesso') as String;
-        if (ts == null) continue;
-        final d = ts.toDate();
-        if (d.month != _currentMonth.month) continue;
-        
-        blocked['${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}'] = title;
-      }
-
-    } catch (_) {
-      // falha silenciosa — dias do Firestore não bloqueiam, feriados fixos ainda funcionam
+    final key = "${uid}_${DateFormat('yyyy-MM').format(_currentMonth)}";
+    
+    if (_resumoCache.containsKey(key)) {
+      setState(() {
+        _mesResumoFuture = Future.value(_resumoCache[key]);
+      });
+      return;
     }
 
-    if (mounted) setState(() => _calendarBlockedDays = blocked);
+    setState(() {
+      _mesResumoFuture = PontoService.calcularResumoMensal(uid, _currentMonth).then((resumo) {
+        _resumoCache[key] = resumo;
+        return resumo;
+      });
+    });
+  }
+
+  Future<void> _loadCalendarBlockedDays() async {
+    final year = _currentMonth.year;
+    final key = DateFormat('yyyy-MM').format(_currentMonth);
+
+    // Se passamos pelo cache, e o ano já tem feriados fixos carregados, podemos pular
+    if (_blockedDaysCache.containsKey(key) && _loadedFixedHolidaysYears.contains(year)) {
+      return;
+    }
+
+    try {
+      // 1. Carrega Feriados Fixos do Código para este Ano
+      final fixos = PontoService.getBrazilHolidays(year);
+      
+      final Map<DateTime, List<Map<String, dynamic>>> newEvents = Map.from(_allCalendarEvents);
+
+      fixos.forEach((date, name) {
+        final cleanDate = DateTime(date.year, date.month, date.day);
+        // Só adiciona se ainda não existia ou se queremos priorizar o nome fixo
+        if (!newEvents.containsKey(cleanDate)) {
+           newEvents[cleanDate] = [{'title': name, 'type': 'feriado'}];
+        }
+      });
+      _loadedFixedHolidaysYears.add(year);
+
+      // 2. Busca do Firebase (Admin) se for a primeira vez na sessão
+      // (Podemos buscar sempre ou usar um flag global). 
+      // Busca todos para paridade com HomeHistorySection.
+      final snapshot = await FirebaseFirestore.instance
+          .collection('calendar_events')
+          .get();
+
+      for (var doc in snapshot.docs) {
+        final data = doc.data();
+        if (data['date'] == null) continue;
+        final date = (data['date'] as Timestamp).toDate();
+        final cleanDate = DateTime(date.year, date.month, date.day);
+        
+        if (newEvents[cleanDate] == null) {
+          newEvents[cleanDate] = [data];
+        } else {
+          // Evita duplicar se o evento já veio do Firestore antes
+          final exists = newEvents[cleanDate]!.any((ev) => ev['id'] == doc.id || (ev['title'] == data['title'] && ev['type'] == data['type']));
+          if (!exists) {
+            newEvents[cleanDate]!.add(data);
+          }
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          _allCalendarEvents = newEvents;
+        });
+      }
+
+      // 3. Atualiza o cache de strings para compatibilidade LEGADA do DayCard e PDF
+      final blockedStrings = <String, String>{};
+      _allCalendarEvents.forEach((date, evs) {
+        // Para eficiência, colocamos no cache strings apenas do mês atual sendo visto
+        if (date.year == _currentMonth.year && date.month == _currentMonth.month) {
+          final id = HistorySharedUtils.toDayId(date);
+          blockedStrings[id] = evs.first['title']?.toString() ?? 'Feriado';
+        }
+      });
+      _blockedDaysCache[key] = blockedStrings;
+
+    } catch (e) {
+      debugPrint("Erro ao carregar eventos: $e");
+    }
 
     if (isAdmin) {
       _loadAdminJustificativas();
@@ -171,10 +232,21 @@ class _HistoryViewState extends State<_HistoryView> {
   }
 
   Future<void> _loadAdminJustificativas() async {
+    if (widget.targetUid == null) return;
+    
+    final key = "${widget.targetUid}_${DateFormat('yyyy-MM').format(_currentMonth)}";
+    if (_justificativasCache.containsKey(key)) {
+      setState(() {
+        _adminJustificativas = {for (final j in _justificativasCache[key]!) j.diaId: j};
+      });
+      return;
+    }
+
     try {
       final list = await _justificativaRepository
           .getJustificativasForEmployee(widget.targetUid!);
       if (mounted) {
+        _justificativasCache[key] = list;
         setState(() {
           _adminJustificativas = {for (final j in list) j.diaId: j};
         });
@@ -373,18 +445,25 @@ class _HistoryViewState extends State<_HistoryView> {
   ) {
     final justificativa = justificativasMap[diaId];
     final date = DateTime.tryParse(diaId);
-    final isHoliday = _calendarBlockedDays.containsKey(diaId);
+    final holidayDayIds = _allCalendarEvents.keys.map((date) => HistorySharedUtils.toDayId(date)).toSet();
+    final isHoliday = holidayDayIds.contains(diaId);
     final isFuture = date != null &&
         HistorySharedUtils.isFutureDate(date) &&
         !isHoliday;
+    
+    // Busca o nome do feriado para o DayCard
+    final cleanDate = date != null ? DateTime(date.year, date.month, date.day) : null;
+    final holidayName = cleanDate != null && _allCalendarEvents.containsKey(cleanDate) 
+        ? _allCalendarEvents[cleanDate]!.first['title']?.toString() 
+        : null;
 
     return DayCard(
       diaId: diaId,
       eventos: eventos,
       isAdmin: isAdmin,
       isFuture: isFuture,
-      holidayName: _calendarBlockedDays[diaId],
-      calendarBlockedDays: _calendarBlockedDays.keys.toSet(),
+      holidayName: holidayName,
+      calendarBlockedDays: holidayDayIds,
       justificativa: justificativa,
       onBatchEdit: isAdmin
           ? (d, evs) => showBatchEditDayDialog(
@@ -407,14 +486,20 @@ class _HistoryViewState extends State<_HistoryView> {
 
 
   Future<void> _refreshHistory() async {
+    // Limpa caches para forçar recarregamento real
+    _blockedDaysCache.clear();
+    _resumoCache.clear();
+    _justificativasCache.clear();
+
     context.read<PontoHistoryBloc>().add(
           LoadHistoryEvent(
             uid: widget.targetUid,
             month: _currentMonth,
           ),
         );
-    _loadCalendarBlockedDays(); // ← NOVO
+    _loadCalendarBlockedDays();
     if (isAdmin) await _loadAdminJustificativas();
+    _loadMesResumo();
   }
 
   Uint8List? _decodeProfileImage(String? data) {
@@ -462,7 +547,7 @@ class _HistoryViewState extends State<_HistoryView> {
       final registros = punchRecords[diaId];
 
       final isWeekend = date.weekday == DateTime.saturday || date.weekday == DateTime.sunday;
-      final holidayName = _calendarBlockedDays[diaId];
+      final holidayName = _allCalendarEvents[date]?.first['title']?.toString();
       final isWorkDay = !isWeekend && holidayName == null;
       final effectiveLoad = isWorkDay ? dailyWorkload : 0;
 
@@ -562,7 +647,14 @@ class _HistoryViewState extends State<_HistoryView> {
                       selectedDate: _currentMonth,
                       workloadMinutes: dailyWorkload,
                       punchRecords: punchRecords,
-                      calendarBlockedDays: _calendarBlockedDays,
+                      calendarBlockedDays: _allCalendarEvents.keys
+                          .map((d) => HistorySharedUtils.toDayId(d))
+                          .toSet()
+                          .fold<Map<String, String>>({}, (acc, id) {
+                        final date = DateTime.parse(id);
+                        acc[id] = _allCalendarEvents[date]?.first['title'] ?? 'Feriado';
+                        return acc;
+                      }),
                     );
                   },
                 ),
@@ -585,6 +677,7 @@ class _HistoryViewState extends State<_HistoryView> {
       appBar: AppBar(
         backgroundColor: AppColors.surface,
         elevation: 0,
+        scrolledUnderElevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
           onPressed: () => Navigator.pop(context),
@@ -598,12 +691,13 @@ class _HistoryViewState extends State<_HistoryView> {
                 color: AppColors.primaryLight10,
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: profileBytes != null
+              child: _profileBytesCache != null
                   ? ClipRRect(
                       borderRadius: BorderRadius.circular(8),
                       child: Image.memory(
-                        profileBytes,
+                        _profileBytesCache!,
                         fit: BoxFit.cover,
+                        gaplessPlayback: true,
                       ),
                     )
                   : const Icon(Icons.history, color: AppColors.primary, size: 20),
@@ -806,6 +900,8 @@ class _HistoryViewState extends State<_HistoryView> {
     }
 
     if (_viewPreference == HistoryViewPreference.calendar) {
+      final holidayDayIds = _allCalendarEvents.keys.map((date) => HistorySharedUtils.toDayId(date)).toSet();
+
       return HistoryModeCalendarView(
         month: _currentMonth,
         selectedDay: _selectedCalendarDay,
@@ -815,7 +911,8 @@ class _HistoryViewState extends State<_HistoryView> {
         onDaySelected: (day) => setState(() => _selectedCalendarDay = day),
         dayBuilder: buildDayCardById,
         onRefresh: _refreshHistory,
-        calendarEvents: const {},
+        holidayDayIds: holidayDayIds,
+        calendarEvents: _allCalendarEvents,
       );
     }
 
