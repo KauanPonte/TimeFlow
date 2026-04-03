@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter_application_appdeponto/pages/home_page/pages/calendar_service.dart';
 
 
 class PontoResult {
@@ -621,6 +622,72 @@ class PontoService {
 
   /// Resumo do mês: horas feitas vs horas previstas (dias úteis),
   /// descontando finais de semana e feriados (BR + CE).
+  static Future<MesResumo> calcularResumoMensal(String uid, DateTime month) async {
+    final now = DateTime.now();
+    final isCurrentMonth = month.year == now.year && month.month == now.month;
+    
+    final calendarService = CalendarService();
+    final folgas = await calendarService.getDaysThatReduceWorkload(month.year, month.month);
+    final workloadMinutes = await _getWorkloadMinutes(uid);
+
+    // 1. Horas no mês: baseadas na jornada mensal esperada completa do mês consultado
+    int diasUteisNoMes = 0;
+    final ultimoDia = DateTime(month.year, month.month + 1, 0).day;
+
+    for (int i = 1; i <= ultimoDia; i++) {
+      final date = DateTime(month.year, month.month, i);
+      final diaId = DateFormat('yyyy-MM-dd').format(date);
+      bool isWeekend = date.weekday == DateTime.saturday || date.weekday == DateTime.sunday;
+      bool isFolga = folgas.contains(diaId); // Inclui feriados fixos e artificiais via CalendarService
+      if (!isWeekend && !isFolga) diasUteisNoMes++;
+    }
+    
+    final int expectedMinutesTotal = diasUteisNoMes * workloadMinutes;
+
+    // "saldo: contabiliza todos os dias uteis ... até o dia atual do mês"
+    // Caso seja um mês passado, contabiliza até o último dia daquele mês.
+    final limitDay = isCurrentMonth ? now.day : ultimoDia;
+    
+    int expectedMinutesUntilLimit = 0;
+    for (int i = 1; i <= limitDay; i++) {
+      final date = DateTime(month.year, month.month, i);
+      final diaId = DateFormat('yyyy-MM-dd').format(date);
+      bool isWeekend = date.weekday == DateTime.saturday || date.weekday == DateTime.sunday;
+      bool isFolga = folgas.contains(diaId);
+      
+      // Assim como no user_reports_page, contabiliza apenas dias úteis na meta de saldo.
+      if (!isWeekend && !isFolga) expectedMinutesUntilLimit += workloadMinutes;
+    }
+
+    // Pega as horas reais trabalhadas neste mês consultado
+    int workedMinutes = 0;
+    final prefix = '${month.year}-${month.month.toString().padLeft(2, '0')}';
+    
+    final diasSnap = await FirebaseFirestore.instance
+        .collection(_root)
+        .doc(uid)
+        .collection('dias')
+        .where('date', isGreaterThanOrEqualTo: '$prefix-01')
+        .where('date', isLessThanOrEqualTo: '$prefix-31')
+        .get();
+
+    for (final doc in diasSnap.docs) {
+      final m = doc.data();
+      workedMinutes += (m['workedMinutes'] as int?) ?? 0;
+    }
+
+    // "subtrai isso (expectativa) pelo q realmente tem trabalhado e ent temos os saldo"
+    final double monthBalance = (workedMinutes - expectedMinutesUntilLimit).toDouble();
+
+    return MesResumo(
+      workedMinutes: workedMinutes,
+      expectedMinutes: expectedMinutesTotal,
+      businessDaysTotal: diasUteisNoMes,
+      monthBalance: monthBalance,
+    );
+  }
+
+  /// Resumo do mês atual
   static Future<MesResumo> getResumoMesAtual() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
@@ -631,145 +698,7 @@ class PontoService {
         monthBalance: 0.0,
       );
     }
-
-    final uid = user.uid;
-    final now = DateTime.now();
-    final monthStart = DateTime(now.year, now.month, 1);
-    final nextMonthStart = DateTime(now.year, now.month + 1, 1);
-
-    final workloadMinutes = await _getWorkloadMinutes(uid);
-    final userCreatedAt = await _getUserCreatedAt(uid);
-    final balanceStart = (userCreatedAt != null && userCreatedAt.isAfter(monthStart))
-        ? userCreatedAt
-        : monthStart;
-
-    final holidays = getBrazilHolidays(now.year);
-
-    int businessDaysTotal = 0;
-    int expectedMinutes = 0;
-
-    for (var d = monthStart;
-        d.isBefore(nextMonthStart);
-        d = d.add(const Duration(days: 1))) {
-      final date = _startOfDay(d);
-      final isWeekend =
-          date.weekday == DateTime.saturday || date.weekday == DateTime.sunday;
-      final isHoliday = holidays.containsKey(date);
-      if (!isWeekend && !isHoliday) {
-        businessDaysTotal++;
-        expectedMinutes += workloadMinutes;
-      }
-    }
-
-    // Soma do que já foi calculado por dia dentro do mês.
-    final startId = _diaId(monthStart);
-    final endId = _diaId(nextMonthStart);
-    final diasSnap = await FirebaseFirestore.instance
-        .collection(_root)
-        .doc(uid)
-        .collection('dias')
-        .where('date', isGreaterThanOrEqualTo: startId)
-        .where('date', isLessThan: endId)
-        .get();
-
-    // Coleta dias com atestado aprovado (isExcused)
-    final excusedDayIds = diasSnap.docs
-        .where((d) => (d.data()['isExcused'] as bool?) == true)
-        .map((d) => d.id)
-        .toSet();
-
-    int workedMinutes = 0;
-    for (final doc in diasSnap.docs) {
-      final m = doc.data();
-      workedMinutes += (m['workedMinutes'] as int?) ?? 0;
-    }
-
-    // Hoje só entra no esperado se o dia estiver fechado (saída batida)
-    // ou se já passou das 20h (corte de falta)
-    final todayId = _diaId(DateTime(now.year, now.month, now.day));
-    final todayDoc = diasSnap.docs.where((d) => d.id == todayId).firstOrNull;
-    final bool diaHojeFechado =
-        (todayDoc?.data()['isClosed'] as bool?) ?? false;
-    final bool cutoffReached =
-        now.isAfter(DateTime(now.year, now.month, now.day, 20, 0));
-    final bool contarHoje = diaHojeFechado || cutoffReached;
-
-    int todayExpectedMinutes;
-    double monthBalance;
-    int expected = 0;
-    final today = DateTime(now.year, now.month, now.day);
-    for (var d = balanceStart;
-        d.isBefore(today) || (d.isAtSameMomentAs(today) && contarHoje);
-        d = d.add(const Duration(days: 1))) {
-      final isWeekend =
-          d.weekday == DateTime.saturday || d.weekday == DateTime.sunday;
-      final isHoliday = holidays.containsKey(d);
-      final isExcused = excusedDayIds.contains(_diaId(d));
-      if (!isWeekend && !isHoliday && !isExcused) {
-        expected += workloadMinutes;
-      }
-    }
-    // Dias anteriores ao balanceStart com registro manual real (workedMinutes > 0)
-    // também entram no esperado, para que as horas sejam tratadas como dia normal
-    // (trabalhado - esperado) e não como bônus puro.
-    // Docs com workedMinutes == 0 são apenas placeholders de falta auto-gerados
-    // e são ignorados aqui.
-    if (balanceStart.isAfter(monthStart)) {
-      for (final doc in diasSnap.docs) {
-        final d = _startOfDay(DateTime.parse(doc.id));
-        if (!d.isBefore(balanceStart)) continue;
-        final hasWork = ((doc.data()['workedMinutes'] as int?) ?? 0) > 0;
-        if (!hasWork) continue;
-        final isWeekend =
-            d.weekday == DateTime.saturday || d.weekday == DateTime.sunday;
-        final isHoliday = holidays.containsKey(d);
-        final isExcused = excusedDayIds.contains(doc.id);
-        if (!isWeekend && !isHoliday && !isExcused) {
-          expected += workloadMinutes;
-        }
-      }
-    }
-    todayExpectedMinutes = expected;
-
-    // Se hoje não entra no saldo esperado, também não conta as horas
-    // trabalhadas hoje para evitar que horas parciais inflem o saldo
-    final int todayWorked = (todayDoc?.data()['workedMinutes'] as int?) ?? 0;
-    final int workedForBalance = contarHoje ? workedMinutes : workedMinutes - todayWorked;
-
-    // Carry-over de meses anteriores: só conta dias que têm registro de ponto.
-    // Dias sem registro não geram débito (não são tratados como falta retroativa).
-    // Para cada dia com registro: pastBalance += workedMinutes - workloadMinutes.
-    int pastBalance = 0;
-    final currentMonthStartId = _diaId(monthStart);
-    final pastDiasSnap = await FirebaseFirestore.instance
-        .collection(_root)
-        .doc(uid)
-        .collection('dias')
-        .where('date', isLessThan: currentMonthStartId)
-        .get();
-
-    for (final doc in pastDiasSnap.docs) {
-      final worked = (doc.data()['workedMinutes'] as int?) ?? 0;
-      if (worked == 0) continue;
-      final d = _startOfDay(DateTime.parse(doc.id));
-      final isWeekend =
-          d.weekday == DateTime.saturday || d.weekday == DateTime.sunday;
-      final yearHolidays = getBrazilHolidays(d.year);
-      final isHoliday = yearHolidays.containsKey(d);
-      final isExcused = (doc.data()['isExcused'] as bool?) == true;
-      if (!isWeekend && !isHoliday && !isExcused) {
-        pastBalance += worked - workloadMinutes;
-      }
-    }
-
-    monthBalance = (workedForBalance - todayExpectedMinutes + pastBalance).toDouble();
-
-    return MesResumo(
-      workedMinutes: workedMinutes,
-      expectedMinutes: expectedMinutes,
-      businessDaysTotal: businessDaysTotal,
-      monthBalance: monthBalance,
-    );
+    return await calcularResumoMensal(user.uid, DateTime.now());
   }
 
   // Para a página de Relatórios (Admin ver saldo de qualquer usuário)

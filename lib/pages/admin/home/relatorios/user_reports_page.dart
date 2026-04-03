@@ -9,7 +9,6 @@ import 'package:flutter_application_appdeponto/repositories/ponto_history_reposi
 import 'package:flutter_application_appdeponto/services/ponto_service.dart';
 import 'package:flutter_application_appdeponto/pages/home_page/pages/calendar_service.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
-import 'package:flutter_application_appdeponto/pages/auth/login/widgets/custom_text_field.dart';
 
 class UserReportsPage extends StatefulWidget {
   final String userName;
@@ -68,17 +67,16 @@ class _UserReportsPageState extends State<UserReportsPage> {
         month: selectedDate.month,
       );
 
-      final saldoOficial =
-          await PontoService.getSaldoMesPorUsuario(widget.userId, selectedDate);
+      final resumoMensal = await PontoService.calcularResumoMensal(widget.userId, selectedDate);
       final folgas = await _calendarService.getDaysThatReduceWorkload(
           selectedDate.year, selectedDate.month);
 
       setState(() {
         punchRecords = data;
-        _saldoMinutosMes = saldoOficial;
+        _saldoMinutosMes = resumoMensal.monthBalance.toInt();
+        _cargaHorariaDinamicaMinutos = resumoMensal.expectedMinutes;
         holidayDayIds = folgas;
-        _calculateMonthlyGoal();
-        _actualizeDisplayValues();
+        _actualizeDisplayValues(resumoMensal.workedMinutes);
         isLoading = false;
       });
     } catch (e) {
@@ -87,29 +85,9 @@ class _UserReportsPageState extends State<UserReportsPage> {
     }
   }
 
-  void _calculateMonthlyGoal() {
-    int diasUteisNoMes = 0;
-    final ultimoDia =
-        DateTime(selectedDate.year, selectedDate.month + 1, 0).day;
 
-    for (int i = 1; i <= ultimoDia; i++) {
-      final data = DateTime(selectedDate.year, selectedDate.month, i);
-      final diaId = DateFormat('yyyy-MM-dd').format(data);
-      bool isWeekend =
-          data.weekday == DateTime.saturday || data.weekday == DateTime.sunday;
-      bool isFolga = holidayDayIds.contains(diaId);
-      if (!isWeekend && !isFolga) diasUteisNoMes++;
-    }
-    _cargaHorariaDinamicaMinutos = diasUteisNoMes * _jornadaDiariaMinutos;
-  }
 
-  void _actualizeDisplayValues() {
-    int totalTrabalhado = 0;
-    punchRecords.forEach((diaId, eventos) {
-      if (eventos.length % 2 == 0)
-        totalTrabalhado += _calculateTotalMinutes(eventos);
-    });
-
+  void _actualizeDisplayValues(int totalTrabalhado) {
     setState(() {
       _totalHorasMes = _formatMinutes(totalTrabalhado);
       String prefixo = _saldoMinutosMes >= 0 ? "+" : "-";
@@ -124,8 +102,9 @@ class _UserReportsPageState extends State<UserReportsPage> {
     for (int i = 0; i < eventos.length - 1; i += 2) {
       DateTime? inicio = eventos[i]['at'];
       DateTime? fim = eventos[i + 1]['at'];
-      if (inicio != null && fim != null)
+      if (inicio != null && fim != null) {
         total += fim.difference(inicio).inMinutes;
+      }
     }
     return total;
   }
@@ -156,9 +135,10 @@ class _UserReportsPageState extends State<UserReportsPage> {
       obs = "Incompleto";
     } else {
       final total = _calculateTotalMinutes(eventos);
-      if (total > _jornadaDiariaMinutos)
+      if (total > _jornadaDiariaMinutos) {
         obs = "Extra: ${_formatMinutes(total - _jornadaDiariaMinutos)}";
-      else if (total < _jornadaDiariaMinutos && total > 0)
+      } else if (total < _jornadaDiariaMinutos && total > 0)
+        // ignore: curly_braces_in_flow_control_structures
         obs = "Débito: ${_formatMinutes(_jornadaDiariaMinutos - total)}";
     }
     return {"registros": registros, "obs": obs};
@@ -208,7 +188,7 @@ class _UserReportsPageState extends State<UserReportsPage> {
       children: [
         CircleAvatar(
           radius: 28,
-          backgroundColor: AppColors.primary.withOpacity(0.1),
+          backgroundColor: AppColors.primary.withValues(alpha: 0.1),
           backgroundImage: widget.profileImageUrl != null
               ? NetworkImage(widget.profileImageUrl!)
               : null,
@@ -238,7 +218,7 @@ class _UserReportsPageState extends State<UserReportsPage> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.05),
+              color: AppColors.primary.withValues(alpha: 0.05),
               borderRadius: BorderRadius.circular(8)),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -406,21 +386,21 @@ class _UserReportsPageState extends State<UserReportsPage> {
     );
   }
 
-  Widget _buildTableHeader() => Padding(
-        padding: const EdgeInsets.all(12),
+  Widget _buildTableHeader() => const Padding(
+        padding: EdgeInsets.all(12),
         child: Row(children: [
           Expanded(
               flex: 2,
               child: Text('Data',
-                  style: const TextStyle(fontWeight: FontWeight.bold))),
+                  style: TextStyle(fontWeight: FontWeight.bold))),
           Expanded(
               flex: 5,
               child: Text('Registros',
-                  style: const TextStyle(fontWeight: FontWeight.bold))),
+                  style: TextStyle(fontWeight: FontWeight.bold))),
           Expanded(
               flex: 2,
               child: Text('Obs',
-                  style: const TextStyle(fontWeight: FontWeight.bold))),
+                  style: TextStyle(fontWeight: FontWeight.bold))),
         ]),
       );
 
