@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
-import 'package:flutter_application_appdeponto/services/server_time_service.dart';
+
 
 class PontoResult {
   final bool success;
@@ -14,7 +14,7 @@ class PontoService {
 
   static String _mesIdFromDiaId(String diaId) => diaId.substring(0, 7);
 
-  static String _hojeId() => ServerTimeService.todayId();
+  static String _hojeId() => DateFormat('yyyy-MM-dd').format(DateTime.now());
   static String _diaId(DateTime d) => DateFormat('yyyy-MM-dd').format(d);
   static DateTime _startOfDay(DateTime d) => DateTime(d.year, d.month, d.day);
 
@@ -93,7 +93,7 @@ class PontoService {
         return const PontoResult(
             success: false, message: 'Você precisa estar logado.');
       }
-      final hoje = ServerTimeService.now();
+      final hoje = DateTime.now();
       final bool feriado = await isFeriado(hoje);
 
       if (feriado) {
@@ -110,8 +110,11 @@ class PontoService {
       final diaId = _hojeId();
       final refDia = _refDia(uid, diaId);
       final refEventos = _refEventos(uid, diaId);
-      // Registra sem segundos (truncado ao minuto) usando horário do servidor.
-      final now = ServerTimeService.nowTimestampTruncated();
+      // Registra sem segundos (truncado ao minuto).
+      final nowRaw = DateTime.now();
+      final nowTruncated = DateTime(
+          nowRaw.year, nowRaw.month, nowRaw.day, nowRaw.hour, nowRaw.minute);
+      final now = Timestamp.fromDate(nowTruncated);
 
       final diaSnapPre = await refDia.get();
 
@@ -142,7 +145,7 @@ class PontoService {
         final newDoc = refEventos.doc();
         tx.set(newDoc, {
           'tipo': tipo,
-          'at': now,
+          'at': FieldValue.serverTimestamp(),
           'workMode': workMode,
           'origin': 'registrado',
         });
@@ -151,16 +154,16 @@ class PontoService {
           tx.set(refDia, {
             'uid': uid,
             'date': diaId,
-            'createdAt': now,
-            'updatedAt': now,
+            'createdAt': FieldValue.serverTimestamp(),
+            'updatedAt': FieldValue.serverTimestamp(),
             'lastTipo': tipo,
-            'lastAt': now,
+            'lastAt': FieldValue.serverTimestamp(),
           });
         } else {
           tx.update(refDia, {
-            'updatedAt': now,
+            'updatedAt': FieldValue.serverTimestamp(),
             'lastTipo': tipo,
-            'lastAt': now,
+            'lastAt': FieldValue.serverTimestamp(),
           });
         }
       });
@@ -170,7 +173,7 @@ class PontoService {
       // Atualiza eventosCache no doc do dia
       await _rebuildEventosCache(uid: uid, diaId: diaId);
 
-      final horas = DateFormat('HH:mm').format(ServerTimeService.now());
+      final horas = DateFormat('HH:mm').format(DateTime.now());
       return PontoResult(
           success: true, message: 'Ponto "$tipo" registrado às $horas.');
     } catch (e) {
@@ -404,7 +407,7 @@ class PontoService {
     final String? ultimoTipoEvento =
         eventos.isNotEmpty ? (eventos.last['tipo'] ?? '').toString() : null;
     final bool diaFechado = ultimoTipoEvento == 'saida';
-    final hojeId = ServerTimeService.todayId();
+    final hojeId = DateFormat('yyyy-MM-dd').format(DateTime.now());
     final bool ehHoje = diaId == hojeId;
 
     final date = DateTime.parse(diaId);
@@ -456,6 +459,8 @@ class PontoService {
         tx.set(
             refDia,
             {
+              'uid': uid,
+              'date': diaId,
               'workedMinutes': workedMinutes,
               'deltaMinutes': deltaMinutes,
               'workloadMinutes': workloadMinutes,
@@ -493,7 +498,7 @@ class PontoService {
           monthBalance: 0.0);
 
     final uid = user.uid;
-    final now = ServerTimeService.now();
+    final now = DateTime.now();
     final monthStart = DateTime(now.year, now.month, 1);
     final nextMonthStart = DateTime(now.year, now.month + 1, 1);
     final workloadMinutes = await _getWorkloadMinutes(uid);
@@ -622,7 +627,7 @@ class PontoService {
     }
 
     final uid = user.uid;
-    final now = ServerTimeService.now();
+    final now = DateTime.now();
     final monthStart = DateTime(now.year, now.month, 1);
     final nextMonthStart = DateTime(now.year, now.month + 1, 1);
 
@@ -785,7 +790,7 @@ class PontoService {
     if (user == null) return;
 
     final uid = user.uid;
-    final now = ServerTimeService.now();
+    final now = DateTime.now();
     final monthStart = DateTime(now.year, now.month, 1);
     final nextMonthStart = DateTime(now.year, now.month + 1, 1);
 

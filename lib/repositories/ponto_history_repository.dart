@@ -1,7 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_application_appdeponto/services/ponto_validator.dart';
-import 'package:flutter_application_appdeponto/services/server_time_service.dart';
 
 class PontoHistoryRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -14,9 +13,11 @@ class PontoHistoryRepository {
     uid ??= FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return [];
 
+    final resolvedUid = uid;
+
     final diasSnap = await _firestore
         .collection(_root)
-        .doc(uid)
+        .doc(resolvedUid)
         .collection('dias')
         .orderBy('date', descending: true)
         .get();
@@ -25,7 +26,31 @@ class PontoHistoryRepository {
 
     for (final diaDoc in diasSnap.docs) {
       final diaId = diaDoc.id;
-      final eventos = _extractEventos(diaDoc);
+      var eventos = _extractEventos(diaDoc);
+
+      // Fallback: se não há cache, busca da subcollection
+      if (eventos.isEmpty) {
+        final eventosSnap = await _firestore
+            .collection(_root)
+            .doc(resolvedUid)
+            .collection('dias')
+            .doc(diaId)
+            .collection('eventos')
+            .orderBy('at', descending: false)
+            .get();
+
+        eventos = eventosSnap.docs.map((e) {
+          final data = e.data();
+          final ts = data['at'] as Timestamp?;
+          return {
+            'id': e.id,
+            'tipo': (data['tipo'] ?? '').toString(),
+            'at': ts?.toDate(),
+            'workMode': (data['workMode'] ?? '').toString(),
+            'origin': (data['origin'] ?? 'registrado').toString(),
+          };
+        }).toList();
+      }
 
       if (eventos.isNotEmpty) {
         result.add({'diaId': diaId, 'eventos': eventos});
@@ -49,32 +74,34 @@ class PontoHistoryRepository {
     uid ??= FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return {};
 
+    final resolvedUid = uid;
+
     final prefix =
         '${year.toString().padLeft(4, '0')}-${month.toString().padLeft(2, '0')}';
-    final startId = '$prefix-01';
-    final endId = '$prefix-32'; // 32 garante pegar todos os dias do mês
 
-    final diasSnap = await _firestore
+    // Busca TODOS os docs de dias e filtra pelo prefixo do mês via doc ID.
+    // Isso evita depender do campo 'date' (que pode estar ausente em docs
+    // criados pela transação de recalcularBancoDeHorasDoDia).
+    final allDiasSnap = await _firestore
         .collection(_root)
-        .doc(uid)
+        .doc(resolvedUid)
         .collection('dias')
-        .where('date', isGreaterThanOrEqualTo: startId)
-        .where('date', isLessThan: endId)
-        .orderBy('date', descending: true)
         .get();
+
+    final monthDocs = allDiasSnap.docs
+        .where((doc) => doc.id.startsWith(prefix))
+        .toList();
 
     final result = <String, List<Map<String, dynamic>>>{};
 
-    // Coleta dias que precisam de fallback (sem eventosCache)
-    final fallbackDays = <String>[];
-
-    for (final diaDoc in diasSnap.docs) {
+    // Processa todos os dias em PARALELO (antes era sequencial = lento)
+    final futures = monthDocs.map((diaDoc) async {
       final diaId = diaDoc.id;
       final data = diaDoc.data();
       final cache = data['eventosCache'];
 
+      // Tenta usar cache inline primeiro (evita query extra)
       if (cache is List && cache.isNotEmpty) {
-        // Lê direto do cache inline — sem query extra
         final eventos = cache.map<Map<String, dynamic>>((e) {
           final m = e as Map<String, dynamic>;
           final ts = m['at'] as Timestamp?;
@@ -89,46 +116,41 @@ class PontoHistoryRepository {
         if (eventos.isNotEmpty) {
           result[diaId] = eventos;
         }
-      } else {
-        // Dados antigos sem cache — marca para fallback
-        fallbackDays.add(diaId);
+        return;
       }
-    }
 
-    // Fallback: busca subcollection apenas para dias sem cache
-    if (fallbackDays.isNotEmpty) {
-      // Paraleliza as queries de fallback para minimizar latência
-      final futures = fallbackDays.map((diaId) async {
-        final eventosSnap = await _firestore
-            .collection(_root)
-            .doc(uid)
-            .collection('dias')
-            .doc(diaId)
-            .collection('eventos')
-            .orderBy('at', descending: false)
-            .get();
+      // Sem cache → busca da subcollection (paralelizado)
+      final eventosSnap = await _firestore
+          .collection(_root)
+          .doc(resolvedUid)
+          .collection('dias')
+          .doc(diaId)
+          .collection('eventos')
+          .orderBy('at', descending: false)
+          .get();
 
-        final eventos = eventosSnap.docs.map((e) {
-          final data = e.data();
-          final ts = data['at'] as Timestamp?;
-          return {
-            'id': e.id,
-            'tipo': (data['tipo'] ?? '').toString(),
-            'at': ts?.toDate(),
-            'workMode': (data['workMode'] ?? '').toString(),
-            'origin': (data['origin'] ?? 'registrado').toString(),
-          };
-        }).toList();
+      final eventos = eventosSnap.docs.map((e) {
+        final evData = e.data();
+        final ts = evData['at'] as Timestamp?;
+        return {
+          'id': e.id,
+          'tipo': (evData['tipo'] ?? '').toString(),
+          'at': ts?.toDate(),
+          'workMode': (evData['workMode'] ?? '').toString(),
+          'origin': (evData['origin'] ?? 'registrado').toString(),
+        };
+      }).toList();
 
-        if (eventos.isNotEmpty) {
-          result[diaId] = eventos;
-        }
-      });
-      await Future.wait(futures);
-    }
+      if (eventos.isNotEmpty) {
+        result[diaId] = eventos;
+      }
+    });
+
+    await Future.wait(futures);
 
     return result;
   }
+
 
   /// Tenta extrair eventos do `eventosCache` inline.
   /// Retorna lista tipada pronta para a UI.
@@ -325,7 +347,8 @@ class PontoHistoryRepository {
     // Calcula minutos trabalhados (só intervalos fechados)
     final workedMinutes = _computeWorkedMinutes(eventos);
     final diaFechado = lastTipo == 'saida';
-    final hojeId = ServerTimeService.todayId();
+    final localNow = DateTime.now();
+    final hojeId = '${localNow.year.toString().padLeft(4, '0')}-${localNow.month.toString().padLeft(2, '0')}-${localNow.day.toString().padLeft(2, '0')}';
     final ehHoje = diaId == hojeId;
     final falta = !ehHoje && eventos.isEmpty;
     final deltaMinutes = falta
