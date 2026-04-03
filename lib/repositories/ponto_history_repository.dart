@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:intl/intl.dart';
 import 'package:flutter_application_appdeponto/services/ponto_validator.dart';
+import 'package:flutter_application_appdeponto/services/server_time_service.dart';
 
 class PontoHistoryRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -25,27 +25,7 @@ class PontoHistoryRepository {
 
     for (final diaDoc in diasSnap.docs) {
       final diaId = diaDoc.id;
-
-      final eventosSnap = await _firestore
-          .collection(_root)
-          .doc(uid)
-          .collection('dias')
-          .doc(diaId)
-          .collection('eventos')
-          .orderBy('at', descending: false)
-          .get();
-
-      final eventos = eventosSnap.docs.map((e) {
-        final data = e.data();
-        final ts = data['at'] as Timestamp?;
-        return {
-          'id': e.id,
-          'tipo': (data['tipo'] ?? '').toString(),
-          'at': ts?.toDate(),
-          'workMode': (data['workMode'] ?? '').toString(),
-          'origin': (data['origin'] ?? 'registrado').toString(),
-        };
-      }).toList();
+      final eventos = _extractEventos(diaDoc);
 
       if (eventos.isNotEmpty) {
         result.add({'diaId': diaId, 'eventos': eventos});
@@ -57,6 +37,10 @@ class PontoHistoryRepository {
 
   /// Carrega apenas os dias de um mês específico.
   /// Retorna mapa de diaId → eventos para merge na UI.
+  ///
+  /// lê `eventosCache` direto do doc do dia (1 query),
+  /// sem subcollection extra. Fallback para subcollection se `eventosCache`
+  /// estiver ausente (dados antigos).
   Future<Map<String, List<Map<String, dynamic>>>> loadDaysByMonth({
     String? uid,
     required int year,
@@ -81,36 +65,93 @@ class PontoHistoryRepository {
 
     final result = <String, List<Map<String, dynamic>>>{};
 
+    // Coleta dias que precisam de fallback (sem eventosCache)
+    final fallbackDays = <String>[];
+
     for (final diaDoc in diasSnap.docs) {
       final diaId = diaDoc.id;
+      final data = diaDoc.data();
+      final cache = data['eventosCache'];
 
-      final eventosSnap = await _firestore
-          .collection(_root)
-          .doc(uid)
-          .collection('dias')
-          .doc(diaId)
-          .collection('eventos')
-          .orderBy('at', descending: false)
-          .get();
-
-      final eventos = eventosSnap.docs.map((e) {
-        final data = e.data();
-        final ts = data['at'] as Timestamp?;
-        return {
-          'id': e.id,
-          'tipo': (data['tipo'] ?? '').toString(),
-          'at': ts?.toDate(),
-          'workMode': (data['workMode'] ?? '').toString(),
-          'origin': (data['origin'] ?? 'registrado').toString(),
-        };
-      }).toList();
-
-      if (eventos.isNotEmpty) {
-        result[diaId] = eventos;
+      if (cache is List && cache.isNotEmpty) {
+        // Lê direto do cache inline — sem query extra
+        final eventos = cache.map<Map<String, dynamic>>((e) {
+          final m = e as Map<String, dynamic>;
+          final ts = m['at'] as Timestamp?;
+          return {
+            'id': (m['id'] ?? '').toString(),
+            'tipo': (m['tipo'] ?? '').toString(),
+            'at': ts?.toDate(),
+            'workMode': (m['workMode'] ?? '').toString(),
+            'origin': (m['origin'] ?? 'registrado').toString(),
+          };
+        }).toList();
+        if (eventos.isNotEmpty) {
+          result[diaId] = eventos;
+        }
+      } else {
+        // Dados antigos sem cache — marca para fallback
+        fallbackDays.add(diaId);
       }
     }
 
+    // Fallback: busca subcollection apenas para dias sem cache
+    if (fallbackDays.isNotEmpty) {
+      // Paraleliza as queries de fallback para minimizar latência
+      final futures = fallbackDays.map((diaId) async {
+        final eventosSnap = await _firestore
+            .collection(_root)
+            .doc(uid)
+            .collection('dias')
+            .doc(diaId)
+            .collection('eventos')
+            .orderBy('at', descending: false)
+            .get();
+
+        final eventos = eventosSnap.docs.map((e) {
+          final data = e.data();
+          final ts = data['at'] as Timestamp?;
+          return {
+            'id': e.id,
+            'tipo': (data['tipo'] ?? '').toString(),
+            'at': ts?.toDate(),
+            'workMode': (data['workMode'] ?? '').toString(),
+            'origin': (data['origin'] ?? 'registrado').toString(),
+          };
+        }).toList();
+
+        if (eventos.isNotEmpty) {
+          result[diaId] = eventos;
+        }
+      });
+      await Future.wait(futures);
+    }
+
     return result;
+  }
+
+  /// Tenta extrair eventos do `eventosCache` inline.
+  /// Retorna lista tipada pronta para a UI.
+  List<Map<String, dynamic>> _extractEventos(
+      DocumentSnapshot<Map<String, dynamic>> diaDoc) {
+    final data = diaDoc.data();
+    if (data == null) return [];
+
+    final cache = data['eventosCache'];
+    if (cache is List && cache.isNotEmpty) {
+      return cache.map<Map<String, dynamic>>((e) {
+        final m = e as Map<String, dynamic>;
+        final ts = m['at'] as Timestamp?;
+        return {
+          'id': (m['id'] ?? '').toString(),
+          'tipo': (m['tipo'] ?? '').toString(),
+          'at': ts?.toDate(),
+          'workMode': (m['workMode'] ?? '').toString(),
+          'origin': (m['origin'] ?? 'registrado').toString(),
+        };
+      }).toList();
+    }
+    return [];
   }
 
   /// Adiciona um evento de ponto para um usuário específico.
@@ -260,7 +301,8 @@ class PontoHistoryRepository {
     }
   }
 
-  /// Atualiza metadados do dia (lastTipo, lastAt, etc.) e recalcula banco de horas.
+  /// Atualiza metadados do dia (lastTipo, lastAt, etc.),
+  /// recalcula banco de horas, e **atualiza `eventosCache`**.
   Future<void> _updateDayMeta({
     required String uid,
     required String diaId,
@@ -283,12 +325,24 @@ class PontoHistoryRepository {
     // Calcula minutos trabalhados (só intervalos fechados)
     final workedMinutes = _computeWorkedMinutes(eventos);
     final diaFechado = lastTipo == 'saida';
-    final hojeId = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    final hojeId = ServerTimeService.todayId();
     final ehHoje = diaId == hojeId;
     final falta = !ehHoje && eventos.isEmpty;
     final deltaMinutes = falta
         ? -targetMinutesPerDay
         : (diaFechado ? (workedMinutes - targetMinutesPerDay) : 0);
+
+    // Constrói array de cache para denormalização
+    final eventosCache = eventosSnap.docs.map((d) {
+      final data = d.data();
+      return {
+        'id': d.id,
+        'tipo': (data['tipo'] ?? '').toString(),
+        'at': data['at'],
+        'workMode': (data['workMode'] ?? '').toString(),
+        'origin': (data['origin'] ?? 'registrado').toString(),
+      };
+    }).toList();
 
     final mesId = diaId.substring(0, 7);
     final refMes =
@@ -307,12 +361,13 @@ class PontoHistoryRepository {
       tx.set(
           refDia,
           {
-            'updatedAt': Timestamp.now(),
+            'updatedAt': FieldValue.serverTimestamp(),
             'lastTipo': lastTipo,
             'lastAt': lastAt,
             'workedMinutes': workedMinutes,
             'deltaMinutes': deltaMinutes,
             'isClosed': diaFechado,
+            'eventosCache': eventosCache,
           },
           SetOptions(merge: true));
 
@@ -320,7 +375,7 @@ class PontoHistoryRepository {
           refMes,
           {
             'balanceMinutes': newBalance,
-            'updatedAt': Timestamp.now(),
+            'updatedAt': FieldValue.serverTimestamp(),
           },
           SetOptions(merge: true));
     });
@@ -443,8 +498,8 @@ class PontoHistoryRepository {
         await refDia.set({
           'uid': uid,
           'date': diaId,
-          'createdAt': Timestamp.now(),
-          'updatedAt': Timestamp.now(),
+          'createdAt': FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverTimestamp(),
         });
       }
       await _updateDayMeta(uid: uid, diaId: diaId);

@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_application_appdeponto/firebase_options.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_application_appdeponto/services/server_time_service.dart';
 import 'package:flutter_application_appdeponto/blocs/auth/auth_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/auth/auth_state.dart';
 import 'package:flutter_application_appdeponto/blocs/global_loading/global_loading_cubit.dart';
@@ -51,6 +52,7 @@ void main() async {
     DeviceOrientation.portraitUp,
   ]);
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await ServerTimeService.sync();
   await HistoryViewPreferenceRepository.initialize();
   await initializeDateFormatting('pt_BR');
   await NotificationService.init();

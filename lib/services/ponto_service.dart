@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter_application_appdeponto/services/server_time_service.dart';
 
 class PontoResult {
   final bool success;
@@ -13,7 +14,7 @@ class PontoService {
 
   static String _mesIdFromDiaId(String diaId) => diaId.substring(0, 7);
 
-  static String _hojeId() => DateFormat('yyyy-MM-dd').format(DateTime.now());
+  static String _hojeId() => ServerTimeService.todayId();
   static String _diaId(DateTime d) => DateFormat('yyyy-MM-dd').format(d);
   static DateTime _startOfDay(DateTime d) => DateTime(d.year, d.month, d.day);
 
@@ -92,7 +93,7 @@ class PontoService {
         return const PontoResult(
             success: false, message: 'Você precisa estar logado.');
       }
-      final hoje = DateTime.now();
+      final hoje = ServerTimeService.now();
       final bool feriado = await isFeriado(hoje);
 
       if (feriado) {
@@ -109,10 +110,8 @@ class PontoService {
       final diaId = _hojeId();
       final refDia = _refDia(uid, diaId);
       final refEventos = _refEventos(uid, diaId);
-      // Registra sem segundos (truncado ao minuto).
-      final nowRaw = DateTime.now();
-      final now = Timestamp.fromDate(DateTime(
-          nowRaw.year, nowRaw.month, nowRaw.day, nowRaw.hour, nowRaw.minute));
+      // Registra sem segundos (truncado ao minuto) usando horário do servidor.
+      final now = ServerTimeService.nowTimestampTruncated();
 
       final diaSnapPre = await refDia.get();
 
@@ -168,7 +167,10 @@ class PontoService {
 
       await recalcularBancoDeHorasDoDia(uid: uid, diaId: diaId);
 
-      final horas = DateFormat('HH:mm').format(DateTime.now());
+      // Atualiza eventosCache no doc do dia
+      await _rebuildEventosCache(uid: uid, diaId: diaId);
+
+      final horas = DateFormat('HH:mm').format(ServerTimeService.now());
       return PontoResult(
           success: true, message: 'Ponto "$tipo" registrado às $horas.');
     } catch (e) {
@@ -402,7 +404,7 @@ class PontoService {
     final String? ultimoTipoEvento =
         eventos.isNotEmpty ? (eventos.last['tipo'] ?? '').toString() : null;
     final bool diaFechado = ultimoTipoEvento == 'saida';
-    final hojeId = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    final hojeId = ServerTimeService.todayId();
     final bool ehHoje = diaId == hojeId;
 
     final date = DateTime.parse(diaId);
@@ -434,12 +436,12 @@ class PontoService {
         'isClosed': diaFechado,
         'isOpen': emAberto,
         'isAbsent': falta,
-        'updatedAt': Timestamp.now(),
+        'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
 
       await refMes.set({
         'balanceMinutes': oldBalance + diff,
-        'updatedAt': Timestamp.now(),
+        'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
     }
 
@@ -460,7 +462,7 @@ class PontoService {
               'isClosed': diaFechado,
               'isOpen': emAberto,
               'isAbsent': falta,
-              'updatedAt': Timestamp.now(),
+              'updatedAt': FieldValue.serverTimestamp(),
             },
             SetOptions(merge: true));
 
@@ -468,7 +470,7 @@ class PontoService {
             refMes,
             {
               'balanceMinutes': oldBalance + diff,
-              'updatedAt': Timestamp.now(),
+              'updatedAt': FieldValue.serverTimestamp(),
             },
             SetOptions(merge: true));
       });
@@ -491,7 +493,7 @@ class PontoService {
           monthBalance: 0.0);
 
     final uid = user.uid;
-    final now = DateTime.now();
+    final now = ServerTimeService.now();
     final monthStart = DateTime(now.year, now.month, 1);
     final nextMonthStart = DateTime(now.year, now.month + 1, 1);
     final workloadMinutes = await _getWorkloadMinutes(uid);
@@ -580,6 +582,32 @@ class PontoService {
     return totalMinutes;
   }
 
+  /// Reconstrói o array `eventosCache` no doc do dia após uma mutação.
+  /// Isso permite que `loadDaysByMonth` carregue eventos sem queries N+1.
+  static Future<void> _rebuildEventosCache({
+    required String uid,
+    required String diaId,
+  }) async {
+    final refDia = _refDia(uid, diaId);
+    final refEventos = _refEventos(uid, diaId);
+
+    final eventosSnap = await refEventos.orderBy('at', descending: false).get();
+    final eventosCache = eventosSnap.docs.map((d) {
+      final data = d.data();
+      return {
+        'id': d.id,
+        'tipo': (data['tipo'] ?? '').toString(),
+        'at': data['at'],
+        'workMode': (data['workMode'] ?? '').toString(),
+        'origin': (data['origin'] ?? 'registrado').toString(),
+      };
+    }).toList();
+
+    await refDia.set({
+      'eventosCache': eventosCache,
+    }, SetOptions(merge: true));
+  }
+
   /// Resumo do mês: horas feitas vs horas previstas (dias úteis),
   /// descontando finais de semana e feriados (BR + CE).
   static Future<MesResumo> getResumoMesAtual() async {
@@ -594,7 +622,7 @@ class PontoService {
     }
 
     final uid = user.uid;
-    final now = DateTime.now();
+    final now = ServerTimeService.now();
     final monthStart = DateTime(now.year, now.month, 1);
     final nextMonthStart = DateTime(now.year, now.month + 1, 1);
 
@@ -757,7 +785,7 @@ class PontoService {
     if (user == null) return;
 
     final uid = user.uid;
-    final now = DateTime.now();
+    final now = ServerTimeService.now();
     final monthStart = DateTime(now.year, now.month, 1);
     final nextMonthStart = DateTime(now.year, now.month + 1, 1);
 
