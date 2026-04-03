@@ -1,9 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
-import 'calendar_service.dart' hide DateFormat;
+import 'calendar_service.dart';
 import 'package:intl/intl.dart' as intl;
 
 class _EventOption {
@@ -36,10 +35,9 @@ class _CalendarPageState extends State<CalendarPage> {
   bool _loading = true;
 
   final CalendarService _calendarService = CalendarService();
-  CalendarFormat _calendarFormat = CalendarFormat.month;
+  final CalendarFormat _calendarFormat = CalendarFormat.month;
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
-  Map<DateTime, List<Map<String, dynamic>>> _events = {};
 
   @override
   void initState() {
@@ -251,8 +249,8 @@ class _CalendarPageState extends State<CalendarPage> {
           width: 0.5,
         ),
         color: isSelected
-            ? Colors.yellow.withOpacity(0.3)
-            : (isToday ? Colors.blue.withOpacity(0.1) : null),
+            ? Colors.yellow.withValues(alpha: 0.3)
+            : (isToday ? Colors.blue.withValues(alpha: 0.1) : null),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

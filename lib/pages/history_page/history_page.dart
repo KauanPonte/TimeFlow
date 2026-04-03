@@ -1,6 +1,9 @@
+import 'dart:convert';
+import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_application_appdeponto/blocs/ponto_history/ponto_history_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/ponto_history/ponto_history_event.dart';
 import 'package:flutter_application_appdeponto/blocs/ponto_history/ponto_history_state.dart';
@@ -20,6 +23,7 @@ import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
 import 'package:flutter_application_appdeponto/widgets/custom_snackbar.dart';
 import 'package:flutter_application_appdeponto/services/ponto_edit_dialogs.dart';
 import 'package:flutter_application_appdeponto/services/ponto_service.dart';
+import 'package:flutter_application_appdeponto/services/pdf_service.dart';
 import 'widgets/dialogs/day_edit_dialog.dart';
 import 'widgets/card/day_card.dart';
 import 'widgets/empty_history_state.dart';
@@ -32,12 +36,14 @@ import 'widgets/month_selector.dart';
 class HistoryPage extends StatelessWidget {
   final String? targetUid;
   final String? targetName;
+  final String? targetProfileImage;
   final DateTime? initialDate;
 
   const HistoryPage({
     super.key,
     this.targetUid,
     this.targetName,
+    this.targetProfileImage,
     this.initialDate,
   });
 
@@ -55,6 +61,7 @@ class HistoryPage extends StatelessWidget {
       child: _HistoryView(
         targetUid: targetUid,
         targetName: targetName,
+        targetProfileImage: targetProfileImage,
         initialDate: initialDate,
       ),
     );
@@ -64,9 +71,15 @@ class HistoryPage extends StatelessWidget {
 class _HistoryView extends StatefulWidget {
   final String? targetUid;
   final String? targetName;
+  final String? targetProfileImage;
   final DateTime? initialDate;
 
-  const _HistoryView({this.targetUid, this.targetName, this.initialDate});
+  const _HistoryView({
+    this.targetUid, 
+    this.targetName, 
+    this.targetProfileImage,
+    this.initialDate,
+  });
 
   @override
   State<_HistoryView> createState() => _HistoryViewState();
@@ -82,10 +95,12 @@ class _HistoryViewState extends State<_HistoryView> {
       HistoryViewPreferenceRepository.currentMode;
 
   // ← NOVO
-  Set<String> _calendarBlockedDays = {};
+  Map<String, String> _calendarBlockedDays = {};
 
   /// Justificativas do funcionário sendo visualizado (admin mode).
   Map<String, JustificativaModel> _adminJustificativas = {};
+  
+  Future<MesResumo>? _mesResumoFuture;
 
   bool get isAdmin => widget.targetUid != null;
 
@@ -99,52 +114,61 @@ class _HistoryViewState extends State<_HistoryView> {
     _selectedCalendarDay =
         HistorySharedUtils.defaultSelectedDayForMonth(_currentMonth);
     _loadCalendarBlockedDays();
+    _loadMesResumo();
+  }
+
+  void _loadMesResumo() {
+    final uid = widget.targetUid ?? FirebaseAuth.instance.currentUser?.uid;
+    if (uid != null) {
+      setState(() {
+        _mesResumoFuture = PontoService.calcularResumoMensal(uid, _currentMonth);
+      });
+    }
   }
 
   Future<void> _loadCalendarBlockedDays() async {
+    final blocked = <String, String>{};
+
     try {
-      final snapshot = await FirebaseFirestore.instance
-          .collection('calendar_events')
-          .where('date',
-              isGreaterThanOrEqualTo: Timestamp.fromDate(
-                  DateTime(_currentMonth.year, _currentMonth.month, 1)))
-          .where('date',
-              isLessThanOrEqualTo: Timestamp.fromDate(
-                  DateTime(_currentMonth.year, _currentMonth.month + 1, 0)))
-          .where('type', whereIn: ['feriado', 'recesso']).get();
-
-      final blocked = <String>{};
-
-      // Feriados do Firebase (admin criados)
-      for (final doc in snapshot.docs) {
-        final ts = doc.data()['date'] as Timestamp?;
-        if (ts == null) continue;
-        final d = ts.toDate();
-        blocked.add(
-          '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}',
-        );
-      }
-
-      // Feriados fixos nacionais/estaduais
       final fixos = PontoService.getBrazilHolidays(_currentMonth.year);
       for (final date in fixos.keys) {
         if (date.month == _currentMonth.month) {
-          blocked.add(
-            '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}',
-          );
+          blocked['${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}'] = fixos[date] ?? 'Feriado Nacional';
         }
       }
+    } catch (_) {}
 
-      if (mounted) setState(() => _calendarBlockedDays = blocked);
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('calendar_events')
+          .where('year', isEqualTo: _currentMonth.year)
+          .get();
+
+      // Feriados do Firebase (admin criados)
+      for (final doc in snapshot.docs) {
+        final data = doc.data();
+        final type = data['type']?.toString();
+        if (type != 'feriado' && type != 'recesso') continue;
+        
+        final ts = data['date'] as Timestamp?;
+        final title = (data['title'] ?? 'Feriado/Recesso') as String;
+        if (ts == null) continue;
+        final d = ts.toDate();
+        if (d.month != _currentMonth.month) continue;
+        
+        blocked['${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}'] = title;
+      }
+
     } catch (_) {
       // falha silenciosa — dias do Firestore não bloqueiam, feriados fixos ainda funcionam
     }
+
+    if (mounted) setState(() => _calendarBlockedDays = blocked);
 
     if (isAdmin) {
       _loadAdminJustificativas();
     }
   }
-
 
   Future<void> _loadAdminJustificativas() async {
     try {
@@ -175,7 +199,8 @@ class _HistoryViewState extends State<_HistoryView> {
     context.read<PontoHistoryBloc>().add(
           LoadHistoryEvent(uid: widget.targetUid, month: _currentMonth),
         );
-    _loadCalendarBlockedDays(); // ← NOVO
+    _loadCalendarBlockedDays(); 
+    _loadMesResumo();
   }
 
   void _goToNextMonth() {
@@ -193,7 +218,8 @@ class _HistoryViewState extends State<_HistoryView> {
     context.read<PontoHistoryBloc>().add(
           LoadHistoryEvent(uid: widget.targetUid, month: _currentMonth),
         );
-    _loadCalendarBlockedDays(); // ← NOVO
+    _loadCalendarBlockedDays(); 
+    _loadMesResumo();
   }
 
   void _showAddDialogForDay(BuildContext context, String diaId) =>
@@ -347,7 +373,7 @@ class _HistoryViewState extends State<_HistoryView> {
   ) {
     final justificativa = justificativasMap[diaId];
     final date = DateTime.tryParse(diaId);
-    final isHoliday = _calendarBlockedDays.contains(diaId);
+    final isHoliday = _calendarBlockedDays.containsKey(diaId);
     final isFuture = date != null &&
         HistorySharedUtils.isFutureDate(date) &&
         !isHoliday;
@@ -357,7 +383,8 @@ class _HistoryViewState extends State<_HistoryView> {
       eventos: eventos,
       isAdmin: isAdmin,
       isFuture: isFuture,
-      calendarBlockedDays: _calendarBlockedDays,
+      holidayName: _calendarBlockedDays[diaId],
+      calendarBlockedDays: _calendarBlockedDays.keys.toSet(),
       justificativa: justificativa,
       onBatchEdit: isAdmin
           ? (d, evs) => showBatchEditDayDialog(
@@ -390,10 +417,168 @@ class _HistoryViewState extends State<_HistoryView> {
     if (isAdmin) await _loadAdminJustificativas();
   }
 
+  Uint8List? _decodeProfileImage(String? data) {
+    if (data == null || data.isEmpty) return null;
+    try {
+      final cleaned = data.contains(',') ? data.split(',').last : data;
+      return base64Decode(cleaned);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  void _showPdfModal(BuildContext context, Map<String, List<Map<String, dynamic>>> punchRecords) async {
+    if (_mesResumoFuture == null) return;
+    final resumo = await _mesResumoFuture!;
+    final dailyWorkload = resumo.businessDaysTotal > 0 
+      ? (resumo.expectedMinutes ~/ resumo.businessDaysTotal) 
+      : 8 * 60;
+      
+    final ultimoDiaMes = DateTime(_currentMonth.year, _currentMonth.month + 1, 0).day;
+    final hojeApenasData = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+    
+    List<Widget> tableRows = [];
+    tableRows.add(
+      Container(
+        padding: const EdgeInsets.all(12),
+        decoration: const BoxDecoration(
+            color: AppColors.bgLight,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(8))),
+        child: Row(
+          children: [
+            Expanded(flex: 2, child: Text('Data', style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.bold))),
+            Expanded(flex: 5, child: Text('Registros', style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.bold))),
+            Expanded(flex: 3, child: Text('Obs', style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.bold))),
+          ],
+        ),
+      ),
+    );
+
+    for (int i = ultimoDiaMes; i >= 1; i--) {
+      final date = DateTime(_currentMonth.year, _currentMonth.month, i);
+      if (date.isAfter(hojeApenasData)) continue;
+      
+      final diaId = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+      final registros = punchRecords[diaId];
+
+      final isWeekend = date.weekday == DateTime.saturday || date.weekday == DateTime.sunday;
+      final holidayName = _calendarBlockedDays[diaId];
+      final isWorkDay = !isWeekend && holidayName == null;
+      final effectiveLoad = isWorkDay ? dailyWorkload : 0;
+
+      final p = PdfService.processDayDetails(registros ?? [], effectiveLoad, isWorkDay, holidayName);
+      final isExtra = p['obs']!.startsWith('Extra');
+      final isDebito = p['obs']!.startsWith('Débito');
+      final obsColor = isExtra ? AppColors.success : isDebito ? AppColors.error : AppColors.textSecondary;
+
+      tableRows.add(
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: const BoxDecoration(
+              border: Border(bottom: BorderSide(color: AppColors.borderLight))),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                flex: 2,
+                child: Text('${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}', 
+                  style: AppTextStyles.h3.copyWith(fontSize: 14))),
+              Expanded(
+                flex: 5, 
+                child: Text(p['registros']!, style: AppTextStyles.bodySmall)),
+              Expanded(
+                flex: 3,
+                child: Text(p['obs']!,
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: obsColor))),
+            ],
+          ),
+        )
+      );
+    }
+
+    if (context.mounted) {
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (ctx) => Container(
+          height: MediaQuery.of(context).size.height * 0.85,
+          decoration: const BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            children: [
+              Container(
+                margin: const EdgeInsets.only(top: 12, bottom: 8),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.borderLight,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Espelho Mensal', style: AppTextStyles.h2),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(ctx),
+                    )
+                  ],
+                ),
+              ),
+              const Divider(height: 1),
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.all(16),
+                  children: tableRows,
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: const BoxDecoration(
+                  color: AppColors.surface,
+                  boxShadow: [
+                    BoxShadow(color: AppColors.shadow, blurRadius: 8, offset: Offset(0, -4))
+                  ],
+                ),
+                child: ElevatedButton.icon(
+                  icon: const Icon(Icons.download),
+                  label: const Text('Exportar PDF'),
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(54),
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
+                  onPressed: () async {
+                    Navigator.pop(ctx);
+                    await PdfService.generateUserHistoryPdf(
+                      userName: widget.targetName ?? 'Usuário',
+                      selectedDate: _currentMonth,
+                      workloadMinutes: dailyWorkload,
+                      punchRecords: punchRecords,
+                      calendarBlockedDays: _calendarBlockedDays,
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final title = isAdmin ? (widget.targetName ?? 'Usuário') : 'Meu Histórico';
     final subTitle = isAdmin ? 'Histórico de Pontos' : null;
+    final profileBytes = _decodeProfileImage(widget.targetProfileImage);
 
     return Scaffold(
       backgroundColor: AppColors.bgLight,
@@ -407,13 +592,21 @@ class _HistoryViewState extends State<_HistoryView> {
         title: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(8),
+              width: 36,
+              height: 36,
               decoration: BoxDecoration(
                 color: AppColors.primaryLight10,
                 borderRadius: BorderRadius.circular(8),
               ),
-              child:
-                  const Icon(Icons.history, color: AppColors.primary, size: 20),
+              child: profileBytes != null
+                  ? ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.memory(
+                        profileBytes,
+                        fit: BoxFit.cover,
+                      ),
+                    )
+                  : const Icon(Icons.history, color: AppColors.primary, size: 20),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -455,6 +648,18 @@ class _HistoryViewState extends State<_HistoryView> {
           const SizedBox(width: 8),
         ],
       ),
+      floatingActionButton: BlocBuilder<PontoHistoryBloc, PontoHistoryState>(
+        builder: (context, state) {
+          if (state is PontoHistoryLoaded) {
+            return FloatingActionButton(
+              onPressed: () => _showPdfModal(context, state.daysMap),
+              backgroundColor: AppColors.primary,
+              child: const Icon(Icons.picture_as_pdf, color: Colors.white),
+            );
+          }
+          return const SizedBox.shrink();
+        },
+      ),
       body: BlocConsumer<PontoHistoryBloc, PontoHistoryState>(
         listener: (context, state) {
           if (state is PontoHistoryActionSuccess) {
@@ -473,6 +678,47 @@ class _HistoryViewState extends State<_HistoryView> {
                 onPrevious: _goToPreviousMonth,
                 onNext: _goToNextMonth,
               ),
+              if (_mesResumoFuture != null)
+                FutureBuilder<MesResumo>(
+                  future: _mesResumoFuture,
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData) return const SizedBox.shrink();
+                    final r = snapshot.data!;
+                    final h = r.workedMinutes ~/ 60;
+                    final m = r.workedMinutes % 60;
+                    final eH = r.expectedMinutes ~/ 60;
+                    final eM = r.expectedMinutes % 60;
+                    final balH = r.monthBalance.abs() ~/ 60;
+                    final balM = r.monthBalance.abs().toInt() % 60;
+                    final prefix = r.monthBalance >= 0 ? "+" : "-";
+
+                    return Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: AppColors.borderLight),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: AppColors.shadow,
+                            blurRadius: 4,
+                            offset: Offset(0, 2),
+                          )
+                        ]
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [
+                          _buildMiniStat('Trabalhado', '${h}h ${m.toString().padLeft(2, '0')}m', AppColors.textPrimary),
+                          _buildMiniStat('Esperado', '${eH}h ${eM.toString().padLeft(2, '0')}m', AppColors.textSecondary),
+                          _buildMiniStat('Saldo', '$prefix ${balH}h ${balM.toString().padLeft(2, '0')}m',
+                             r.monthBalance >= 0 ? AppColors.success : AppColors.error),
+                        ],
+                      ),
+                    );
+                  },
+                ),
               Expanded(
                 child: _buildHistoryContent(context, state),
               ),
@@ -480,6 +726,16 @@ class _HistoryViewState extends State<_HistoryView> {
           );
         },
       ),
+    );
+  }
+
+  Widget _buildMiniStat(String label, String value, Color valueColor) {
+    return Column(
+      children: [
+        Text(label, style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary)),
+        const SizedBox(height: 4),
+        Text(value, style: AppTextStyles.bodyLarge.copyWith(color: valueColor, fontWeight: FontWeight.bold)),
+      ],
     );
   }
 
