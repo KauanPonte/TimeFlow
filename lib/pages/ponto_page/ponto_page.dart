@@ -109,15 +109,19 @@ class _PontoPageState extends State<PontoPage> {
     globalLoading.show('Verificando calendário...');
     bool ehFeriado = await PontoService.isFeriado(DateTime.now());
 
+    if (!mounted) {
+      globalLoading.hide();
+      return;
+    }
+
     if (ehFeriado) {
       globalLoading.hide();
-      if (mounted) {
-        setState(() => registering = false);
-        CustomSnackbar.showError(
-            context, "Hoje é feriado. Registros não são permitidos.");
-      }
-      return; // Mata a execução aqui e não chama o cubit.registrar
+      setState(() => registering = false);
+      CustomSnackbar.showError(
+          context, "Hoje é feriado. Registros não são permitidos.");
+      return;
     }
+
     final cubit = context.read<PontoTodayCubit>();
     globalLoading.show('Registrando ponto...');
     try {

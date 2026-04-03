@@ -497,12 +497,13 @@ class PontoService {
   // 3. RESUMO DO MÊS (CORRIGIDO)
   static Future<MesResumo> getResumoMesAtualOld() async {
     final user = FirebaseAuth.instance.currentUser;
-    if (user == null)
+    if (user == null) {
       return const MesResumo(
           workedMinutes: 0,
           expectedMinutes: 0,
           businessDaysTotal: 0,
           monthBalance: 0.0);
+    }
 
     final uid = user.uid;
     final now = DateTime.now();

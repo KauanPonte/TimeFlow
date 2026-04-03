@@ -106,7 +106,7 @@ class _CalendarPageState extends State<CalendarPage> {
           TextButton(
             onPressed: () async {
               await _calendarService.deleteEvent(docId);
-              if (mounted) Navigator.pop(context);
+              if (context.mounted) Navigator.pop(context);
             },
             child: const Text("Excluir", style: TextStyle(color: Colors.red)),
           ),
@@ -442,9 +442,9 @@ class _CalendarPageState extends State<CalendarPage> {
                     selectedOption.color,
                     selectedOption.type,
                   );
-                  if (mounted) Navigator.pop(context);
+                  if (context.mounted) Navigator.pop(context);
                 } catch (e) {
-                  if (mounted) {
+                  if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text('Erro ao salvar: $e')),
                     );

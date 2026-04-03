@@ -523,7 +523,7 @@ class _HistoryViewState extends State<_HistoryView> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Espelho Mensal', style: AppTextStyles.h2),
+                    const Text('Espelho Mensal', style: AppTextStyles.h2),
                     IconButton(
                       icon: const Icon(Icons.close),
                       onPressed: () => Navigator.pop(ctx),
@@ -815,7 +815,7 @@ class _HistoryViewState extends State<_HistoryView> {
         onDaySelected: (day) => setState(() => _selectedCalendarDay = day),
         dayBuilder: buildDayCardById,
         onRefresh: _refreshHistory,
-        calendarEvents: {},
+        calendarEvents: const {},
       );
     }
 

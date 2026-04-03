@@ -23,7 +23,7 @@ class CalendarService {
       'date': Timestamp.fromDate(cleanDate),
       'dateId': _formatDateId(cleanDate),
       'title': title,
-      'colorValue': color.value,
+      'colorValue': color.toARGB32(),
       'type': eventType.toLowerCase().trim(),
       'userId': uid,
       'createdAt': FieldValue.serverTimestamp(),
@@ -88,7 +88,7 @@ class CalendarService {
         final event = {
           'id': doc.id,
           'title': data['title'] ?? '',
-          'color': Color(data['colorValue'] ?? Colors.blue.value),
+          'color': Color(data['colorValue'] ?? Colors.blue.toARGB32()),
           'type': data['type'] ?? '',
           'userId': data['userId'] ?? '',
         };

@@ -139,6 +139,9 @@ class _HomePageState extends State<HomePage> {
           }
         }
       }
+
+      if (!mounted) return;
+
       if (shouldRefresh) {
         context.read<PontoTodayCubit>().refresh();
         context

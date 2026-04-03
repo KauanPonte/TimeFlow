@@ -387,7 +387,7 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
                           )
                       : null,
                   onCancelSolicitation: (!widget.isAdmin)
-                      ? (solId) => _confirmCancelSolicitation(context, solId)
+                      ? (solId) => _confirmCancelSolicitation(solId)
                       : null,
                 );
               }
@@ -428,7 +428,6 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
   }
 
   Future<void> _confirmCancelSolicitation(
-    BuildContext context,
     String solicitationId,
   ) async {
     final confirmed = await showDialog<bool>(
@@ -447,7 +446,7 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
       ),
     );
 
-    if (confirmed == true && context.mounted) {
+    if (confirmed == true && mounted) {
       context.read<SolicitationBloc>().add(
             CancelSolicitationEvent(solicitationId: solicitationId),
           );
@@ -463,13 +462,13 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
     // ← NOVO: bloqueia se for feriado/recesso/ponto facultativo
     final date = DateTime.parse(diaId);
     final ehFeriado = await PontoService.isFeriado(date);
+    if (!context.mounted) return;
+
     if (ehFeriado) {
-      if (context.mounted) {
-        CustomSnackbar.showError(
-          context,
-          'Registro negado. Não há trabalho neste dia.',
-        );
-      }
+      CustomSnackbar.showError(
+        context,
+        'Registro negado. Não há trabalho neste dia.',
+      );
       return;
     }
 
@@ -486,7 +485,9 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
       ),
     );
 
-    if (result != null && context.mounted) {
+    if (!context.mounted) return;
+
+    if (result != null) {
       final items = result['items'] as List<SolicitationItem>;
       final reason = result['reason'] as String?;
       final justificativaText = result['justificativa'] as String?;
