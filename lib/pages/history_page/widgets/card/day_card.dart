@@ -44,16 +44,16 @@ class DayCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final blockedDay =
-        isWeekendOrHolidayWithCalendar(diaId, calendarBlockedDays);
-    final disabled = isFuture || blockedDay;
+    // Feriados não devem desativar o card (os cliques são bloqueados no backend)
+    // Apenas dias futuros e fins de semana desativam a visualização.
+    final disabled = isFuture || isWeekendDay(diaId);
 
     if (isFuture) {
       return EmptyDayCard(
-        diaId: diaId,
+          diaId: diaId,
         disabled: disabled,
-        isAdmin: isAdmin,
-        holidayName: holidayName,
+          isAdmin: isAdmin,
+          holidayName: holidayName,
         onAddEvento: disabled ? null : onAddEvento,
         onBatchEdit: (!disabled && onBatchEdit != null)
             ? () => onBatchEdit!(diaId, [])

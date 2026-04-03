@@ -353,11 +353,9 @@ class PontoService {
     try {
       final cleanDate = DateTime(date.year, date.month, date.day);
 
-      // Intervalo do dia inteiro — evita falha por diferença de fuso no Timestamp
-      final startOfDay = Timestamp.fromDate(cleanDate);
-      final endOfDay = Timestamp.fromDate(
-        cleanDate.add(const Duration(hours: 23, minutes: 59, seconds: 59)),
-      );
+      // Expande a janela de busca para lidar com diferenças de timezone (ex: salvo em UTC)
+      final expandedStart = Timestamp.fromDate(cleanDate.subtract(const Duration(days: 1)));
+      final expandedEnd = Timestamp.fromDate(cleanDate.add(const Duration(days: 2)));
 
       const blockingTypes = {
         'feriado',
@@ -366,13 +364,21 @@ class PontoService {
 
       final snapshot = await FirebaseFirestore.instance
           .collection('calendar_events')
-          .where('date', isGreaterThanOrEqualTo: startOfDay)
-          .where('date', isLessThanOrEqualTo: endOfDay)
+          .where('date', isGreaterThanOrEqualTo: expandedStart)
+          .where('date', isLessThanOrEqualTo: expandedEnd)
           .get();
 
       for (var doc in snapshot.docs) {
-        final tipo = (doc.data()['type'] ?? '').toString().toLowerCase().trim();
-        if (blockingTypes.contains(tipo)) return true;
+        final evTs = doc.data()['date'] as Timestamp?;
+        if (evTs != null) {
+          final evDate = evTs.toDate();
+          if (evDate.year == cleanDate.year &&
+              evDate.month == cleanDate.month &&
+              evDate.day == cleanDate.day) {
+            final tipo = (doc.data()['type'] ?? '').toString().toLowerCase().trim();
+            if (blockingTypes.contains(tipo)) return true;
+          }
+        }
       }
 
       // Fallback: feriados fixos do código

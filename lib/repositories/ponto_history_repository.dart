@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_application_appdeponto/services/ponto_validator.dart';
+import 'package:flutter_application_appdeponto/services/ponto_service.dart';
 
 class PontoHistoryRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -183,6 +184,15 @@ class PontoHistoryRepository {
     required String tipo,
     required DateTime horario,
   }) async {
+    // Bloqueia adição em feriados/recessos (mesmo para admin)
+    final date = DateTime.tryParse(diaId);
+    if (date != null) {
+      final ehFeriado = await PontoService.isFeriado(date);
+      if (ehFeriado) {
+        throw Exception('Este dia é feriado/recesso. Não é permitido adicionar pontos.');
+      }
+    }
+
     final refDia =
         _firestore.collection(_root).doc(uid).collection('dias').doc(diaId);
 
@@ -434,6 +444,15 @@ class PontoHistoryRepository {
     required List<String> deletes,
     required List<Map<String, dynamic>> adds,
   }) async {
+    // Bloqueia edição em feriados/recessos (mesmo para admin)
+    final date = DateTime.tryParse(diaId);
+    if (date != null) {
+      final ehFeriado = await PontoService.isFeriado(date);
+      if (ehFeriado) {
+        throw Exception('Este dia é feriado/recesso. Não é permitido editar pontos.');
+      }
+    }
+
     final refDia =
         _firestore.collection(_root).doc(uid).collection('dias').doc(diaId);
     final refEventos = refDia.collection('eventos');

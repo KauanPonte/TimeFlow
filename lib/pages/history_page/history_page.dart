@@ -19,6 +19,7 @@ import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
 import 'package:flutter_application_appdeponto/widgets/custom_snackbar.dart';
 import 'package:flutter_application_appdeponto/services/ponto_edit_dialogs.dart';
+import 'package:flutter_application_appdeponto/services/ponto_service.dart';
 import 'widgets/dialogs/day_edit_dialog.dart';
 import 'widgets/card/day_card.dart';
 import 'widgets/empty_history_state.dart';
@@ -113,6 +114,8 @@ class _HistoryViewState extends State<_HistoryView> {
           .where('type', whereIn: ['feriado', 'recesso']).get();
 
       final blocked = <String>{};
+
+      // Feriados do Firebase (admin criados)
       for (final doc in snapshot.docs) {
         final ts = doc.data()['date'] as Timestamp?;
         if (ts == null) continue;
@@ -121,6 +124,17 @@ class _HistoryViewState extends State<_HistoryView> {
           '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}',
         );
       }
+
+      // Feriados fixos nacionais/estaduais
+      final fixos = PontoService.getBrazilHolidays(_currentMonth.year);
+      for (final date in fixos.keys) {
+        if (date.month == _currentMonth.month) {
+          blocked.add(
+            '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}',
+          );
+        }
+      }
+
       if (mounted) setState(() => _calendarBlockedDays = blocked);
     } catch (_) {
       // falha silenciosa — dias do Firestore não bloqueiam, feriados fixos ainda funcionam
@@ -130,6 +144,7 @@ class _HistoryViewState extends State<_HistoryView> {
       _loadAdminJustificativas();
     }
   }
+
 
   Future<void> _loadAdminJustificativas() async {
     try {
@@ -331,11 +346,18 @@ class _HistoryViewState extends State<_HistoryView> {
     Map<String, JustificativaModel> justificativasMap,
   ) {
     final justificativa = justificativasMap[diaId];
+    final date = DateTime.tryParse(diaId);
+    final isHoliday = _calendarBlockedDays.contains(diaId);
+    final isFuture = date != null &&
+        HistorySharedUtils.isFutureDate(date) &&
+        !isHoliday;
+
     return DayCard(
       diaId: diaId,
       eventos: eventos,
       isAdmin: isAdmin,
-      calendarBlockedDays: _calendarBlockedDays, // ← NOVO
+      isFuture: isFuture,
+      calendarBlockedDays: _calendarBlockedDays,
       justificativa: justificativa,
       onBatchEdit: isAdmin
           ? (d, evs) => showBatchEditDayDialog(
@@ -355,6 +377,7 @@ class _HistoryViewState extends State<_HistoryView> {
           : null,
     );
   }
+
 
   Future<void> _refreshHistory() async {
     context.read<PontoHistoryBloc>().add(

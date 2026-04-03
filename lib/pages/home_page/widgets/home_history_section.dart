@@ -339,23 +339,27 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
 
                 final date = DateTime.tryParse(diaId);
                 String? holidayName;
+                bool isHoliday = false;
                 if (date != null) {
                   final cleanDate = DateTime(date.year, date.month, date.day);
                   final eventsForDay = _allVisibleEvents[cleanDate];
-                  debugPrint(
-                      'diaId: $diaId → cleanDate: $cleanDate → events: $eventsForDay');
-                  debugPrint(
-                      'allVisibleEvents keys: ${_allVisibleEvents.keys.toList()}');
                   if (eventsForDay != null && eventsForDay.isNotEmpty) {
                     final title = eventsForDay.first['title'] as String?;
                     if (title != null) holidayName = title;
+                    isHoliday = true;
                   }
                 }
+
+                final isFuture = date != null &&
+                    HistorySharedUtils.isFutureDate(date) &&
+                    !isHoliday;
+
                 return DayCard(
                   key: _keyForDay(diaId),
                   diaId: diaId,
                   eventos: eventos,
                   isAdmin: widget.isAdmin,
+                  isFuture: isFuture,
                   holidayName: holidayName,
                   pendingSolicitations: daySolicitations,
                   justificativa: justificativasMap[diaId],
@@ -387,6 +391,7 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
                       : null,
                 );
               }
+
 
               if (_viewPreference == HistoryViewPreference.calendar) {
                 final holidayDayIds = _allVisibleEvents.keys.map((date) {

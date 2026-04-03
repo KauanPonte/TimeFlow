@@ -107,7 +107,7 @@ class CalendarDayStatusHelper {
     bool isHoliday = false,
   }) {
     final isWarning = _isWarningStatus(status);
-    //final isFuture = isFutureDate(day);
+    final isFuture = isFutureDate(day) && !isHoliday; // Feriados futuros ficam normais
 
     BoxDecoration? decoration;
     if (isSelected) {
@@ -145,11 +145,16 @@ class CalendarDayStatusHelper {
       );
     }
 
-    final textColor = isHoliday
+    Color textColor = isHoliday
         ? Colors.green[700]!
         : isWarning
             ? AppColors.warning
             : Colors.black;
+
+    // Se for futuro e não for feriado, acinzenta
+    if (isFuture) {
+      textColor = AppColors.textSecondary.withValues(alpha: 0.4);
+    }
 
     return Column(
       mainAxisSize: MainAxisSize.min,
