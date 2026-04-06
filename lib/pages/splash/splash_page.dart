@@ -6,6 +6,10 @@ import 'package:flutter_application_appdeponto/blocs/auth/auth_state.dart';
 import 'package:flutter_application_appdeponto/blocs/ponto_today/ponto_today_cubit.dart';
 import 'package:flutter_application_appdeponto/blocs/solicitations/solicitation_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/solicitations/solicitation_event.dart';
+import 'package:flutter_application_appdeponto/blocs/atestado/atestado_bloc.dart';
+import 'package:flutter_application_appdeponto/blocs/atestado/atestado_event.dart';
+import 'package:flutter_application_appdeponto/blocs/justificativa/justificativa_bloc.dart';
+import 'package:flutter_application_appdeponto/blocs/justificativa/justificativa_event.dart';
 import 'package:flutter_application_appdeponto/repositories/history_view_preference_repository.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 
@@ -44,6 +48,12 @@ class _SplashPageState extends State<SplashPage> {
             context.read<SolicitationBloc>().add(
                   const LoadSolicitationsEvent(isAdmin: true),
                 );
+            context.read<AtestadoBloc>().add(
+                  const LoadAtestadosEvent(isAdmin: true),
+                );
+            context.read<JustificativaBloc>().add(
+                  const LoadJustificativasEvent(isAdmin: true),
+                );
             await HistoryViewPreferenceRepository.initialize();
             if (!context.mounted) return;
             Navigator.pushNamedAndRemoveUntil(
@@ -65,6 +75,12 @@ class _SplashPageState extends State<SplashPage> {
             final isAdmin = role.toUpperCase().contains('ADM');
             context.read<SolicitationBloc>().add(
                   LoadSolicitationsEvent(isAdmin: isAdmin),
+                );
+            context.read<AtestadoBloc>().add(
+                  LoadAtestadosEvent(isAdmin: isAdmin),
+                );
+            context.read<JustificativaBloc>().add(
+                  LoadJustificativasEvent(isAdmin: isAdmin),
                 );
             await HistoryViewPreferenceRepository.initialize();
             if (!context.mounted) return;

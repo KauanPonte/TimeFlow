@@ -8,7 +8,8 @@ class LoadJustificativasEvent extends JustificativaEvent {
 }
 
 class SilentLoadJustificativasEvent extends JustificativaEvent {
-  const SilentLoadJustificativasEvent();
+  final bool isAdmin;
+  const SilentLoadJustificativasEvent({this.isAdmin = true});
 }
 
 class SubmitJustificativaEvent extends JustificativaEvent {

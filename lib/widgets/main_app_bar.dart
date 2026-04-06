@@ -2034,10 +2034,22 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                   MaterialPageRoute(
                       builder: (context) => const SettingsHubPage()));
             } else if (value == 'solicitacoes') {
+              final isAdmin = _resolveIsAdmin(context);
               Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => const SolicitacoesPage()));
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const SolicitacoesPage(),
+                ),
+              ).then((_) {
+                if (isAdmin && context.mounted) {
+                  context
+                      .read<AtestadoBloc>()
+                      .add(const SilentLoadAtestadosEvent(isAdmin: true));
+                  context
+                      .read<JustificativaBloc>()
+                      .add(const SilentLoadJustificativasEvent(isAdmin: true));
+                }
+              });
             } else if (value == 'logout') {
               _showLogoutDialog(context);
             }
