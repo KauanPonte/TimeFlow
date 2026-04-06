@@ -16,6 +16,7 @@ class PdfPreviewModal {
     required Map<String, List<Map<String, dynamic>>> punchRecords,
     required Future<MesResumo>? mesResumoFuture,
     required Map<DateTime, List<Map<String, dynamic>>> allCalendarEvents,
+    required Set<String> excusedDayIds,
     required String userName,
   }) async {
     if (mesResumoFuture == null) return;
@@ -26,8 +27,8 @@ class PdfPreviewModal {
 
     final ultimoDiaMes =
         DateTime(currentMonth.year, currentMonth.month + 1, 0).day;
-    final hojeApenasData = DateTime(
-        DateTime.now().year, DateTime.now().month, DateTime.now().day);
+    final hojeApenasData =
+        DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
 
     List<Widget> tableRows = [];
     tableRows.add(
@@ -70,10 +71,12 @@ class PdfPreviewModal {
           '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
       final registros = punchRecords[diaId];
 
-      final isWeekend = date.weekday == DateTime.saturday ||
-          date.weekday == DateTime.sunday;
-      final holidayName =
-          allCalendarEvents[date]?.first['title']?.toString();
+      final isWeekend =
+          date.weekday == DateTime.saturday || date.weekday == DateTime.sunday;
+      String? holidayName = allCalendarEvents[date]?.first['title']?.toString();
+      if (holidayName == null && excusedDayIds.contains(diaId)) {
+        holidayName = 'Ponto Facultativo (Atestado)';
+      }
       final isWorkDay = !isWeekend && holidayName == null;
       final effectiveLoad = isWorkDay ? dailyWorkload : 0;
 
@@ -91,8 +94,7 @@ class PdfPreviewModal {
         Container(
           padding: const EdgeInsets.all(12),
           decoration: const BoxDecoration(
-            border:
-                Border(bottom: BorderSide(color: AppColors.borderLight)),
+            border: Border(bottom: BorderSide(color: AppColors.borderLight)),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -106,8 +108,7 @@ class PdfPreviewModal {
               ),
               Expanded(
                 flex: 5,
-                child: Text(p['registros']!,
-                    style: AppTextStyles.bodySmall),
+                child: Text(p['registros']!, style: AppTextStyles.bodySmall),
               ),
               Expanded(
                 flex: 3,
@@ -135,8 +136,7 @@ class PdfPreviewModal {
           height: MediaQuery.of(context).size.height * 0.85,
           decoration: const BoxDecoration(
             color: AppColors.surface,
-            borderRadius:
-                BorderRadius.vertical(top: Radius.circular(24)),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
           ),
           child: Column(
             children: [
@@ -150,8 +150,8 @@ class PdfPreviewModal {
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 20, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -160,8 +160,7 @@ class PdfPreviewModal {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Text('Espelho Mensal',
-                              style: AppTextStyles.h2),
+                          const Text('Espelho Mensal', style: AppTextStyles.h2),
                           Text(
                             DateFormat("MMMM 'de' yyyy", 'pt_BR')
                                 .format(currentMonth)
@@ -218,16 +217,21 @@ class PdfPreviewModal {
                       selectedDate: currentMonth,
                       workloadMinutes: dailyWorkload,
                       punchRecords: punchRecords,
-                      calendarBlockedDays: allCalendarEvents.keys
-                          .map((d) => HistorySharedUtils.toDayId(d))
-                          .toSet()
-                          .fold<Map<String, String>>({}, (acc, id) {
-                        final date = DateTime.parse(id);
-                        acc[id] = allCalendarEvents[date]
-                                ?.first['title'] ??
-                            'Feriado';
-                        return acc;
-                      }),
+                      calendarBlockedDays: {
+                        ...allCalendarEvents.keys
+                            .map((d) => HistorySharedUtils.toDayId(d))
+                            .fold<Map<String, String>>({}, (acc, id) {
+                          final date = DateTime.parse(id);
+                          acc[id] = allCalendarEvents[date]?.first['title'] ??
+                              'Feriado';
+                          return acc;
+                        }),
+                        for (final id in excusedDayIds)
+                          if (!allCalendarEvents.keys
+                              .map(HistorySharedUtils.toDayId)
+                              .contains(id))
+                            id: 'Ponto Facultativo (Atestado)',
+                      },
                     );
                   },
                 ),

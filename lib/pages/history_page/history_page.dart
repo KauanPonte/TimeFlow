@@ -384,6 +384,7 @@ class _HistoryViewState extends State<_HistoryView> {
                 punchRecords: state.daysMap,
                 mesResumoFuture: _mesResumoFuture,
                 allCalendarEvents: _allCalendarEvents,
+                excusedDayIds: _excusedDayIds,
                 userName: widget.targetName ?? 'Usuário',
               ),
               backgroundColor: AppColors.primary,
