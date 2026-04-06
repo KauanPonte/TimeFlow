@@ -1,9 +1,15 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/theme/app_colors.dart';
+import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
+import 'package:flutter_application_appdeponto/widgets/app_dialog_components.dart';
+import 'package:flutter_application_appdeponto/widgets/custom_snackbar.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'calendar_service.dart';
 import 'package:intl/intl.dart' as intl;
+
+// Modelo de opção de evento
 
 class _EventOption {
   final String label;
@@ -22,6 +28,19 @@ class _EventOption {
   @override
   int get hashCode => type.hashCode;
 }
+
+// Cores padronizadas dos tipos de evento
+
+class _EventColors {
+  _EventColors._();
+  static const Color feriado = Color(0xFF43A047);
+  static const Color recesso = Color(0xFF00897B);
+  static const Color pontoFacultativo = Color(0xFFF57C00);
+  static const Color escritorio = Color(0xFF7E57C2);
+  static const Color reuniao = Color(0xFFFF8A65);
+}
+
+// Página
 
 class CalendarPage extends StatefulWidget {
   const CalendarPage({super.key});
@@ -77,11 +96,17 @@ class _CalendarPageState extends State<CalendarPage> {
     Map<DateTime, List<Map<String, dynamic>>> data = {};
     holidays.forEach((date, name) {
       data[_normalizeDate(date)] = [
-        {'title': name, 'color': Colors.green[400]}
+        {'title': name, 'color': _EventColors.feriado, 'isFixed': true}
       ];
     });
     return data;
   }
+
+  bool _blocksRegistration(String type) {
+    return ['feriado', 'recesso'].contains(type);
+  }
+
+  // Diálogo de exclusão (usa AppDialogScaffold)
 
   void _confirmDeleteEvent(
     DateTime date,
@@ -95,34 +120,305 @@ class _CalendarPageState extends State<CalendarPage> {
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Excluir Evento?"),
-        content: Text("Deseja remover '${event!['title']}' deste dia?"),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Cancelar"),
-          ),
-          TextButton(
-            onPressed: () async {
-              await _calendarService.deleteEvent(docId);
-              if (context.mounted) Navigator.pop(context);
-            },
-            child: const Text("Excluir", style: TextStyle(color: Colors.red)),
-          ),
-        ],
+      builder: (_) => AppDialogScaffold(
+        title: 'Excluir Evento?',
+        subtitle: "Deseja remover '${event!['title']}' deste dia?",
+        icon: Icons.delete_outline,
+        isDestructive: true,
+        confirmLabel: 'Excluir',
+        onConfirm: () async {
+          await _calendarService.deleteEvent(docId);
+          if (mounted) Navigator.pop(context);
+        },
+        onCancel: () => Navigator.pop(context),
+        children: const [],
       ),
     );
   }
 
-  bool _blocksRegistration(String type) {
-    return ['feriado', 'recesso'].contains(type);
+  // Diálogo de adicionar evento (usa AppDialogScaffold)
+
+  void _showAddEventDialog() {
+    final TextEditingController controller = TextEditingController();
+
+    final List<_EventOption> options = [
+      const _EventOption(
+          label: 'Feriado', type: 'feriado', color: _EventColors.feriado),
+      const _EventOption(
+          label: 'Recesso', type: 'recesso', color: _EventColors.recesso),
+      const _EventOption(
+          label: 'Ponto Facultativo',
+          type: 'ponto_facultativo',
+          color: _EventColors.pontoFacultativo),
+      const _EventOption(
+          label: 'Escritório',
+          type: 'escritorio',
+          color: _EventColors.escritorio),
+      const _EventOption(
+          label: 'Reunião', type: 'reuniao', color: _EventColors.reuniao),
+    ];
+
+    _EventOption selectedOption = options.first;
+
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => StatefulBuilder(
+        builder: (dialogCtx, setDialogState) {
+          return Dialog(
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            insetPadding:
+                const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Header
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryLight10,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.event_note_outlined,
+                          color: AppColors.primary,
+                          size: 22,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('Novo Evento', style: AppTextStyles.h3),
+                            Text(
+                              intl.DateFormat('dd/MM/yyyy')
+                                  .format(_selectedDay!),
+                              style: AppTextStyles.bodySmall.copyWith(
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close,
+                            color: AppColors.textSecondary, size: 20),
+                        onPressed: () => Navigator.pop(dialogCtx),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  const Divider(height: 1, color: AppColors.borderLight),
+                  const SizedBox(height: 20),
+
+                  // Campo título
+                  Text(
+                    'Nome do evento',
+                    style: AppTextStyles.bodySmall.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: controller,
+                    autofocus: true,
+                    decoration: InputDecoration(
+                      hintText: 'Ex: Natal, Recesso de Janeiro...',
+                      hintStyle: AppTextStyles.bodySmall
+                          .copyWith(color: AppColors.textSecondary),
+                      prefixIcon: const Icon(Icons.title,
+                          color: AppColors.primary, size: 20),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide:
+                            const BorderSide(color: AppColors.borderLight),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(
+                            color: AppColors.primary, width: 2),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 14),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Tipo do evento
+                  Text(
+                    'Tipo do evento',
+                    style: AppTextStyles.bodySmall.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+
+                  // Aviso de bloqueio
+                  if (_blocksRegistration(selectedOption.type))
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 10),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: AppColors.warningLight10,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: AppColors.warningLight30),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.lock_outline,
+                              size: 14, color: AppColors.warning),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Este tipo bloqueia o registro de ponto.',
+                              style: AppTextStyles.bodySmall.copyWith(
+                                color: AppColors.warning,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                  // Dropdown
+                  Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.borderLight),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<_EventOption>(
+                        value: selectedOption,
+                        isExpanded: true,
+                        borderRadius: BorderRadius.circular(12),
+                        items: options.map((opt) {
+                          return DropdownMenuItem<_EventOption>(
+                            value: opt,
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 14,
+                                  height: 14,
+                                  decoration: BoxDecoration(
+                                    color: opt.color,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Text(opt.label,
+                                    style: AppTextStyles.bodyMedium.copyWith(
+                                        color: AppColors.textPrimary)),
+                                if (_blocksRegistration(opt.type)) ...[
+                                  const SizedBox(width: 6),
+                                  const Icon(Icons.lock_outline,
+                                      size: 12, color: AppColors.warning),
+                                ],
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                        onChanged: (opt) =>
+                            setDialogState(() => selectedOption = opt!),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // Botões
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.pop(dialogCtx),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            side:
+                                const BorderSide(color: AppColors.borderLight),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: Text(
+                            'Cancelar',
+                            style: AppTextStyles.bodyMedium
+                                .copyWith(color: AppColors.textSecondary),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () async {
+                            if (controller.text.trim().isEmpty) {
+                              CustomSnackbar.showWarning(
+                                  dialogCtx, 'Digite um nome para o evento.');
+                              return;
+                            }
+
+                            final targetDay = _selectedDay ?? _focusedDay;
+
+                            try {
+                              await _calendarService.saveEvent(
+                                targetDay,
+                                controller.text.trim(),
+                                selectedOption.color,
+                                selectedOption.type,
+                              );
+                              if (dialogCtx.mounted) Navigator.pop(dialogCtx);
+                              if (mounted) {
+                                CustomSnackbar.showSuccess(
+                                    context, 'Evento salvo com sucesso.');
+                              }
+                            } catch (e) {
+                              if (dialogCtx.mounted) {
+                                CustomSnackbar.showError(
+                                    dialogCtx, 'Erro ao salvar: $e');
+                              }
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            elevation: 0,
+                          ),
+                          child: const Text('Salvar'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
   }
+
+  // Build
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return StreamBuilder<Map<DateTime, List<Map<String, dynamic>>>>(
       stream: _calendarService.getEventsStream(_focusedDay.year),
       builder: (context, snapshot) {
@@ -148,81 +444,76 @@ class _CalendarPageState extends State<CalendarPage> {
         });
 
         return Scaffold(
-          backgroundColor:
-              isDark ? const Color(0xFF121212) : const Color(0xFFDDE3F9),
+          backgroundColor: AppColors.bgLight,
           appBar: AppBar(
-            title: const Text('Calendário'),
-            backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-            foregroundColor: isDark ? Colors.white : Colors.black,
+            backgroundColor: AppColors.surface,
             elevation: 0,
             scrolledUnderElevation: 0,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
+              onPressed: () => Navigator.pop(context),
+            ),
+            title: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryLight10,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.calendar_month_outlined,
+                    color: AppColors.primary,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Calendário',
+                        style: AppTextStyles.bodyLarge.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        'Feriados e eventos',
+                        style: AppTextStyles.bodySmall.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
           floatingActionButton: _isAdmin
               ? FloatingActionButton(
                   onPressed: () => _showAddEventDialog(),
-                  backgroundColor: Colors.blue[300],
+                  backgroundColor: AppColors.primary,
                   child: const Icon(Icons.add, color: Colors.white),
                 )
               : null,
           body: _loading
-              ? const Center(child: CircularProgressIndicator())
+              ? const Center(
+                  child: CircularProgressIndicator(
+                    valueColor:
+                        AlwaysStoppedAnimation<Color>(AppColors.primary),
+                  ),
+                )
               : SingleChildScrollView(
                   child: Column(
                     children: [
-                      const SizedBox(height: 20),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                        child: Container(
-                          padding: const EdgeInsets.all(8.0),
-                          decoration: BoxDecoration(
-                            color:
-                                isDark ? const Color(0xFF1E1E1E) : Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: TableCalendar(
-                            locale: 'pt_BR',
-                            firstDay: DateTime.utc(2020, 1, 1),
-                            lastDay: DateTime.utc(2030, 12, 31),
-                            focusedDay: _focusedDay,
-                            eventLoader: (day) {
-                              final normalizedDay = _normalizeDate(day);
-                              return temporaryEvents[normalizedDay] ?? [];
-                            },
-                            calendarFormat: _calendarFormat,
-                            rowHeight: 60,
-                            headerStyle: const HeaderStyle(
-                              formatButtonVisible: false,
-                              titleCentered: true,
-                            ),
-                            calendarBuilders: CalendarBuilders(
-                              markerBuilder: (context, day, events) =>
-                                  const SizedBox.shrink(),
-                              defaultBuilder: (context, day, focusedDay) =>
-                                  _buildDayCell(day, isDark, false,
-                                      eventsMap: temporaryEvents),
-                              todayBuilder: (context, day, focusedDay) =>
-                                  _buildDayCell(day, isDark, true,
-                                      isToday: true,
-                                      eventsMap: temporaryEvents),
-                              selectedBuilder: (context, day, focusedDay) =>
-                                  _buildDayCell(day, isDark, true,
-                                      isSelected: true,
-                                      eventsMap: temporaryEvents),
-                            ),
-                            selectedDayPredicate: (day) =>
-                                isSameDay(_selectedDay, day),
-                            onDaySelected: (selectedDay, focusedDay) {
-                              setState(() {
-                                _selectedDay = selectedDay;
-                                _focusedDay = focusedDay;
-                              });
-                            },
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      _buildLegendBox(isDark),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 16),
+                      _buildCalendarCard(temporaryEvents),
+                      const SizedBox(height: 16),
+                      _buildLegendCard(),
+                      const SizedBox(height: 24),
                     ],
                   ),
                 ),
@@ -231,9 +522,71 @@ class _CalendarPageState extends State<CalendarPage> {
     );
   }
 
+  // Calendário
+
+  Widget _buildCalendarCard(
+    Map<DateTime, List<Map<String, dynamic>>> eventsMap,
+  ) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.borderLight),
+        boxShadow: const [
+          BoxShadow(
+            color: AppColors.shadow,
+            blurRadius: 4,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: TableCalendar(
+        locale: 'pt_BR',
+        firstDay: DateTime(DateTime.now().year - 10, 1, 1),
+        lastDay: DateTime(DateTime.now().year + 10, 12, 31),
+        focusedDay: _focusedDay,
+        eventLoader: (day) {
+          final normalizedDay = _normalizeDate(day);
+          return eventsMap[normalizedDay] ?? [];
+        },
+        calendarFormat: _calendarFormat,
+        rowHeight: 60,
+        headerStyle: HeaderStyle(
+          formatButtonVisible: false,
+          titleCentered: true,
+          titleTextStyle: AppTextStyles.bodyLarge.copyWith(
+            fontWeight: FontWeight.w600,
+            color: AppColors.textPrimary,
+          ),
+          leftChevronIcon:
+              const Icon(Icons.chevron_left, color: AppColors.primary),
+          rightChevronIcon:
+              const Icon(Icons.chevron_right, color: AppColors.primary),
+        ),
+        calendarBuilders: CalendarBuilders(
+          markerBuilder: (context, day, events) => const SizedBox.shrink(),
+          defaultBuilder: (context, day, focusedDay) =>
+              _buildDayCell(day, false, eventsMap: eventsMap),
+          todayBuilder: (context, day, focusedDay) =>
+              _buildDayCell(day, false, isToday: true, eventsMap: eventsMap),
+          selectedBuilder: (context, day, focusedDay) =>
+              _buildDayCell(day, true, isSelected: true, eventsMap: eventsMap),
+        ),
+        selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+        onDaySelected: (selectedDay, focusedDay) {
+          setState(() {
+            _selectedDay = selectedDay;
+            _focusedDay = focusedDay;
+          });
+        },
+      ),
+    );
+  }
+
   Widget _buildDayCell(
     DateTime day,
-    bool isDark,
     bool highlight, {
     bool isToday = false,
     bool isSelected = false,
@@ -243,15 +596,22 @@ class _CalendarPageState extends State<CalendarPage> {
     final events = eventsMap[dateOnly] ?? [];
 
     return Container(
-      margin: const EdgeInsets.all(0.5),
+      margin: const EdgeInsets.all(2.0),
       decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(8.0),
         border: Border.all(
-          color: isDark ? Colors.white10 : Colors.grey.shade200,
-          width: 0.5,
+          color: isSelected
+              ? AppColors.primary
+              : isToday
+                  ? AppColors.primaryLight
+                  : Colors.transparent,
+          width: 1.5,
         ),
         color: isSelected
-            ? Colors.yellow.withValues(alpha: 0.3)
-            : (isToday ? Colors.blue.withValues(alpha: 0.1) : null),
+            ? AppColors.primaryLight10
+            : (isToday
+                ? AppColors.primaryLight10.withValues(alpha: 0.05)
+                : null),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -263,9 +623,9 @@ class _CalendarPageState extends State<CalendarPage> {
               style: TextStyle(
                 fontWeight:
                     isToday || isSelected ? FontWeight.bold : FontWeight.normal,
-                color: day.weekday == 7
-                    ? Colors.red
-                    : (isDark ? Colors.white : Colors.black87),
+                fontSize: 12,
+                color:
+                    day.weekday == 7 ? AppColors.error : AppColors.textPrimary,
               ),
             ),
           ),
@@ -274,27 +634,53 @@ class _CalendarPageState extends State<CalendarPage> {
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               children: events.asMap().entries.map((entry) {
+                final isFixed = entry.value['isFixed'] == true;
                 return GestureDetector(
-                  onLongPress: () =>
-                      _confirmDeleteEvent(dateOnly, entry.key, eventsMap),
+                  onLongPress: isFixed
+                      ? () => CustomSnackbar.showInfo(
+                          context, 'Este feriado é fixo e não pode ser removido.')
+                      : () =>
+                          _confirmDeleteEvent(dateOnly, entry.key, eventsMap),
                   child: Container(
                     margin:
                         const EdgeInsets.symmetric(vertical: 1, horizontal: 2),
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 4, vertical: 1.5),
                     decoration: BoxDecoration(
-                      color: entry.value['color'],
-                      borderRadius: BorderRadius.circular(2),
+                      color: entry.value['color']
+                          .withValues(alpha: isFixed ? 0.75 : 1.0),
+                      borderRadius: BorderRadius.circular(4),
+                      border: isFixed
+                          ? null
+                          : Border.all(
+                              color: Colors.white.withValues(alpha: 0.3),
+                              width: 0.5),
                     ),
-                    child: Text(
-                      entry.value['title'],
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 9,
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (isFixed)
+                          const Padding(
+                            padding: EdgeInsets.only(right: 3),
+                            child: Icon(Icons.lock_outline,
+                                size: 8, color: Colors.white70),
+                          ),
+                        Expanded(
+                          child: Text(
+                            entry.value['title'],
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 9,
+                              color: Colors.white,
+                              fontWeight:
+                                  isFixed ? FontWeight.w500 : FontWeight.bold,
+                              fontStyle:
+                                  isFixed ? FontStyle.italic : FontStyle.normal,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 );
@@ -306,176 +692,64 @@ class _CalendarPageState extends State<CalendarPage> {
     );
   }
 
-  void _showAddEventDialog() {
-    final TextEditingController controller = TextEditingController();
+  // Legenda
 
-    final List<_EventOption> options = [
-      _EventOption(
-        label: 'Feriado',
-        type: 'feriado',
-        color: Colors.green[600]!,
-      ),
-      _EventOption(
-        label: 'Recesso',
-        type: 'recesso',
-        color: Colors.teal[400]!,
-      ),
-      _EventOption(
-        label: 'Ponto Facultativo',
-        type: 'ponto_facultativo',
-        color: Colors.orange[700]!,
-      ),
-      _EventOption(
-        label: 'Escritório',
-        type: 'escritorio',
-        color: Colors.purple[300]!,
-      ),
-      _EventOption(
-        label: 'Reunião',
-        type: 'reuniao',
-        color: Colors.orange[300]!,
-      ),
-    ];
-
-    _EventOption selectedOption = options.first;
-
-    showDialog(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: Text(
-            "Novo Evento: ${intl.DateFormat('dd/MM/yyyy').format(_selectedDay!)}",
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              TextField(
-                controller: controller,
-                decoration: const InputDecoration(
-                  hintText: "Ex: Natal, Recesso de Janeiro...",
-                ),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Tipo do evento',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
-              ),
-              const SizedBox(height: 8),
-              if (_blocksRegistration(selectedOption.type))
-                Container(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: Colors.orange[50],
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: Colors.orange[200]!),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.lock_outline,
-                          size: 14, color: Colors.orange[800]),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          'Este tipo bloqueia o registro de ponto.',
-                          style: TextStyle(
-                              fontSize: 11, color: Colors.orange[900]),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              DropdownButton<_EventOption>(
-                value: selectedOption,
-                isExpanded: true,
-                items: options.map((opt) {
-                  return DropdownMenuItem<_EventOption>(
-                    value: opt,
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 12,
-                          height: 12,
-                          decoration: BoxDecoration(
-                            color: opt.color,
-                            borderRadius: BorderRadius.circular(3),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(opt.label),
-                        if (_blocksRegistration(opt.type)) ...[
-                          const SizedBox(width: 6),
-                          Icon(Icons.lock_outline,
-                              size: 12, color: Colors.orange[700]),
-                        ],
-                      ],
-                    ),
-                  );
-                }).toList(),
-                onChanged: (opt) => setDialogState(() => selectedOption = opt!),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("Cancelar"),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                if (controller.text.trim().isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Digite um nome para o evento.'),
-                    ),
-                  );
-                  return;
-                }
-
-                final targetDay = _selectedDay ?? _focusedDay;
-
-                try {
-                  await _calendarService.saveEvent(
-                    targetDay,
-                    controller.text.trim(),
-                    selectedOption.color,
-                    selectedOption.type,
-                  );
-                  if (context.mounted) Navigator.pop(context);
-                } catch (e) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Erro ao salvar: $e')),
-                    );
-                  }
-                }
-              },
-              child: const Text("Salvar"),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLegendBox(bool isDark) {
+  Widget _buildLegendCard() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.borderLight),
+        boxShadow: const [
+          BoxShadow(
+            color: AppColors.shadow,
+            blurRadius: 4,
+            offset: Offset(0, 2),
+          ),
+        ],
       ),
-      child: Wrap(
-        spacing: 15,
-        runSpacing: 10,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _legendItem("Feriado / Recesso", Colors.green[600]!),
-          _legendItem("Ponto Facultativo", Colors.orange[700]!),
-          _legendItem("Escritório", Colors.purple[300]!),
-          _legendItem("Reuniões", Colors.orange[300]!),
+          Text(
+            'Legenda',
+            style: AppTextStyles.bodyMedium.copyWith(
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 16,
+            runSpacing: 10,
+            children: [
+              _legendItem('Feriado / Recesso', _EventColors.feriado),
+              _legendItem('Ponto Facultativo', _EventColors.pontoFacultativo),
+              _legendItem('Escritório', _EventColors.escritorio),
+              _legendItem('Reuniões', _EventColors.reuniao),
+            ],
+          ),
+          if (_isAdmin) ...[
+            const Divider(height: 24, color: AppColors.borderLight),
+            Row(
+              children: [
+                const Icon(Icons.info_outline,
+                    size: 16, color: AppColors.primary),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Segure pressionado sobre um evento para excluí-lo.',
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: AppColors.textSecondary,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );
@@ -490,14 +764,21 @@ class _CalendarPageState extends State<CalendarPage> {
           height: 12,
           decoration: BoxDecoration(
             color: color,
-            borderRadius: BorderRadius.circular(2),
+            borderRadius: BorderRadius.circular(3),
           ),
         ),
         const SizedBox(width: 6),
-        Text(label, style: const TextStyle(fontSize: 12)),
+        Text(
+          label,
+          style: AppTextStyles.bodySmall.copyWith(
+            color: AppColors.textSecondary,
+          ),
+        ),
       ],
     );
   }
+
+  // Feriados fixos
 
   Map<DateTime, String> getBrazilHolidays(int year) {
     Map<DateTime, String> holidays = {
