@@ -3,6 +3,7 @@ import 'package:flutter_application_appdeponto/blocs/auth/auth_event.dart';
 import 'package:flutter_application_appdeponto/models/auth_field.dart';
 import 'package:flutter_application_appdeponto/blocs/auth/auth_state.dart';
 import 'package:flutter_application_appdeponto/repositories/auth_repository.dart';
+import 'package:flutter_application_appdeponto/services/notification_service.dart';
 
 /// BLoC responsible for managing all authentication logic
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
@@ -67,6 +68,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
       // Save user session
       await _authRepository.saveUserSession(userData);
+      await NotificationService.scheduleSavedDailyReminder(
+        uid: (userData['uid'] ?? '').toString(),
+      );
 
       _fieldsState = const AuthFieldsState();
       emit(UserAuthenticated(userData: userData));
@@ -329,6 +333,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     Emitter<AuthState> emit,
   ) async {
     await _authRepository.clearUserSession();
+    await NotificationService.cancelDailyReminder();
     _fieldsState = const AuthFieldsState();
     emit(_fieldsState);
   }
@@ -346,6 +351,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         // Validate that user still exists in registered users
         final userExists = await _authRepository.validateEmail(email);
         if (userExists) {
+          await NotificationService.scheduleSavedDailyReminder(
+            uid: (userData['uid'] ?? '').toString(),
+          );
           // User is authenticated and exists
           emit(UserAuthenticated(userData: userData));
           return;
