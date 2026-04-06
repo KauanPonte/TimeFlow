@@ -3,6 +3,7 @@ import 'package:flutter_application_appdeponto/services/pdf_service.dart';
 import 'package:flutter_application_appdeponto/services/ponto_service.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
+import 'package:intl/intl.dart';
 import 'history_shared_utils.dart';
 
 class PdfPreviewModal {
@@ -154,8 +155,26 @@ class PdfPreviewModal {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Espelho Mensal',
-                        style: AppTextStyles.h2),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text('Espelho Mensal',
+                              style: AppTextStyles.h2),
+                          Text(
+                            DateFormat("MMMM 'de' yyyy", 'pt_BR')
+                                .format(currentMonth)
+                                .replaceFirstMapped(RegExp(r'^([a-z])'),
+                                    (m) => m[1]!.toUpperCase()),
+                            style: AppTextStyles.bodySmall.copyWith(
+                              color: AppColors.textSecondary,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                     IconButton(
                       icon: const Icon(Icons.close),
                       onPressed: () => Navigator.pop(ctx),
