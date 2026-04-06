@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_application_appdeponto/services/ponto_service.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/ponto_history/ponto_history_bloc.dart';
@@ -18,6 +19,7 @@ import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
 import 'package:flutter_application_appdeponto/widgets/custom_snackbar.dart';
 import 'package:flutter_application_appdeponto/widgets/app_dialog_components.dart';
 import 'package:flutter_application_appdeponto/services/ponto_edit_dialogs.dart';
+import 'package:flutter_application_appdeponto/services/excused_days_cache_service.dart';
 import '../../history_page/widgets/card/day_card.dart';
 import '../../history_page/widgets/history_mode_calendar_view.dart';
 import '../../history_page/widgets/history_mode_list_view.dart';
@@ -58,12 +60,14 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
   late DateTime _selectedCalendarDay;
   String? _pendingScrollDayId;
 
-  // 1. Variável de estado para os feriados e eventos do admin
   Map<DateTime, List<Map<String, dynamic>>> _allVisibleEvents = {};
   final Set<int> _loadedFixedHolidaysYears = {};
 
+  Set<String> _excusedDayIds = {};
+
   HistoryViewPreference _viewPreference =
       HistoryViewPreferenceRepository.currentMode;
+  final _excusedDaysCacheService = ExcusedDaysCacheService();
 
   @override
   void initState() {
@@ -73,11 +77,44 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
 
     // 2. Chama o carregamento dos feriados ao iniciar
     _loadCalendarEvents();
+    _loadExcusedDays();
+  }
+
+  Future<void> _loadExcusedDays() async {
+    final user = FirebaseAuth.instance.currentUser;
+    final uid = widget.uid ?? user?.uid;
+    if (uid == null) return;
+
+    try {
+      final cached = _excusedDaysCacheService.peekCachedExcusedDaysForMonth(
+          uid, widget.currentMonth);
+
+      if (cached != null) {
+        if (mounted) {
+          setState(() {
+            _excusedDayIds = cached;
+          });
+        }
+        return;
+      }
+
+      // Garante carga única por UID e reaproveita em trocas de mês.
+      await _excusedDaysCacheService.getExcusedDays(uid);
+      final excused = _excusedDaysCacheService.getExcusedDaysForMonth(
+          uid, widget.currentMonth);
+
+      if (mounted) {
+        setState(() {
+          _excusedDayIds = excused;
+        });
+      }
+    } catch (_) {}
   }
 
   Future<void> _loadCalendarEvents() async {
     final year = widget.currentMonth.year;
-    if (_loadedFixedHolidaysYears.contains(year) && _allVisibleEvents.isNotEmpty) {
+    if (_loadedFixedHolidaysYears.contains(year) &&
+        _allVisibleEvents.isNotEmpty) {
       return;
     }
 
@@ -85,14 +122,17 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
       final snapshot =
           await FirebaseFirestore.instance.collection('calendar_events').get();
 
-      final Map<DateTime, List<Map<String, dynamic>>> newEvents = Map.from(_allVisibleEvents);
+      final Map<DateTime, List<Map<String, dynamic>>> newEvents =
+          Map.from(_allVisibleEvents);
 
       // Carrega Feriados Fixos do Código (Nacionais/Estaduais)
       final fixos = PontoService.getBrazilHolidays(year);
       fixos.forEach((date, name) {
         final cleanDate = DateTime(date.year, date.month, date.day);
         if (!newEvents.containsKey(cleanDate)) {
-          newEvents[cleanDate] = [{'title': name, 'type': 'feriado'}];
+          newEvents[cleanDate] = [
+            {'title': name, 'type': 'feriado'}
+          ];
         }
       });
       _loadedFixedHolidaysYears.add(year);
@@ -109,7 +149,9 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
           newEvents[cleanDate] = [data];
         } else {
           // Evita duplicar se o evento já veio do Firestore antes ou é um fixo
-          final exists = newEvents[cleanDate]!.any((ev) => ev['id'] == doc.id || (ev['title'] == data['title'] && ev['type'] == data['type']));
+          final exists = newEvents[cleanDate]!.any((ev) =>
+              ev['id'] == doc.id ||
+              (ev['title'] == data['title'] && ev['type'] == data['type']));
           if (!exists) {
             newEvents[cleanDate]!.add(data);
           }
@@ -185,6 +227,7 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
           HistorySharedUtils.defaultSelectedDayForMonth(widget.currentMonth);
 
       _requestScrollToDay(HistorySharedUtils.toDayId(_selectedCalendarDay));
+      _loadExcusedDays();
       if (widget.currentMonth.year != oldWidget.currentMonth.year) {
         _loadCalendarEvents();
       }
@@ -331,8 +374,12 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
               final Map<String, JustificativaModel> justificativasMap;
               if (!widget.isAdmin) {
                 List<JustificativaModel> jList = [];
-                if (justState is JustificativaLoaded) jList = justState.justificativas;
-                if (justState is JustificativaActionSuccess) jList = justState.justificativas;
+                if (justState is JustificativaLoaded) {
+                  jList = justState.justificativas;
+                }
+                if (justState is JustificativaActionSuccess) {
+                  jList = justState.justificativas;
+                }
                 justificativasMap = {for (final j in jList) j.diaId: j};
               } else {
                 justificativasMap = {};
@@ -349,12 +396,17 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
                 final date = DateTime.tryParse(diaId);
                 String? holidayName;
                 bool isHoliday = false;
+                final isExcused = _excusedDayIds.contains(diaId);
+
                 if (date != null) {
                   final cleanDate = DateTime(date.year, date.month, date.day);
                   final eventsForDay = _allVisibleEvents[cleanDate];
                   if (eventsForDay != null && eventsForDay.isNotEmpty) {
                     final title = eventsForDay.first['title'] as String?;
                     if (title != null) holidayName = title;
+                    isHoliday = true;
+                  } else if (isExcused) {
+                    holidayName = 'Ponto Facultativo (Atestado)';
                     isHoliday = true;
                   }
                 }
@@ -401,11 +453,11 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
                 );
               }
 
-
               if (_viewPreference == HistoryViewPreference.calendar) {
                 final holidayDayIds = _allVisibleEvents.keys.map((date) {
                   return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
                 }).toSet();
+                holidayDayIds.addAll(_excusedDayIds);
 
                 return HistoryModeCalendarView(
                   month: widget.currentMonth,

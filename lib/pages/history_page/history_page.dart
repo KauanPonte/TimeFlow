@@ -12,9 +12,11 @@ import 'package:flutter_application_appdeponto/models/justificativa_model.dart';
 import 'package:flutter_application_appdeponto/repositories/justificativa_repository.dart';
 import 'package:flutter_application_appdeponto/repositories/ponto_history_repository.dart';
 import 'package:flutter_application_appdeponto/repositories/history_view_preference_repository.dart';
+import 'package:flutter_application_appdeponto/services/excused_days_cache_service.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/widgets/custom_snackbar.dart';
 import 'package:flutter_application_appdeponto/services/ponto_service.dart';
+
 import 'package:intl/intl.dart';
 import 'widgets/history_app_bar.dart';
 import 'widgets/history_content_body.dart';
@@ -65,8 +67,8 @@ class _HistoryView extends StatefulWidget {
   final DateTime? initialDate;
 
   const _HistoryView({
-    this.targetUid, 
-    this.targetName, 
+    this.targetUid,
+    this.targetName,
     this.targetProfileImage,
     this.initialDate,
   });
@@ -89,14 +91,18 @@ class _HistoryViewState extends State<_HistoryView> {
 
   /// Justificativas do funcionário sendo visualizado (admin mode).
   Map<String, JustificativaModel> _adminJustificativas = {};
-  
+
+  /// Dias com atestado aprovado (isExcused = true).
+  Set<String> _excusedDayIds = {};
+
   Future<MesResumo>? _mesResumoFuture;
   Uint8List? _profileBytesCache;
-  
-  // Cache para persistência durante a navegação entre meses
+
+  /// Cache para persistência durante a navegação entre meses
   final Map<String, Map<String, String>> _blockedDaysCache = {};
   final Map<String, MesResumo> _resumoCache = {};
   final Map<String, List<JustificativaModel>> _justificativasCache = {};
+  final _excusedDaysCacheService = ExcusedDaysCacheService();
 
   bool get isAdmin => widget.targetUid != null;
 
@@ -112,6 +118,7 @@ class _HistoryViewState extends State<_HistoryView> {
     _profileBytesCache = _decodeProfileImage(widget.targetProfileImage);
     _loadCalendarBlockedDays();
     _loadMesResumo();
+    _loadExcusedDays();
   }
 
   @override
@@ -129,7 +136,7 @@ class _HistoryViewState extends State<_HistoryView> {
     if (uid == null) return;
 
     final key = "${uid}_${DateFormat('yyyy-MM').format(_currentMonth)}";
-    
+
     if (_resumoCache.containsKey(key)) {
       setState(() {
         _mesResumoFuture = Future.value(_resumoCache[key]);
@@ -138,7 +145,8 @@ class _HistoryViewState extends State<_HistoryView> {
     }
 
     setState(() {
-      _mesResumoFuture = PontoService.calcularResumoMensal(uid, _currentMonth).then((resumo) {
+      _mesResumoFuture =
+          PontoService.calcularResumoMensal(uid, _currentMonth).then((resumo) {
         _resumoCache[key] = resumo;
         return resumo;
       });
@@ -149,37 +157,42 @@ class _HistoryViewState extends State<_HistoryView> {
     final year = _currentMonth.year;
     final key = DateFormat('yyyy-MM').format(_currentMonth);
 
-    if (_blockedDaysCache.containsKey(key) && _loadedFixedHolidaysYears.contains(year)) {
+    if (_blockedDaysCache.containsKey(key) &&
+        _loadedFixedHolidaysYears.contains(year)) {
       return;
     }
 
     try {
       final fixos = PontoService.getBrazilHolidays(year);
-      
-      final Map<DateTime, List<Map<String, dynamic>>> newEvents = Map.from(_allCalendarEvents);
+
+      final Map<DateTime, List<Map<String, dynamic>>> newEvents =
+          Map.from(_allCalendarEvents);
 
       fixos.forEach((date, name) {
         final cleanDate = DateTime(date.year, date.month, date.day);
         if (!newEvents.containsKey(cleanDate)) {
-           newEvents[cleanDate] = [{'title': name, 'type': 'feriado'}];
+          newEvents[cleanDate] = [
+            {'title': name, 'type': 'feriado'}
+          ];
         }
       });
       _loadedFixedHolidaysYears.add(year);
 
-      final snapshot = await FirebaseFirestore.instance
-          .collection('calendar_events')
-          .get();
+      final snapshot =
+          await FirebaseFirestore.instance.collection('calendar_events').get();
 
       for (var doc in snapshot.docs) {
         final data = doc.data();
         if (data['date'] == null) continue;
         final date = (data['date'] as Timestamp).toDate();
         final cleanDate = DateTime(date.year, date.month, date.day);
-        
+
         if (newEvents[cleanDate] == null) {
           newEvents[cleanDate] = [data];
         } else {
-          final exists = newEvents[cleanDate]!.any((ev) => ev['id'] == doc.id || (ev['title'] == data['title'] && ev['type'] == data['type']));
+          final exists = newEvents[cleanDate]!.any((ev) =>
+              ev['id'] == doc.id ||
+              (ev['title'] == data['title'] && ev['type'] == data['type']));
           if (!exists) {
             newEvents[cleanDate]!.add(data);
           }
@@ -194,13 +207,13 @@ class _HistoryViewState extends State<_HistoryView> {
 
       final blockedStrings = <String, String>{};
       _allCalendarEvents.forEach((date, evs) {
-        if (date.year == _currentMonth.year && date.month == _currentMonth.month) {
+        if (date.year == _currentMonth.year &&
+            date.month == _currentMonth.month) {
           final id = HistorySharedUtils.toDayId(date);
           blockedStrings[id] = evs.first['title']?.toString() ?? 'Feriado';
         }
       });
       _blockedDaysCache[key] = blockedStrings;
-
     } catch (e) {
       debugPrint("Erro ao carregar eventos: $e");
     }
@@ -212,11 +225,14 @@ class _HistoryViewState extends State<_HistoryView> {
 
   Future<void> _loadAdminJustificativas() async {
     if (widget.targetUid == null) return;
-    
-    final key = "${widget.targetUid}_${DateFormat('yyyy-MM').format(_currentMonth)}";
+
+    final key =
+        "${widget.targetUid}_${DateFormat('yyyy-MM').format(_currentMonth)}";
     if (_justificativasCache.containsKey(key)) {
       setState(() {
-        _adminJustificativas = {for (final j in _justificativasCache[key]!) j.diaId: j};
+        _adminJustificativas = {
+          for (final j in _justificativasCache[key]!) j.diaId: j
+        };
       });
       return;
     }
@@ -250,8 +266,9 @@ class _HistoryViewState extends State<_HistoryView> {
     context.read<PontoHistoryBloc>().add(
           LoadHistoryEvent(uid: widget.targetUid, month: _currentMonth),
         );
-    _loadCalendarBlockedDays(); 
+    _loadCalendarBlockedDays();
     _loadMesResumo();
+    _loadExcusedDays();
   }
 
   void _goToNextMonth() {
@@ -269,14 +286,21 @@ class _HistoryViewState extends State<_HistoryView> {
     context.read<PontoHistoryBloc>().add(
           LoadHistoryEvent(uid: widget.targetUid, month: _currentMonth),
         );
-    _loadCalendarBlockedDays(); 
+    _loadCalendarBlockedDays();
     _loadMesResumo();
+    _loadExcusedDays();
   }
 
   Future<void> _refreshHistory() async {
     _blockedDaysCache.clear();
     _resumoCache.clear();
     _justificativasCache.clear();
+
+    // Invalida cache de dias excusados para forçar reload
+    final uid = widget.targetUid ?? FirebaseAuth.instance.currentUser?.uid;
+    if (uid != null) {
+      _excusedDaysCacheService.invalidateCache(uid);
+    }
 
     context.read<PontoHistoryBloc>().add(
           LoadHistoryEvent(
@@ -287,6 +311,43 @@ class _HistoryViewState extends State<_HistoryView> {
     _loadCalendarBlockedDays();
     if (isAdmin) await _loadAdminJustificativas();
     _loadMesResumo();
+    _loadExcusedDays();
+  }
+
+  /// Carrega os IDs de dias com atestado aprovado (isExcused = true).
+  /// Utiliza cache global compartilhado entre diferentes páginas/widgets.
+  Future<void> _loadExcusedDays() async {
+    final uid = widget.targetUid ?? FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+
+    try {
+      final cached = _excusedDaysCacheService.peekCachedExcusedDaysForMonth(
+          uid, _currentMonth);
+
+      if (cached != null) {
+        if (mounted) {
+          setState(() {
+            _excusedDayIds = cached;
+          });
+        }
+        return;
+      }
+
+      // Obtém todos os dias excusados para o UID (com cache global)
+      await _excusedDaysCacheService.getExcusedDays(uid);
+
+      // Filtra apenas para o mês atual
+      final filtered =
+          _excusedDaysCacheService.getExcusedDaysForMonth(uid, _currentMonth);
+
+      if (mounted) {
+        setState(() {
+          _excusedDayIds = filtered;
+        });
+      }
+    } catch (e) {
+      debugPrint("Erro ao carregar dias excusados: $e");
+    }
   }
 
   Uint8List? _decodeProfileImage(String? data) {
@@ -361,6 +422,7 @@ class _HistoryViewState extends State<_HistoryView> {
                   targetUid: widget.targetUid,
                   allCalendarEvents: _allCalendarEvents,
                   adminJustificativas: _adminJustificativas,
+                  excusedDayIds: _excusedDayIds,
                   justificativaRepository: _justificativaRepository,
                   onDaySelected: (day) =>
                       setState(() => _selectedCalendarDay = day),

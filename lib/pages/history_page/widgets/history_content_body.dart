@@ -34,6 +34,7 @@ class HistoryContentBody extends StatelessWidget {
   final String? targetUid;
   final Map<DateTime, List<Map<String, dynamic>>> allCalendarEvents;
   final Map<String, JustificativaModel> adminJustificativas;
+  final Set<String> excusedDayIds;
   final JustificativaRepository justificativaRepository;
   final ValueChanged<DateTime> onDaySelected;
   final Future<void> Function() onRefresh;
@@ -49,6 +50,7 @@ class HistoryContentBody extends StatelessWidget {
     this.targetUid,
     required this.allCalendarEvents,
     required this.adminJustificativas,
+    required this.excusedDayIds,
     required this.justificativaRepository,
     required this.onDaySelected,
     required this.onRefresh,
@@ -126,6 +128,7 @@ class HistoryContentBody extends StatelessWidget {
       final holidayDayIds = allCalendarEvents.keys
           .map((date) => HistorySharedUtils.toDayId(date))
           .toSet();
+      holidayDayIds.addAll(excusedDayIds);
 
       return HistoryModeCalendarView(
         month: currentMonth,
@@ -159,6 +162,8 @@ class HistoryContentBody extends StatelessWidget {
     final holidayDayIds = allCalendarEvents.keys
         .map((date) => HistorySharedUtils.toDayId(date))
         .toSet();
+    holidayDayIds.addAll(excusedDayIds);
+
     final isHoliday = holidayDayIds.contains(diaId);
     final isFuture = date != null &&
         HistorySharedUtils.isFutureDate(date) &&
@@ -167,10 +172,14 @@ class HistoryContentBody extends StatelessWidget {
     // Busca o nome do feriado para o DayCard
     final cleanDate =
         date != null ? DateTime(date.year, date.month, date.day) : null;
-    final holidayName =
-        cleanDate != null && allCalendarEvents.containsKey(cleanDate)
-            ? allCalendarEvents[cleanDate]!.first['title']?.toString()
-            : null;
+    final isExcused = excusedDayIds.contains(diaId);
+
+    String? holidayName;
+    if (cleanDate != null && allCalendarEvents.containsKey(cleanDate)) {
+      holidayName = allCalendarEvents[cleanDate]!.first['title']?.toString();
+    } else if (isExcused) {
+      holidayName = 'Ponto Facultativo (Atestado)';
+    }
 
     return DayCard(
       diaId: diaId,

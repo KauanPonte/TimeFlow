@@ -643,6 +643,34 @@ class PontoService {
 
     final calendarService = CalendarService();
     final folgas = await calendarService.getDaysThatReduceWorkload(month.year, month.month);
+    
+    // Buscar atestados aprovados que caem neste mês para abonar a meta de saldo
+    final prefix = '${month.year}-${month.month.toString().padLeft(2, '0')}';
+    final atestadosSnap = await FirebaseFirestore.instance
+        .collection('atestados')
+        .where('uid', isEqualTo: uid)
+        .where('status', isEqualTo: 'approved')
+        .get();
+
+    final Set<String> atestadoDays = {};
+    for (final doc in atestadosSnap.docs) {
+      final data = doc.data();
+      final startStr = data['dataInicio']?.toString();
+      final endStr = data['dataFim']?.toString();
+      if (startStr != null && endStr != null) {
+        final startLocal = DateTime.tryParse(startStr);
+        final endLocal = DateTime.tryParse(endStr);
+        if (startLocal != null && endLocal != null) {
+          final start = DateTime.utc(startLocal.year, startLocal.month, startLocal.day, 12);
+          final end = DateTime.utc(endLocal.year, endLocal.month, endLocal.day, 12);
+          for (var d = start; !d.isAfter(end); d = d.add(const Duration(days: 1))) {
+            final diaId = '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+            if (diaId.startsWith(prefix)) atestadoDays.add(diaId);
+          }
+        }
+      }
+    }
+
     final workloadMinutes = await _getWorkloadMinutes(uid);
 
     // 1. Horas no mês: baseadas na jornada mensal esperada completa do mês consultado
@@ -651,10 +679,11 @@ class PontoService {
 
     for (int i = 1; i <= ultimoDia; i++) {
       final date = DateTime(month.year, month.month, i);
-      final diaId = DateFormat('yyyy-MM-dd').format(date);
+      final diaId = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
       bool isWeekend = date.weekday == DateTime.saturday || date.weekday == DateTime.sunday;
       bool isFolga = folgas.contains(diaId); // Inclui feriados fixos e artificiais via CalendarService
-      if (!isWeekend && !isFolga) diasUteisNoMes++;
+      bool isAtestado = atestadoDays.contains(diaId);
+      if (!isWeekend && !isFolga && !isAtestado) diasUteisNoMes++;
     }
     
     final int expectedMinutesTotal = diasUteisNoMes * workloadMinutes;
@@ -666,17 +695,17 @@ class PontoService {
     int expectedMinutesUntilLimit = 0;
     for (int i = 1; i <= limitDay; i++) {
       final date = DateTime(month.year, month.month, i);
-      final diaId = DateFormat('yyyy-MM-dd').format(date);
+      final diaId = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
       bool isWeekend = date.weekday == DateTime.saturday || date.weekday == DateTime.sunday;
       bool isFolga = folgas.contains(diaId);
+      bool isAtestado = atestadoDays.contains(diaId);
       
       // Assim como no user_reports_page, contabiliza apenas dias úteis na meta de saldo.
-      if (!isWeekend && !isFolga) expectedMinutesUntilLimit += workloadMinutes;
+      if (!isWeekend && !isFolga && !isAtestado) expectedMinutesUntilLimit += workloadMinutes;
     }
 
     // Pega as horas reais trabalhadas neste mês consultado
     int workedMinutes = 0;
-    final prefix = '${month.year}-${month.month.toString().padLeft(2, '0')}';
     
     final diasSnap = await FirebaseFirestore.instance
         .collection(_root)
