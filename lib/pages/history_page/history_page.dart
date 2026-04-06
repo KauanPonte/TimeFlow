@@ -8,31 +8,20 @@ import 'package:flutter_application_appdeponto/blocs/ponto_history/ponto_history
 import 'package:flutter_application_appdeponto/blocs/ponto_history/ponto_history_event.dart';
 import 'package:flutter_application_appdeponto/blocs/ponto_history/ponto_history_state.dart';
 import 'package:flutter_application_appdeponto/blocs/global_loading/global_loading_cubit.dart';
-import 'package:flutter_application_appdeponto/blocs/justificativa/justificativa_bloc.dart';
-import 'package:flutter_application_appdeponto/blocs/justificativa/justificativa_event.dart';
-import 'package:flutter_application_appdeponto/blocs/justificativa/justificativa_state.dart';
-import 'package:flutter_application_appdeponto/blocs/solicitations/solicitation_bloc.dart';
-import 'package:flutter_application_appdeponto/blocs/solicitations/solicitation_event.dart';
 import 'package:flutter_application_appdeponto/models/justificativa_model.dart';
-import 'package:flutter_application_appdeponto/models/solicitation_model.dart';
 import 'package:flutter_application_appdeponto/repositories/justificativa_repository.dart';
 import 'package:flutter_application_appdeponto/repositories/ponto_history_repository.dart';
 import 'package:flutter_application_appdeponto/repositories/history_view_preference_repository.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
-import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
 import 'package:flutter_application_appdeponto/widgets/custom_snackbar.dart';
-import 'package:flutter_application_appdeponto/services/ponto_edit_dialogs.dart';
 import 'package:flutter_application_appdeponto/services/ponto_service.dart';
 import 'package:intl/intl.dart';
-import 'package:flutter_application_appdeponto/services/pdf_service.dart';
-import 'widgets/dialogs/day_edit_dialog.dart';
-import 'widgets/card/day_card.dart';
-import 'widgets/empty_history_state.dart';
-import 'widgets/history_mode_calendar_view.dart';
-import 'widgets/history_mode_list_view.dart';
+import 'widgets/history_app_bar.dart';
+import 'widgets/history_content_body.dart';
 import 'widgets/history_shared_utils.dart';
-import 'widgets/history_view_mode_icon_button.dart';
 import 'widgets/month_selector.dart';
+import 'widgets/monthly_summary_card.dart';
+import 'widgets/pdf_preview_modal.dart';
 
 class HistoryPage extends StatelessWidget {
   final String? targetUid;
@@ -95,7 +84,6 @@ class _HistoryViewState extends State<_HistoryView> {
   HistoryViewPreference _viewPreference =
       HistoryViewPreferenceRepository.currentMode;
 
-  // ← NOVO
   Map<DateTime, List<Map<String, dynamic>>> _allCalendarEvents = {};
   final Set<int> _loadedFixedHolidaysYears = {};
 
@@ -161,29 +149,23 @@ class _HistoryViewState extends State<_HistoryView> {
     final year = _currentMonth.year;
     final key = DateFormat('yyyy-MM').format(_currentMonth);
 
-    // Se passamos pelo cache, e o ano já tem feriados fixos carregados, podemos pular
     if (_blockedDaysCache.containsKey(key) && _loadedFixedHolidaysYears.contains(year)) {
       return;
     }
 
     try {
-      // 1. Carrega Feriados Fixos do Código para este Ano
       final fixos = PontoService.getBrazilHolidays(year);
       
       final Map<DateTime, List<Map<String, dynamic>>> newEvents = Map.from(_allCalendarEvents);
 
       fixos.forEach((date, name) {
         final cleanDate = DateTime(date.year, date.month, date.day);
-        // Só adiciona se ainda não existia ou se queremos priorizar o nome fixo
         if (!newEvents.containsKey(cleanDate)) {
            newEvents[cleanDate] = [{'title': name, 'type': 'feriado'}];
         }
       });
       _loadedFixedHolidaysYears.add(year);
 
-      // 2. Busca do Firebase (Admin) se for a primeira vez na sessão
-      // (Podemos buscar sempre ou usar um flag global). 
-      // Busca todos para paridade com HomeHistorySection.
       final snapshot = await FirebaseFirestore.instance
           .collection('calendar_events')
           .get();
@@ -197,7 +179,6 @@ class _HistoryViewState extends State<_HistoryView> {
         if (newEvents[cleanDate] == null) {
           newEvents[cleanDate] = [data];
         } else {
-          // Evita duplicar se o evento já veio do Firestore antes
           final exists = newEvents[cleanDate]!.any((ev) => ev['id'] == doc.id || (ev['title'] == data['title'] && ev['type'] == data['type']));
           if (!exists) {
             newEvents[cleanDate]!.add(data);
@@ -211,10 +192,8 @@ class _HistoryViewState extends State<_HistoryView> {
         });
       }
 
-      // 3. Atualiza o cache de strings para compatibilidade LEGADA do DayCard e PDF
       final blockedStrings = <String, String>{};
       _allCalendarEvents.forEach((date, evs) {
-        // Para eficiência, colocamos no cache strings apenas do mês atual sendo visto
         if (date.year == _currentMonth.year && date.month == _currentMonth.month) {
           final id = HistorySharedUtils.toDayId(date);
           blockedStrings[id] = evs.first['title']?.toString() ?? 'Feriado';
@@ -294,199 +273,7 @@ class _HistoryViewState extends State<_HistoryView> {
     _loadMesResumo();
   }
 
-  void _showAddDialogForDay(BuildContext context, String diaId) =>
-      showPontoAddDialog(
-        context: context,
-        uid: widget.targetUid!,
-        diaId: diaId,
-      );
-
-  /// Abre o diálogo de solicitação de alteração (inclui campo de justificativa de falta).
-  Future<void> _showSolicitationDialog(
-    BuildContext context,
-    String diaId,
-    List<Map<String, dynamic>> eventos,
-  ) async {
-    final result = await showDialog<Map<String, dynamic>>(
-      context: context,
-      builder: (_) => DayEditDialog(
-        mode: DayEditMode.solicitation,
-        diaId: diaId,
-        eventos: eventos,
-      ),
-    );
-
-    if (result != null && context.mounted) {
-      final items = result['items'] as List<SolicitationItem>;
-      final reason = result['reason'] as String?;
-      final justificativaText = result['justificativa'] as String?;
-
-      if (justificativaText != null) {
-        context.read<JustificativaBloc>().add(
-              SubmitJustificativaEvent(
-                  diaId: diaId, justificativa: justificativaText),
-            );
-      }
-
-      if (items.isNotEmpty) {
-        context.read<SolicitationBloc>().add(
-              CreateSolicitationEvent(
-                  diaId: diaId, items: items, reason: reason),
-            );
-      }
-    }
-  }
-
-  /// Admin define justificativa diretamente sem fluxo de aprovação.
-  void _showAdminSetJustificativaDialog(
-      BuildContext context, String diaId, String? existing) {
-    final controller = TextEditingController(text: existing ?? '');
-    showDialog(
-      context: context,
-      builder: (dialogCtx) {
-        return AlertDialog(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Row(
-            children: [
-              const Icon(Icons.assignment_late_outlined,
-                  color: AppColors.error, size: 20),
-              const SizedBox(width: 8),
-              Text(existing != null
-                  ? 'Editar Justificativa'
-                  : 'Adicionar Justificativa'),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'A justificativa será salva diretamente sem necessidade de aprovação.',
-                style: AppTextStyles.bodySmall
-                    .copyWith(color: AppColors.textSecondary),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: controller,
-                maxLines: 4,
-                maxLength: 300,
-                autofocus: true,
-                decoration: InputDecoration(
-                  hintText: 'Descreva a justificativa...',
-                  hintStyle: AppTextStyles.bodySmall
-                      .copyWith(color: AppColors.textSecondary),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide:
-                        const BorderSide(color: AppColors.borderLight),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide:
-                        const BorderSide(color: AppColors.borderLight),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide:
-                        const BorderSide(color: AppColors.primary),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogCtx),
-              child: const Text('Cancelar'),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10)),
-              ),
-              onPressed: () async {
-                final text = controller.text.trim();
-                if (text.isEmpty) return;
-                Navigator.pop(dialogCtx);
-                try {
-                  await _justificativaRepository.adminSetJustificativa(
-                    uid: widget.targetUid!,
-                    diaId: diaId,
-                    justificativa: text,
-                  );
-                  await _loadAdminJustificativas();
-                  if (context.mounted) {
-                    CustomSnackbar.showSuccess(
-                        context, 'Justificativa salva.');
-                  }
-                } catch (e) {
-                  if (context.mounted) {
-                    CustomSnackbar.showError(context,
-                        e.toString().replaceAll('Exception: ', ''));
-                  }
-                }
-              },
-              child: const Text('Salvar'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Widget _buildSingleDayCard(
-    BuildContext context,
-    String diaId,
-    List<Map<String, dynamic>> eventos,
-    Map<String, JustificativaModel> justificativasMap,
-  ) {
-    final justificativa = justificativasMap[diaId];
-    final date = DateTime.tryParse(diaId);
-    final holidayDayIds = _allCalendarEvents.keys.map((date) => HistorySharedUtils.toDayId(date)).toSet();
-    final isHoliday = holidayDayIds.contains(diaId);
-    final isFuture = date != null &&
-        HistorySharedUtils.isFutureDate(date) &&
-        !isHoliday;
-    
-    // Busca o nome do feriado para o DayCard
-    final cleanDate = date != null ? DateTime(date.year, date.month, date.day) : null;
-    final holidayName = cleanDate != null && _allCalendarEvents.containsKey(cleanDate) 
-        ? _allCalendarEvents[cleanDate]!.first['title']?.toString() 
-        : null;
-
-    return DayCard(
-      diaId: diaId,
-      eventos: eventos,
-      isAdmin: isAdmin,
-      isFuture: isFuture,
-      holidayName: holidayName,
-      calendarBlockedDays: holidayDayIds,
-      justificativa: justificativa,
-      onBatchEdit: isAdmin
-          ? (d, evs) => showBatchEditDayDialog(
-                context: context,
-                uid: widget.targetUid!,
-                diaId: d,
-                eventos: evs,
-              )
-          : null,
-      onAddEvento: isAdmin ? () => _showAddDialogForDay(context, diaId) : null,
-      onJustify: isAdmin
-          ? () => _showAdminSetJustificativaDialog(
-              context, diaId, justificativa?.justificativa)
-          : null,
-      onRequestSolicitation: !isAdmin
-          ? () => _showSolicitationDialog(context, diaId, eventos)
-          : null,
-    );
-  }
-
-
   Future<void> _refreshHistory() async {
-    // Limpa caches para forçar recarregamento real
     _blockedDaysCache.clear();
     _resumoCache.clear();
     _justificativasCache.clear();
@@ -512,241 +299,32 @@ class _HistoryViewState extends State<_HistoryView> {
     }
   }
 
-  void _showPdfModal(BuildContext context, Map<String, List<Map<String, dynamic>>> punchRecords) async {
-    if (_mesResumoFuture == null) return;
-    final resumo = await _mesResumoFuture!;
-    final dailyWorkload = resumo.businessDaysTotal > 0 
-      ? (resumo.expectedMinutes ~/ resumo.businessDaysTotal) 
-      : 8 * 60;
-      
-    final ultimoDiaMes = DateTime(_currentMonth.year, _currentMonth.month + 1, 0).day;
-    final hojeApenasData = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
-    
-    List<Widget> tableRows = [];
-    tableRows.add(
-      Container(
-        padding: const EdgeInsets.all(12),
-        decoration: const BoxDecoration(
-            color: AppColors.bgLight,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(8))),
-        child: Row(
-          children: [
-            Expanded(flex: 2, child: Text('Data', style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.bold))),
-            Expanded(flex: 5, child: Text('Registros', style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.bold))),
-            Expanded(flex: 3, child: Text('Obs', style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.bold))),
-          ],
-        ),
-      ),
-    );
-
-    for (int i = ultimoDiaMes; i >= 1; i--) {
-      final date = DateTime(_currentMonth.year, _currentMonth.month, i);
-      if (date.isAfter(hojeApenasData)) continue;
-      
-      final diaId = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-      final registros = punchRecords[diaId];
-
-      final isWeekend = date.weekday == DateTime.saturday || date.weekday == DateTime.sunday;
-      final holidayName = _allCalendarEvents[date]?.first['title']?.toString();
-      final isWorkDay = !isWeekend && holidayName == null;
-      final effectiveLoad = isWorkDay ? dailyWorkload : 0;
-
-      final p = PdfService.processDayDetails(registros ?? [], effectiveLoad, isWorkDay, holidayName);
-      final isExtra = p['obs']!.startsWith('Extra');
-      final isDebito = p['obs']!.startsWith('Débito');
-      final obsColor = isExtra ? AppColors.success : isDebito ? AppColors.error : AppColors.textSecondary;
-
-      tableRows.add(
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: const BoxDecoration(
-              border: Border(bottom: BorderSide(color: AppColors.borderLight))),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                flex: 2,
-                child: Text('${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}', 
-                  style: AppTextStyles.h3.copyWith(fontSize: 14))),
-              Expanded(
-                flex: 5, 
-                child: Text(p['registros']!, style: AppTextStyles.bodySmall)),
-              Expanded(
-                flex: 3,
-                child: Text(p['obs']!,
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: obsColor))),
-            ],
-          ),
-        )
-      );
-    }
-
-    if (context.mounted) {
-      showModalBottomSheet(
-        context: context,
-        isScrollControlled: true,
-        backgroundColor: Colors.transparent,
-        builder: (ctx) => Container(
-          height: MediaQuery.of(context).size.height * 0.85,
-          decoration: const BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          child: Column(
-            children: [
-              Container(
-                margin: const EdgeInsets.only(top: 12, bottom: 8),
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: AppColors.borderLight,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text('Espelho Mensal', style: AppTextStyles.h2),
-                    IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () => Navigator.pop(ctx),
-                    )
-                  ],
-                ),
-              ),
-              const Divider(height: 1),
-              Expanded(
-                child: ListView(
-                  padding: const EdgeInsets.all(16),
-                  children: tableRows,
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: const BoxDecoration(
-                  color: AppColors.surface,
-                  boxShadow: [
-                    BoxShadow(color: AppColors.shadow, blurRadius: 8, offset: Offset(0, -4))
-                  ],
-                ),
-                child: ElevatedButton.icon(
-                  icon: const Icon(Icons.download),
-                  label: const Text('Exportar PDF'),
-                  style: ElevatedButton.styleFrom(
-                    minimumSize: const Size.fromHeight(54),
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  ),
-                  onPressed: () async {
-                    Navigator.pop(ctx);
-                    await PdfService.generateUserHistoryPdf(
-                      userName: widget.targetName ?? 'Usuário',
-                      selectedDate: _currentMonth,
-                      workloadMinutes: dailyWorkload,
-                      punchRecords: punchRecords,
-                      calendarBlockedDays: _allCalendarEvents.keys
-                          .map((d) => HistorySharedUtils.toDayId(d))
-                          .toSet()
-                          .fold<Map<String, String>>({}, (acc, id) {
-                        final date = DateTime.parse(id);
-                        acc[id] = _allCalendarEvents[date]?.first['title'] ?? 'Feriado';
-                        return acc;
-                      }),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final title = isAdmin ? (widget.targetName ?? 'Usuário') : 'Meu Histórico';
     final subTitle = isAdmin ? 'Histórico de Pontos' : null;
-    final profileBytes = _decodeProfileImage(widget.targetProfileImage);
 
     return Scaffold(
       backgroundColor: AppColors.bgLight,
-      appBar: AppBar(
-        backgroundColor: AppColors.surface,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Row(
-          children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: AppColors.primaryLight10,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: _profileBytesCache != null
-                  ? ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: Image.memory(
-                        _profileBytesCache!,
-                        fit: BoxFit.cover,
-                        gaplessPlayback: true,
-                      ),
-                    )
-                  : const Icon(Icons.history, color: AppColors.primary, size: 20),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: AppTextStyles.bodyLarge.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  if (subTitle != null)
-                    Text(
-                      subTitle,
-                      style: AppTextStyles.bodySmall
-                          .copyWith(color: AppColors.textSecondary),
-                    ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          HistoryViewModeIconButton(
-            icon: Icons.view_agenda_outlined,
-            selected: _viewPreference == HistoryViewPreference.list,
-            tooltip: 'Visualização em lista',
-            onTap: () => _setPreferredView(HistoryViewPreference.list),
-          ),
-          HistoryViewModeIconButton(
-            icon: Icons.calendar_month_outlined,
-            selected: _viewPreference == HistoryViewPreference.calendar,
-            tooltip: 'Visualização em calendário',
-            onTap: () => _setPreferredView(HistoryViewPreference.calendar),
-          ),
-          const SizedBox(width: 8),
-        ],
+      appBar: HistoryAppBar(
+        title: title,
+        subTitle: subTitle,
+        profileBytes: _profileBytesCache,
+        viewPreference: _viewPreference,
+        onViewChanged: _setPreferredView,
       ),
       floatingActionButton: BlocBuilder<PontoHistoryBloc, PontoHistoryState>(
         builder: (context, state) {
           if (state is PontoHistoryLoaded) {
             return FloatingActionButton(
-              onPressed: () => _showPdfModal(context, state.daysMap),
+              onPressed: () => PdfPreviewModal.show(
+                context: context,
+                currentMonth: _currentMonth,
+                punchRecords: state.daysMap,
+                mesResumoFuture: _mesResumoFuture,
+                allCalendarEvents: _allCalendarEvents,
+                userName: widget.targetName ?? 'Usuário',
+              ),
               backgroundColor: AppColors.primary,
               child: const Icon(Icons.picture_as_pdf, color: Colors.white),
             );
@@ -772,154 +350,28 @@ class _HistoryViewState extends State<_HistoryView> {
                 onPrevious: _goToPreviousMonth,
                 onNext: _goToNextMonth,
               ),
-              if (_mesResumoFuture != null)
-                FutureBuilder<MesResumo>(
-                  future: _mesResumoFuture,
-                  builder: (context, snapshot) {
-                    if (!snapshot.hasData) return const SizedBox.shrink();
-                    final r = snapshot.data!;
-                    final h = r.workedMinutes ~/ 60;
-                    final m = r.workedMinutes % 60;
-                    final eH = r.expectedMinutes ~/ 60;
-                    final eM = r.expectedMinutes % 60;
-                    final balH = r.monthBalance.abs() ~/ 60;
-                    final balM = r.monthBalance.abs().toInt() % 60;
-                    final prefix = r.monthBalance >= 0 ? "+" : "-";
-
-                    return Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: AppColors.surface,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: AppColors.borderLight),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: AppColors.shadow,
-                            blurRadius: 4,
-                            offset: Offset(0, 2),
-                          )
-                        ]
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: [
-                          _buildMiniStat('Trabalhado', '${h}h ${m.toString().padLeft(2, '0')}m', AppColors.textPrimary),
-                          _buildMiniStat('Esperado', '${eH}h ${eM.toString().padLeft(2, '0')}m', AppColors.textSecondary),
-                          _buildMiniStat('Saldo', '$prefix ${balH}h ${balM.toString().padLeft(2, '0')}m',
-                             r.monthBalance >= 0 ? AppColors.success : AppColors.error),
-                        ],
-                      ),
-                    );
-                  },
-                ),
+              MonthlySummaryCard(mesResumoFuture: _mesResumoFuture),
               Expanded(
-                child: _buildHistoryContent(context, state),
+                child: HistoryContentBody(
+                  state: state,
+                  currentMonth: _currentMonth,
+                  selectedCalendarDay: _selectedCalendarDay,
+                  viewPreference: _viewPreference,
+                  isAdmin: isAdmin,
+                  targetUid: widget.targetUid,
+                  allCalendarEvents: _allCalendarEvents,
+                  adminJustificativas: _adminJustificativas,
+                  justificativaRepository: _justificativaRepository,
+                  onDaySelected: (day) =>
+                      setState(() => _selectedCalendarDay = day),
+                  onRefresh: _refreshHistory,
+                  onAdminJustificativasReloaded: _loadAdminJustificativas,
+                ),
               ),
             ],
           );
         },
       ),
-    );
-  }
-
-  Widget _buildMiniStat(String label, String value, Color valueColor) {
-    return Column(
-      children: [
-        Text(label, style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary)),
-        const SizedBox(height: 4),
-        Text(value, style: AppTextStyles.bodyLarge.copyWith(color: valueColor, fontWeight: FontWeight.bold)),
-      ],
-    );
-  }
-
-  Widget _buildHistoryContent(BuildContext context, PontoHistoryState state) {
-    if (state is PontoHistoryLoading) {
-      return const Center(
-        child: CircularProgressIndicator(
-          valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
-        ),
-      );
-    }
-
-    final daysMap = HistorySharedUtils.daysMapFromState(state);
-
-    if (state is PontoHistoryError && daysMap.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline, size: 64, color: AppColors.error),
-            const SizedBox(height: 16),
-            Text(
-              state.message,
-              style: AppTextStyles.bodyLarge.copyWith(color: AppColors.error),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () {
-                context.read<PontoHistoryBloc>().add(
-                      LoadHistoryEvent(
-                        uid: widget.targetUid,
-                        month: _currentMonth,
-                      ),
-                    );
-              },
-              child: const Text('Tentar novamente'),
-            ),
-          ],
-        ),
-      );
-    }
-
-    final allDays = HistorySharedUtils.generateMonthDays(_currentMonth);
-
-    if (allDays.isEmpty) {
-      return const EmptyHistoryState();
-    }
-
-    // Monta mapa de justificativas: admin usa _adminJustificativas,
-    // funcionário lê do JustificativaBloc.
-    Map<String, JustificativaModel> justificativasMap = {};
-    if (isAdmin) {
-      justificativasMap = _adminJustificativas;
-    } else {
-      final justState = context.watch<JustificativaBloc>().state;
-      List<JustificativaModel> list = [];
-      if (justState is JustificativaLoaded) list = justState.justificativas;
-      if (justState is JustificativaActionSuccess) {
-        list = justState.justificativas;
-      }
-      justificativasMap = {for (final j in list) j.diaId: j};
-    }
-
-    Widget buildDayCardById(String diaId) {
-      final eventos = daysMap[diaId] ?? [];
-      return _buildSingleDayCard(context, diaId, eventos, justificativasMap);
-    }
-
-    if (_viewPreference == HistoryViewPreference.calendar) {
-      final holidayDayIds = _allCalendarEvents.keys.map((date) => HistorySharedUtils.toDayId(date)).toSet();
-
-      return HistoryModeCalendarView(
-        month: _currentMonth,
-        selectedDay: _selectedCalendarDay,
-        daysMap: daysMap,
-        dayIdFor: HistorySharedUtils.toDayId,
-        isFutureDate: HistorySharedUtils.isFutureDate,
-        onDaySelected: (day) => setState(() => _selectedCalendarDay = day),
-        dayBuilder: buildDayCardById,
-        onRefresh: _refreshHistory,
-        holidayDayIds: holidayDayIds,
-        calendarEvents: _allCalendarEvents,
-      );
-    }
-
-    return HistoryModeListView(
-      dayIds: allDays,
-      dayBuilder: buildDayCardById,
-      onRefresh: _refreshHistory,
     );
   }
 }
