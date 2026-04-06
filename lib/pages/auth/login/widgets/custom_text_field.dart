@@ -66,9 +66,10 @@ class CustomTextField extends StatelessWidget {
               ? stateColor
               : AppColors.textSecondary,
         ),
-        suffixIcon: (isValid && errorText == null)
-            ? const Icon(Icons.check_circle, color: Colors.green)
-            : suffixIcon,
+        suffixIcon: suffixIcon ??
+            ((isValid && errorText == null)
+                ? const Icon(Icons.check_circle, color: Colors.green)
+                : null),
         errorText: errorText,
         filled: true,
         fillColor: AppColors.surface,

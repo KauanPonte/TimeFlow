@@ -213,6 +213,15 @@ class _RegisterPageState extends State<RegisterPage> {
                                 _obscurePassword
                                     ? Icons.visibility_off
                                     : Icons.visibility,
+                                color: fieldsState.fieldErrors[
+                                            AuthFields.passwordRegister] !=
+                                        null
+                                    ? Colors.red
+                                    : (fieldsState.fieldValid[
+                                                AuthFields.passwordRegister] ??
+                                            false)
+                                        ? Colors.green
+                                        : AppColors.textSecondary,
                               ),
                               onPressed: () {
                                 setState(() {
