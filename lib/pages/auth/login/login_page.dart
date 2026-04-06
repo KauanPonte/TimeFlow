@@ -184,6 +184,15 @@ class _LoginPageState extends State<LoginPage> {
                             _obscurePassword
                                 ? Icons.visibility_off
                                 : Icons.visibility,
+                            color: fieldsState
+                                        .fieldErrors[AuthFields.passwordLogin] !=
+                                    null
+                                ? Colors.red
+                                : (fieldsState.fieldValid[
+                                            AuthFields.passwordLogin] ??
+                                        false)
+                                    ? Colors.green
+                                    : AppColors.textSecondary,
                           ),
                           onPressed: () {
                             setState(() {

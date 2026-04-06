@@ -56,6 +56,7 @@ void main() async {
   await HistoryViewPreferenceRepository.initialize();
   await initializeDateFormatting('pt_BR');
   await NotificationService.init();
+  await NotificationService.scheduleForLastLoggedUser();
   runApp(const TimeFlow());
 }
 
