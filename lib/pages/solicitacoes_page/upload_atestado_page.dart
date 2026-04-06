@@ -49,19 +49,33 @@ class _UploadAtestadoPageState extends State<UploadAtestadoPage> {
   }
 
   Future<void> _pickDate({required bool isInicio}) async {
-    final initial = isInicio ? (_dataInicio ?? DateTime.now()) : (_dataFim ?? _dataInicio ?? DateTime.now());
+    final initial = isInicio
+        ? (_dataInicio ?? DateTime.now())
+        : (_dataFim ?? _dataInicio ?? DateTime.now());
     final picked = await showDatePicker(
       context: context,
       initialDate: initial,
       firstDate: DateTime(2020),
       lastDate: DateTime.now().add(const Duration(days: 365)),
+      builder: (context, child) {
+        return Theme(
+          data: ThemeData.light().copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: AppColors.primary,
+              onPrimary: Colors.white,
+              surface: Colors.white,
+              onSurface: AppColors.textPrimary,
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
 
     if (picked != null) {
       setState(() {
         if (isInicio) {
           _dataInicio = picked;
-          // Se dataFim for antes de dataInicio, reseta
           if (_dataFim != null && _dataFim!.isBefore(picked)) {
             _dataFim = null;
           }
@@ -104,22 +118,51 @@ class _UploadAtestadoPageState extends State<UploadAtestadoPage> {
       child: Scaffold(
         backgroundColor: AppColors.bgLight,
         appBar: AppBar(
-          title: const Text('Enviar Atestado'),
+          titleSpacing: 0,
           backgroundColor: AppColors.surface,
           elevation: 0,
+          scrolledUnderElevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new_rounded,
+                color: AppColors.textPrimary, size: 20),
+            onPressed: () => Navigator.pop(context),
+          ),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryLight10,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.cloud_upload_outlined,
+                  color: AppColors.primary,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'Novo Atestado',
+                style:
+                        AppTextStyles.h3.copyWith(color: AppColors.textPrimary),
+              ),
+            ],
+          ),
         ),
         body: ListView(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
           children: [
             // Período
-            const _SectionLabel(label: 'Período do atestado'),
-            const SizedBox(height: 8),
+            const _SectionLabel(label: 'Duração do afastamento'),
+            const SizedBox(height: 12),
             Row(
               children: [
                 Expanded(
                   child: _DateField(
                     label: 'Data início',
-                    value: _dataInicio != null ? _fmt.format(_dataInicio!) : null,
+                    value:
+                        _dataInicio != null ? _fmt.format(_dataInicio!) : null,
                     onTap: () => _pickDate(isInicio: true),
                   ),
                 ),
@@ -133,81 +176,56 @@ class _UploadAtestadoPageState extends State<UploadAtestadoPage> {
                 ),
               ],
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
 
             // PDF
-            const _SectionLabel(label: 'Arquivo PDF'),
-            const SizedBox(height: 8),
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.shadow.withValues(alpha: 0.1),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(12),
-                  onTap: _fileName == null ? _pickPDF : null,
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.picture_as_pdf, color: AppColors.primary),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            _fileName ?? 'Selecionar arquivo PDF',
-                            style: AppTextStyles.bodyMedium.copyWith(
-                              color: _fileName == null
-                                  ? AppColors.textSecondary
-                                  : AppColors.textPrimary,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        _fileName != null
-                            ? IconButton(
-                                icon: const Icon(Icons.close,
-                                    color: AppColors.error, size: 20),
-                                onPressed: _clearFile,
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(),
-                              )
-                            : const Icon(Icons.attach_file,
-                                color: AppColors.textSecondary, size: 20),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
+            const _SectionLabel(label: 'Comprovante digital (PDF)'),
+            const SizedBox(height: 12),
+            _FilePickerBox(
+              fileName: _fileName,
+              onPick: _pickPDF,
+              onClear: _clearFile,
             ),
-            const SizedBox(height: 32),
 
+            const SizedBox(height: 40),
+
+            // Botão Confirmar
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: _canSubmit ? _submit : null,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  disabledBackgroundColor: AppColors.border,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(16),
                   ),
+                  elevation: 0,
                 ),
-                child: Text(
-                  'Confirmar Envio',
-                  style: AppTextStyles.bodyMedium.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.send_rounded, size: 18),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Confirmar Envio',
+                      style: AppTextStyles.bodyMedium.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
                 ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Center(
+              child: Text(
+                'O arquivo será revisado pela administração.',
+                style: AppTextStyles.bodySmall
+                    .copyWith(color: AppColors.textSecondary),
               ),
             ),
           ],
@@ -223,11 +241,16 @@ class _SectionLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text(
-      label,
-      style: AppTextStyles.bodyMedium.copyWith(
-        fontWeight: FontWeight.w600,
-        color: AppColors.textPrimary,
+    return Padding(
+      padding: const EdgeInsets.only(left: 4),
+      child: Text(
+        label.toUpperCase(),
+        style: AppTextStyles.bodySmall.copyWith(
+          fontWeight: FontWeight.w800,
+          color: AppColors.textPrimary,
+          fontSize: 11,
+          letterSpacing: 0.8,
+        ),
       ),
     );
   }
@@ -246,36 +269,172 @@ class _DateField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.shadow.withValues(alpha: 0.1),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
-            ),
-          ],
+    final bool hasValue = value != null;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: hasValue
+              ? AppColors.primary.withValues(alpha: 0.3)
+              : AppColors.border,
         ),
-        child: Row(
-          children: [
-            const Icon(Icons.calendar_today_outlined,
-                size: 16, color: AppColors.primary),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                value ?? label,
-                style: AppTextStyles.bodySmall.copyWith(
-                  color: value == null ? AppColors.textSecondary : AppColors.textPrimary,
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: AppColors.textSecondary,
+                    fontSize: 10,
+                  ),
                 ),
-                overflow: TextOverflow.ellipsis,
-              ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.calendar_month_rounded,
+                      size: 16,
+                      color: hasValue
+                          ? AppColors.primary
+                          : AppColors.textSecondary,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        value ?? 'Clique aqui',
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          color: hasValue
+                              ? AppColors.textPrimary
+                              : AppColors.textSecondary.withValues(alpha: 0.5),
+                          fontWeight:
+                              hasValue ? FontWeight.bold : FontWeight.normal,
+                          fontSize: 13,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
-          ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FilePickerBox extends StatelessWidget {
+  final String? fileName;
+  final VoidCallback onPick;
+  final VoidCallback onClear;
+
+  const _FilePickerBox({
+    required this.fileName,
+    required this.onPick,
+    required this.onClear,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final bool hasFile = fileName != null;
+
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: hasFile
+            ? AppColors.primary.withValues(alpha: 0.02)
+            : AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: hasFile
+              ? AppColors.primary.withValues(alpha: 0.3)
+              : AppColors.border,
+          style: hasFile
+              ? BorderStyle.solid
+              : BorderStyle.solid, // Could use dashed if package available
+        ),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: hasFile ? null : onPick,
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (!hasFile) ...[
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.picture_as_pdf_rounded,
+                        color: AppColors.primary, size: 28),
+                  ),
+                  const SizedBox(height: 12),
+                  Text('Selecionar PDF', style: AppTextStyles.bodyMedium),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Clique para buscar no dispositivo',
+                    style: AppTextStyles.bodySmall
+                        .copyWith(color: AppColors.textSecondary),
+                  ),
+                ] else ...[
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.picture_as_pdf_rounded,
+                            color: Colors.white, size: 20),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              fileName!,
+                              style: AppTextStyles.bodyMedium
+                                  .copyWith(fontWeight: FontWeight.bold),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            Text(
+                              'Documento carregado',
+                              style: AppTextStyles.bodySmall
+                                  .copyWith(color: AppColors.success),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline_rounded,
+                            color: AppColors.error),
+                        onPressed: onClear,
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
         ),
       ),
     );

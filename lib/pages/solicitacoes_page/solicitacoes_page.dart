@@ -20,9 +20,10 @@ class _SolicitacoesPageState extends State<SolicitacoesPage> {
   @override
   void initState() {
     super.initState();
-    // Sempre recarrega os atestados do usuário ao abrir a página
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<AtestadoBloc>().add(const LoadAtestadosEvent(isAdmin: false));
+      context
+          .read<AtestadoBloc>()
+          .add(const LoadAtestadosEvent(isAdmin: false));
     });
   }
 
@@ -31,9 +32,36 @@ class _SolicitacoesPageState extends State<SolicitacoesPage> {
     return Scaffold(
       backgroundColor: AppColors.bgLight,
       appBar: AppBar(
-        title: const Text('Solicitações'),
+        titleSpacing: 0,
         backgroundColor: AppColors.surface,
         elevation: 0,
+        scrolledUnderElevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded,
+              color: AppColors.textPrimary, size: 20),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.primaryLight10,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(
+                Icons.assignment_turned_in_outlined,
+                color: AppColors.primary,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              'Solicitações',
+              style: AppTextStyles.h3.copyWith(color: AppColors.textPrimary),
+            ),
+          ],
+        ),
       ),
       body: BlocBuilder<AtestadoBloc, AtestadoState>(
         builder: (context, state) {
@@ -45,12 +73,13 @@ class _SolicitacoesPageState extends State<SolicitacoesPage> {
           };
 
           return ListView(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
             children: [
               // Botão enviar atestado
               _ActionCard(
-                icon: Icons.cloud_upload_outlined,
-                title: 'Enviar Atestado',
+                icon: Icons.cloud_upload_rounded,
+                title: 'Enviar Novo Atestado',
+                subtitle: 'Upload de arquivo PDF para abonos',
                 onTap: () {
                   Navigator.push(
                     context,
@@ -58,33 +87,66 @@ class _SolicitacoesPageState extends State<SolicitacoesPage> {
                       builder: (context) => const UploadAtestadoPage(),
                     ),
                   ).then((_) {
-                    // Recarrega lista ao voltar
                     if (context.mounted) {
                       context
                           .read<AtestadoBloc>()
-                          .add(const LoadAtestadosEvent());
+                          .add(const LoadAtestadosEvent(isAdmin: false));
                     }
                   });
                 },
               ),
 
               if (atestados.isNotEmpty) ...[
-                const SizedBox(height: 24),
-                Text(
-                  'Meus Atestados',
-                  style: AppTextStyles.bodyLarge.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
+                const SizedBox(height: 32),
+                Row(
+                  children: [
+                    Container(
+                      width: 4,
+                      height: 18,
+                      decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    const Text(
+                      'Histórico de pedidos',
+                      style: AppTextStyles.h3,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                ...atestados.map((a) => _AtestadoCard(atestado: a)),
+              ] else if (state is! AtestadoLoading) ...[
+                const SizedBox(height: 60),
+                Center(
+                  child: Column(
+                    children: [
+                      Icon(Icons.assignment_outlined,
+                          size: 48,
+                          color:
+                              AppColors.textSecondary.withValues(alpha: 0.3)),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Nenhuma solicitação encontrada',
+                        style: AppTextStyles.bodyMedium
+                            .copyWith(color: AppColors.textSecondary),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 12),
-                ...atestados.map((a) => _AtestadoCard(atestado: a)),
               ],
 
               if (state is AtestadoLoading)
                 const Padding(
                   padding: EdgeInsets.only(top: 32),
-                  child: Center(child: CircularProgressIndicator()),
+                  child: Center(
+                    child: CircularProgressIndicator(
+                      strokeWidth: 3,
+                      valueColor:
+                          AlwaysStoppedAnimation<Color>(AppColors.primary),
+                    ),
+                  ),
                 ),
             ],
           );
@@ -97,11 +159,13 @@ class _SolicitacoesPageState extends State<SolicitacoesPage> {
 class _ActionCard extends StatelessWidget {
   final IconData icon;
   final String title;
+  final String subtitle;
   final VoidCallback onTap;
 
   const _ActionCard({
     required this.icon,
     required this.title,
+    required this.subtitle,
     required this.onTap,
   });
 
@@ -109,36 +173,58 @@ class _ActionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.borderLight),
         boxShadow: [
           BoxShadow(
-            color: AppColors.shadow.withValues(alpha: 0.1),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
+            color: AppColors.shadow.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(20),
             child: Row(
               children: [
-                Icon(icon, color: AppColors.primary),
-                const SizedBox(width: 12),
-                Text(
-                  title,
-                  style: AppTextStyles.bodyMedium.copyWith(
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.w600,
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(icon, color: AppColors.primary),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          color: AppColors.textPrimary,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle,
+                        style: AppTextStyles.bodySmall.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const Spacer(),
-                const Icon(Icons.chevron_right, color: AppColors.textSecondary),
+                const Icon(Icons.arrow_forward_ios_rounded,
+                    color: AppColors.border, size: 16),
               ],
             ),
           ),
@@ -161,8 +247,8 @@ class _AtestadoCard extends StatelessWidget {
     final mesmodia = atestado.dataInicio == atestado.dataFim;
 
     final (statusLabel, statusColor) = switch (atestado.status) {
-      AtestadoStatus.pending => ('Pendente', Colors.orange),
-      AtestadoStatus.approved => ('Aprovado', Colors.green),
+      AtestadoStatus.pending => ('Em análise', Colors.orange),
+      AtestadoStatus.approved => ('Aprovado', AppColors.success),
       AtestadoStatus.rejected => ('Recusado', AppColors.error),
     };
 
@@ -171,130 +257,150 @@ class _AtestadoCard extends StatelessWidget {
     final isRejected = atestado.status == AtestadoStatus.rejected;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
+      margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isResolved
-              ? statusColor.withValues(alpha: 0.25)
+              ? statusColor.withValues(alpha: 0.15)
               : AppColors.borderLight,
         ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(
-                isApproved
-                    ? Icons.check_circle_outline
-                    : isRejected
-                        ? Icons.cancel_outlined
-                        : Icons.description_outlined,
-                color: isResolved ? statusColor : AppColors.primary,
-                size: 20,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      mesmodia ? inicio : '$inicio – $fim',
-                      style: AppTextStyles.bodyMedium.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      atestado.fileName,
-                      style: AppTextStyles.bodySmall.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: statusColor.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  statusLabel,
-                  style: AppTextStyles.bodySmall.copyWith(
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: statusColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    isApproved
+                        ? Icons.check_circle_rounded
+                        : isRejected
+                            ? Icons.cancel_rounded
+                            : Icons.access_time_filled_rounded,
                     color: statusColor,
-                    fontWeight: FontWeight.w600,
+                    size: 24,
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        mesmodia ? inicio : '$inicio – $fim',
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Row(
+                        children: [
+                          const Icon(Icons.picture_as_pdf_outlined,
+                              size: 12, color: AppColors.textSecondary),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              atestado.fileName,
+                              style: AppTextStyles.bodySmall.copyWith(
+                                color: AppColors.textSecondary,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: statusColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    statusLabel.toUpperCase(),
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: statusColor,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 10,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
-          // Motivo da recusa
+
+          // Feedback de Resultado
           if (isRejected &&
               atestado.reason != null &&
-              atestado.reason!.isNotEmpty) ...[
-            const SizedBox(height: 10),
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: AppColors.error.withValues(alpha: 0.06),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                    color: AppColors.error.withValues(alpha: 0.18)),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Icon(Icons.info_outline,
-                      size: 14, color: AppColors.error),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      atestado.reason!,
-                      style: AppTextStyles.bodySmall.copyWith(
-                        color: AppColors.error,
-                        fontStyle: FontStyle.italic,
-                      ),
-                    ),
-                  ),
-                ],
+              atestado.reason!.isNotEmpty)
+            _StatusFeedback(
+              color: AppColors.error,
+              icon: Icons.info_outline_rounded,
+              message: atestado.reason!,
+              isItalic: true,
+            )
+          else if (isApproved)
+            const _StatusFeedback(
+              color: AppColors.success,
+              icon: Icons.check_circle_outline_rounded,
+              message: 'Dias marcados como facultativos no seu banco de horas.',
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatusFeedback extends StatelessWidget {
+  final Color color;
+  final IconData icon;
+  final String message;
+  final bool isItalic;
+
+  const _StatusFeedback({
+    required this.color,
+    required this.icon,
+    required this.message,
+    this.isItalic = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.05),
+        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16)),
+        border: Border(top: BorderSide(color: color.withValues(alpha: 0.1))),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              message,
+              style: AppTextStyles.bodySmall.copyWith(
+                color: color,
+                fontStyle: isItalic ? FontStyle.italic : FontStyle.normal,
               ),
             ),
-          ],
-          // Mensagem de aprovação
-          if (isApproved) ...[
-            const SizedBox(height: 10),
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: Colors.green.withValues(alpha: 0.06),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                    color: Colors.green.withValues(alpha: 0.18)),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.check_circle_outline,
-                      size: 14, color: Colors.green),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      'Dias marcados como facultativos no seu banco de horas.',
-                      style: AppTextStyles.bodySmall.copyWith(
-                        color: Colors.green,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+          ),
         ],
       ),
     );

@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:intl/intl.dart';
 import 'package:flutter_application_appdeponto/services/ponto_validator.dart';
+import 'package:flutter_application_appdeponto/services/ponto_service.dart';
 
 class PontoHistoryRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -14,9 +14,11 @@ class PontoHistoryRepository {
     uid ??= FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return [];
 
+    final resolvedUid = uid;
+
     final diasSnap = await _firestore
         .collection(_root)
-        .doc(uid)
+        .doc(resolvedUid)
         .collection('dias')
         .orderBy('date', descending: true)
         .get();
@@ -25,27 +27,31 @@ class PontoHistoryRepository {
 
     for (final diaDoc in diasSnap.docs) {
       final diaId = diaDoc.id;
+      var eventos = _extractEventos(diaDoc);
 
-      final eventosSnap = await _firestore
-          .collection(_root)
-          .doc(uid)
-          .collection('dias')
-          .doc(diaId)
-          .collection('eventos')
-          .orderBy('at', descending: false)
-          .get();
+      // Fallback: se não há cache, busca da subcollection
+      if (eventos.isEmpty) {
+        final eventosSnap = await _firestore
+            .collection(_root)
+            .doc(resolvedUid)
+            .collection('dias')
+            .doc(diaId)
+            .collection('eventos')
+            .orderBy('at', descending: false)
+            .get();
 
-      final eventos = eventosSnap.docs.map((e) {
-        final data = e.data();
-        final ts = data['at'] as Timestamp?;
-        return {
-          'id': e.id,
-          'tipo': (data['tipo'] ?? '').toString(),
-          'at': ts?.toDate(),
-          'workMode': (data['workMode'] ?? '').toString(),
-          'origin': (data['origin'] ?? 'registrado').toString(),
-        };
-      }).toList();
+        eventos = eventosSnap.docs.map((e) {
+          final data = e.data();
+          final ts = data['at'] as Timestamp?;
+          return {
+            'id': e.id,
+            'tipo': (data['tipo'] ?? '').toString(),
+            'at': ts?.toDate(),
+            'workMode': (data['workMode'] ?? '').toString(),
+            'origin': (data['origin'] ?? 'registrado').toString(),
+          };
+        }).toList();
+      }
 
       if (eventos.isNotEmpty) {
         result.add({'diaId': diaId, 'eventos': eventos});
@@ -57,6 +63,10 @@ class PontoHistoryRepository {
 
   /// Carrega apenas os dias de um mês específico.
   /// Retorna mapa de diaId → eventos para merge na UI.
+  ///
+  /// lê `eventosCache` direto do doc do dia (1 query),
+  /// sem subcollection extra. Fallback para subcollection se `eventosCache`
+  /// estiver ausente (dados antigos).
   Future<Map<String, List<Map<String, dynamic>>>> loadDaysByMonth({
     String? uid,
     required int year,
@@ -65,28 +75,55 @@ class PontoHistoryRepository {
     uid ??= FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return {};
 
+    final resolvedUid = uid;
+
     final prefix =
         '${year.toString().padLeft(4, '0')}-${month.toString().padLeft(2, '0')}';
-    final startId = '$prefix-01';
-    final endId = '$prefix-32'; // 32 garante pegar todos os dias do mês
 
-    final diasSnap = await _firestore
+    // Busca TODOS os docs de dias e filtra pelo prefixo do mês via doc ID.
+    // Isso evita depender do campo 'date' (que pode estar ausente em docs
+    // criados pela transação de recalcularBancoDeHorasDoDia).
+    final allDiasSnap = await _firestore
         .collection(_root)
-        .doc(uid)
+        .doc(resolvedUid)
         .collection('dias')
-        .where('date', isGreaterThanOrEqualTo: startId)
-        .where('date', isLessThan: endId)
-        .orderBy('date', descending: true)
         .get();
+
+    final monthDocs = allDiasSnap.docs
+        .where((doc) => doc.id.startsWith(prefix))
+        .toList();
 
     final result = <String, List<Map<String, dynamic>>>{};
 
-    for (final diaDoc in diasSnap.docs) {
+    // Processa todos os dias em PARALELO (antes era sequencial = lento)
+    final futures = monthDocs.map((diaDoc) async {
       final diaId = diaDoc.id;
+      final data = diaDoc.data();
+      final cache = data['eventosCache'];
 
+      // Tenta usar cache inline primeiro (evita query extra)
+      if (cache is List && cache.isNotEmpty) {
+        final eventos = cache.map<Map<String, dynamic>>((e) {
+          final m = e as Map<String, dynamic>;
+          final ts = m['at'] as Timestamp?;
+          return {
+            'id': (m['id'] ?? '').toString(),
+            'tipo': (m['tipo'] ?? '').toString(),
+            'at': ts?.toDate(),
+            'workMode': (m['workMode'] ?? '').toString(),
+            'origin': (m['origin'] ?? 'registrado').toString(),
+          };
+        }).toList();
+        if (eventos.isNotEmpty) {
+          result[diaId] = eventos;
+        }
+        return;
+      }
+
+      // Sem cache → busca da subcollection (paralelizado)
       final eventosSnap = await _firestore
           .collection(_root)
-          .doc(uid)
+          .doc(resolvedUid)
           .collection('dias')
           .doc(diaId)
           .collection('eventos')
@@ -94,23 +131,50 @@ class PontoHistoryRepository {
           .get();
 
       final eventos = eventosSnap.docs.map((e) {
-        final data = e.data();
-        final ts = data['at'] as Timestamp?;
+        final evData = e.data();
+        final ts = evData['at'] as Timestamp?;
         return {
           'id': e.id,
-          'tipo': (data['tipo'] ?? '').toString(),
+          'tipo': (evData['tipo'] ?? '').toString(),
           'at': ts?.toDate(),
-          'workMode': (data['workMode'] ?? '').toString(),
-          'origin': (data['origin'] ?? 'registrado').toString(),
+          'workMode': (evData['workMode'] ?? '').toString(),
+          'origin': (evData['origin'] ?? 'registrado').toString(),
         };
       }).toList();
 
       if (eventos.isNotEmpty) {
         result[diaId] = eventos;
       }
-    }
+    });
+
+    await Future.wait(futures);
 
     return result;
+  }
+
+
+  /// Tenta extrair eventos do `eventosCache` inline.
+  /// Retorna lista tipada pronta para a UI.
+  List<Map<String, dynamic>> _extractEventos(
+      DocumentSnapshot<Map<String, dynamic>> diaDoc) {
+    final data = diaDoc.data();
+    if (data == null) return [];
+
+    final cache = data['eventosCache'];
+    if (cache is List && cache.isNotEmpty) {
+      return cache.map<Map<String, dynamic>>((e) {
+        final m = e as Map<String, dynamic>;
+        final ts = m['at'] as Timestamp?;
+        return {
+          'id': (m['id'] ?? '').toString(),
+          'tipo': (m['tipo'] ?? '').toString(),
+          'at': ts?.toDate(),
+          'workMode': (m['workMode'] ?? '').toString(),
+          'origin': (m['origin'] ?? 'registrado').toString(),
+        };
+      }).toList();
+    }
+    return [];
   }
 
   /// Adiciona um evento de ponto para um usuário específico.
@@ -120,6 +184,15 @@ class PontoHistoryRepository {
     required String tipo,
     required DateTime horario,
   }) async {
+    // Bloqueia adição em feriados/recessos (mesmo para admin)
+    final date = DateTime.tryParse(diaId);
+    if (date != null) {
+      final ehFeriado = await PontoService.isFeriado(date);
+      if (ehFeriado) {
+        throw Exception('Este dia é feriado/recesso. Não é permitido adicionar pontos.');
+      }
+    }
+
     final refDia =
         _firestore.collection(_root).doc(uid).collection('dias').doc(diaId);
 
@@ -260,7 +333,8 @@ class PontoHistoryRepository {
     }
   }
 
-  /// Atualiza metadados do dia (lastTipo, lastAt, etc.) e recalcula banco de horas.
+  /// Atualiza metadados do dia (lastTipo, lastAt, etc.),
+  /// recalcula banco de horas, e **atualiza `eventosCache`**.
   Future<void> _updateDayMeta({
     required String uid,
     required String diaId,
@@ -283,12 +357,25 @@ class PontoHistoryRepository {
     // Calcula minutos trabalhados (só intervalos fechados)
     final workedMinutes = _computeWorkedMinutes(eventos);
     final diaFechado = lastTipo == 'saida';
-    final hojeId = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    final localNow = DateTime.now();
+    final hojeId = '${localNow.year.toString().padLeft(4, '0')}-${localNow.month.toString().padLeft(2, '0')}-${localNow.day.toString().padLeft(2, '0')}';
     final ehHoje = diaId == hojeId;
     final falta = !ehHoje && eventos.isEmpty;
     final deltaMinutes = falta
         ? -targetMinutesPerDay
         : (diaFechado ? (workedMinutes - targetMinutesPerDay) : 0);
+
+    // Constrói array de cache para denormalização
+    final eventosCache = eventosSnap.docs.map((d) {
+      final data = d.data();
+      return {
+        'id': d.id,
+        'tipo': (data['tipo'] ?? '').toString(),
+        'at': data['at'],
+        'workMode': (data['workMode'] ?? '').toString(),
+        'origin': (data['origin'] ?? 'registrado').toString(),
+      };
+    }).toList();
 
     final mesId = diaId.substring(0, 7);
     final refMes =
@@ -307,12 +394,13 @@ class PontoHistoryRepository {
       tx.set(
           refDia,
           {
-            'updatedAt': Timestamp.now(),
+            'updatedAt': FieldValue.serverTimestamp(),
             'lastTipo': lastTipo,
             'lastAt': lastAt,
             'workedMinutes': workedMinutes,
             'deltaMinutes': deltaMinutes,
             'isClosed': diaFechado,
+            'eventosCache': eventosCache,
           },
           SetOptions(merge: true));
 
@@ -320,7 +408,7 @@ class PontoHistoryRepository {
           refMes,
           {
             'balanceMinutes': newBalance,
-            'updatedAt': Timestamp.now(),
+            'updatedAt': FieldValue.serverTimestamp(),
           },
           SetOptions(merge: true));
     });
@@ -356,6 +444,15 @@ class PontoHistoryRepository {
     required List<String> deletes,
     required List<Map<String, dynamic>> adds,
   }) async {
+    // Bloqueia edição em feriados/recessos (mesmo para admin)
+    final date = DateTime.tryParse(diaId);
+    if (date != null) {
+      final ehFeriado = await PontoService.isFeriado(date);
+      if (ehFeriado) {
+        throw Exception('Este dia é feriado/recesso. Não é permitido editar pontos.');
+      }
+    }
+
     final refDia =
         _firestore.collection(_root).doc(uid).collection('dias').doc(diaId);
     final refEventos = refDia.collection('eventos');
@@ -443,8 +540,8 @@ class PontoHistoryRepository {
         await refDia.set({
           'uid': uid,
           'date': diaId,
-          'createdAt': Timestamp.now(),
-          'updatedAt': Timestamp.now(),
+          'createdAt': FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverTimestamp(),
         });
       }
       await _updateDayMeta(uid: uid, diaId: diaId);

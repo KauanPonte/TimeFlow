@@ -35,9 +35,12 @@ class JustificativaBloc extends Bloc<JustificativaEvent, JustificativaState> {
     Emitter<JustificativaState> emit,
   ) async {
     try {
-      final list = await repository.getPendingJustificativas();
+      final list = event.isAdmin
+          ? await repository.getPendingJustificativas()
+          : await repository.getMyJustificativas();
       _lastList = list;
-      emit(JustificativaLoaded(justificativas: list, isAdmin: true));
+      _isAdmin = event.isAdmin;
+      emit(JustificativaLoaded(justificativas: list, isAdmin: event.isAdmin));
     } catch (_) {}
   }
 

@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter_application_appdeponto/pages/home_page/pages/calendar_service.dart';
+
 
 class PontoResult {
   final bool success;
@@ -111,8 +113,9 @@ class PontoService {
       final refEventos = _refEventos(uid, diaId);
       // Registra sem segundos (truncado ao minuto).
       final nowRaw = DateTime.now();
-      final now = Timestamp.fromDate(DateTime(
-          nowRaw.year, nowRaw.month, nowRaw.day, nowRaw.hour, nowRaw.minute));
+      final nowTruncated = DateTime(
+          nowRaw.year, nowRaw.month, nowRaw.day, nowRaw.hour, nowRaw.minute);
+      final now = Timestamp.fromDate(nowTruncated);
 
       final diaSnapPre = await refDia.get();
 
@@ -143,7 +146,7 @@ class PontoService {
         final newDoc = refEventos.doc();
         tx.set(newDoc, {
           'tipo': tipo,
-          'at': now,
+          'at': FieldValue.serverTimestamp(),
           'workMode': workMode,
           'origin': 'registrado',
         });
@@ -152,21 +155,24 @@ class PontoService {
           tx.set(refDia, {
             'uid': uid,
             'date': diaId,
-            'createdAt': now,
-            'updatedAt': now,
+            'createdAt': FieldValue.serverTimestamp(),
+            'updatedAt': FieldValue.serverTimestamp(),
             'lastTipo': tipo,
-            'lastAt': now,
+            'lastAt': FieldValue.serverTimestamp(),
           });
         } else {
           tx.update(refDia, {
-            'updatedAt': now,
+            'updatedAt': FieldValue.serverTimestamp(),
             'lastTipo': tipo,
-            'lastAt': now,
+            'lastAt': FieldValue.serverTimestamp(),
           });
         }
       });
 
       await recalcularBancoDeHorasDoDia(uid: uid, diaId: diaId);
+
+      // Atualiza eventosCache no doc do dia
+      await _rebuildEventosCache(uid: uid, diaId: diaId);
 
       final horas = DateFormat('HH:mm').format(DateTime.now());
       return PontoResult(
@@ -348,11 +354,9 @@ class PontoService {
     try {
       final cleanDate = DateTime(date.year, date.month, date.day);
 
-      // Intervalo do dia inteiro — evita falha por diferença de fuso no Timestamp
-      final startOfDay = Timestamp.fromDate(cleanDate);
-      final endOfDay = Timestamp.fromDate(
-        cleanDate.add(const Duration(hours: 23, minutes: 59, seconds: 59)),
-      );
+      // Expande a janela de busca para lidar com diferenças de timezone (ex: salvo em UTC)
+      final expandedStart = Timestamp.fromDate(cleanDate.subtract(const Duration(days: 1)));
+      final expandedEnd = Timestamp.fromDate(cleanDate.add(const Duration(days: 2)));
 
       const blockingTypes = {
         'feriado',
@@ -361,13 +365,21 @@ class PontoService {
 
       final snapshot = await FirebaseFirestore.instance
           .collection('calendar_events')
-          .where('date', isGreaterThanOrEqualTo: startOfDay)
-          .where('date', isLessThanOrEqualTo: endOfDay)
+          .where('date', isGreaterThanOrEqualTo: expandedStart)
+          .where('date', isLessThanOrEqualTo: expandedEnd)
           .get();
 
       for (var doc in snapshot.docs) {
-        final tipo = (doc.data()['type'] ?? '').toString().toLowerCase().trim();
-        if (blockingTypes.contains(tipo)) return true;
+        final evTs = doc.data()['date'] as Timestamp?;
+        if (evTs != null) {
+          final evDate = evTs.toDate();
+          if (evDate.year == cleanDate.year &&
+              evDate.month == cleanDate.month &&
+              evDate.day == cleanDate.day) {
+            final tipo = (doc.data()['type'] ?? '').toString().toLowerCase().trim();
+            if (blockingTypes.contains(tipo)) return true;
+          }
+        }
       }
 
       // Fallback: feriados fixos do código
@@ -434,12 +446,12 @@ class PontoService {
         'isClosed': diaFechado,
         'isOpen': emAberto,
         'isAbsent': falta,
-        'updatedAt': Timestamp.now(),
+        'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
 
       await refMes.set({
         'balanceMinutes': oldBalance + diff,
-        'updatedAt': Timestamp.now(),
+        'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
     }
 
@@ -454,13 +466,15 @@ class PontoService {
         tx.set(
             refDia,
             {
+              'uid': uid,
+              'date': diaId,
               'workedMinutes': workedMinutes,
               'deltaMinutes': deltaMinutes,
               'workloadMinutes': workloadMinutes,
               'isClosed': diaFechado,
               'isOpen': emAberto,
               'isAbsent': falta,
-              'updatedAt': Timestamp.now(),
+              'updatedAt': FieldValue.serverTimestamp(),
             },
             SetOptions(merge: true));
 
@@ -468,7 +482,8 @@ class PontoService {
             refMes,
             {
               'balanceMinutes': oldBalance + diff,
-              'updatedAt': Timestamp.now(),
+              'updatedAt': FieldValue.serverTimestamp(),
+              'summaryCache': FieldValue.delete(),
             },
             SetOptions(merge: true));
       });
@@ -483,12 +498,13 @@ class PontoService {
   // 3. RESUMO DO MÊS (CORRIGIDO)
   static Future<MesResumo> getResumoMesAtualOld() async {
     final user = FirebaseAuth.instance.currentUser;
-    if (user == null)
+    if (user == null) {
       return const MesResumo(
           workedMinutes: 0,
           expectedMinutes: 0,
           businessDaysTotal: 0,
           monthBalance: 0.0);
+    }
 
     final uid = user.uid;
     final now = DateTime.now();
@@ -580,8 +596,153 @@ class PontoService {
     return totalMinutes;
   }
 
+  /// Reconstrói o array `eventosCache` no doc do dia após uma mutação.
+  /// Isso permite que `loadDaysByMonth` carregue eventos sem queries N+1.
+  static Future<void> _rebuildEventosCache({
+    required String uid,
+    required String diaId,
+  }) async {
+    final refDia = _refDia(uid, diaId);
+    final refEventos = _refEventos(uid, diaId);
+
+    final eventosSnap = await refEventos.orderBy('at', descending: false).get();
+    final eventosCache = eventosSnap.docs.map((d) {
+      final data = d.data();
+      return {
+        'id': d.id,
+        'tipo': (data['tipo'] ?? '').toString(),
+        'at': data['at'],
+        'workMode': (data['workMode'] ?? '').toString(),
+        'origin': (data['origin'] ?? 'registrado').toString(),
+      };
+    }).toList();
+
+    await refDia.set({
+      'eventosCache': eventosCache,
+    }, SetOptions(merge: true));
+  }
+
   /// Resumo do mês: horas feitas vs horas previstas (dias úteis),
   /// descontando finais de semana e feriados (BR + CE).
+  static Future<MesResumo> calcularResumoMensal(String uid, DateTime month) async {
+    final now = DateTime.now();
+    final isCurrentMonth = month.year == now.year && month.month == now.month;
+    final mesId = DateFormat('yyyy-MM').format(month);
+    final refMes = _refMes(uid, mesId);
+
+    // Se NÃO for o mês atual, tenta carregar o cache persistente do Firestore.
+    if (!isCurrentMonth) {
+      try {
+        final snap = await refMes.get();
+        if (snap.exists && snap.data()!.containsKey('summaryCache')) {
+          final cacheData = snap.data()!['summaryCache'] as Map<String, dynamic>;
+          return MesResumo.fromMap(cacheData);
+        }
+      } catch (_) {}
+    }
+
+    final calendarService = CalendarService();
+    final folgas = await calendarService.getDaysThatReduceWorkload(month.year, month.month);
+    
+    // Buscar atestados aprovados que caem neste mês para abonar a meta de saldo
+    final prefix = '${month.year}-${month.month.toString().padLeft(2, '0')}';
+    final atestadosSnap = await FirebaseFirestore.instance
+        .collection('atestados')
+        .where('uid', isEqualTo: uid)
+        .where('status', isEqualTo: 'approved')
+        .get();
+
+    final Set<String> atestadoDays = {};
+    for (final doc in atestadosSnap.docs) {
+      final data = doc.data();
+      final startStr = data['dataInicio']?.toString();
+      final endStr = data['dataFim']?.toString();
+      if (startStr != null && endStr != null) {
+        final startLocal = DateTime.tryParse(startStr);
+        final endLocal = DateTime.tryParse(endStr);
+        if (startLocal != null && endLocal != null) {
+          final start = DateTime.utc(startLocal.year, startLocal.month, startLocal.day, 12);
+          final end = DateTime.utc(endLocal.year, endLocal.month, endLocal.day, 12);
+          for (var d = start; !d.isAfter(end); d = d.add(const Duration(days: 1))) {
+            final diaId = '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+            if (diaId.startsWith(prefix)) atestadoDays.add(diaId);
+          }
+        }
+      }
+    }
+
+    final workloadMinutes = await _getWorkloadMinutes(uid);
+
+    // 1. Horas no mês: baseadas na jornada mensal esperada completa do mês consultado
+    int diasUteisNoMes = 0;
+    final ultimoDia = DateTime(month.year, month.month + 1, 0).day;
+
+    for (int i = 1; i <= ultimoDia; i++) {
+      final date = DateTime(month.year, month.month, i);
+      final diaId = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+      bool isWeekend = date.weekday == DateTime.saturday || date.weekday == DateTime.sunday;
+      bool isFolga = folgas.contains(diaId); // Inclui feriados fixos e artificiais via CalendarService
+      bool isAtestado = atestadoDays.contains(diaId);
+      if (!isWeekend && !isFolga && !isAtestado) diasUteisNoMes++;
+    }
+    
+    final int expectedMinutesTotal = diasUteisNoMes * workloadMinutes;
+
+    // "saldo: contabiliza todos os dias uteis ... até o dia atual do mês"
+    // Caso seja um mês passado, contabiliza até o último dia daquele mês.
+    final limitDay = isCurrentMonth ? now.day : ultimoDia;
+    
+    int expectedMinutesUntilLimit = 0;
+    for (int i = 1; i <= limitDay; i++) {
+      final date = DateTime(month.year, month.month, i);
+      final diaId = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+      bool isWeekend = date.weekday == DateTime.saturday || date.weekday == DateTime.sunday;
+      bool isFolga = folgas.contains(diaId);
+      bool isAtestado = atestadoDays.contains(diaId);
+      
+      // Assim como no user_reports_page, contabiliza apenas dias úteis na meta de saldo.
+      if (!isWeekend && !isFolga && !isAtestado) expectedMinutesUntilLimit += workloadMinutes;
+    }
+
+    // Pega as horas reais trabalhadas neste mês consultado
+    int workedMinutes = 0;
+    
+    final diasSnap = await FirebaseFirestore.instance
+        .collection(_root)
+        .doc(uid)
+        .collection('dias')
+        .where('date', isGreaterThanOrEqualTo: '$prefix-01')
+        .where('date', isLessThanOrEqualTo: '$prefix-31')
+        .get();
+
+    for (final doc in diasSnap.docs) {
+      final m = doc.data();
+      workedMinutes += (m['workedMinutes'] as int?) ?? 0;
+    }
+
+    // "subtrai isso (expectativa) pelo q realmente tem trabalhado e ent temos os saldo"
+    final double monthBalance = (workedMinutes - expectedMinutesUntilLimit).toDouble();
+
+    final resumo = MesResumo(
+      workedMinutes: workedMinutes,
+      expectedMinutes: expectedMinutesTotal,
+      businessDaysTotal: diasUteisNoMes,
+      monthBalance: monthBalance,
+    );
+
+    // Salva o cache persistente no Firestore para consultas futuras mais rápidas.
+    // Mesmo pro mês atual, serve de cache, mas pra meses passados é "eterno".
+    try {
+      await refMes.set({
+        'summaryCache': resumo.toMap(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    } catch (_) {}
+
+    return resumo;
+  }
+
+  /// Resumo do mês atual
   static Future<MesResumo> getResumoMesAtual() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
@@ -592,145 +753,7 @@ class PontoService {
         monthBalance: 0.0,
       );
     }
-
-    final uid = user.uid;
-    final now = DateTime.now();
-    final monthStart = DateTime(now.year, now.month, 1);
-    final nextMonthStart = DateTime(now.year, now.month + 1, 1);
-
-    final workloadMinutes = await _getWorkloadMinutes(uid);
-    final userCreatedAt = await _getUserCreatedAt(uid);
-    final balanceStart = (userCreatedAt != null && userCreatedAt.isAfter(monthStart))
-        ? userCreatedAt
-        : monthStart;
-
-    final holidays = getBrazilHolidays(now.year);
-
-    int businessDaysTotal = 0;
-    int expectedMinutes = 0;
-
-    for (var d = monthStart;
-        d.isBefore(nextMonthStart);
-        d = d.add(const Duration(days: 1))) {
-      final date = _startOfDay(d);
-      final isWeekend =
-          date.weekday == DateTime.saturday || date.weekday == DateTime.sunday;
-      final isHoliday = holidays.containsKey(date);
-      if (!isWeekend && !isHoliday) {
-        businessDaysTotal++;
-        expectedMinutes += workloadMinutes;
-      }
-    }
-
-    // Soma do que já foi calculado por dia dentro do mês.
-    final startId = _diaId(monthStart);
-    final endId = _diaId(nextMonthStart);
-    final diasSnap = await FirebaseFirestore.instance
-        .collection(_root)
-        .doc(uid)
-        .collection('dias')
-        .where('date', isGreaterThanOrEqualTo: startId)
-        .where('date', isLessThan: endId)
-        .get();
-
-    // Coleta dias com atestado aprovado (isExcused)
-    final excusedDayIds = diasSnap.docs
-        .where((d) => (d.data()['isExcused'] as bool?) == true)
-        .map((d) => d.id)
-        .toSet();
-
-    int workedMinutes = 0;
-    for (final doc in diasSnap.docs) {
-      final m = doc.data();
-      workedMinutes += (m['workedMinutes'] as int?) ?? 0;
-    }
-
-    // Hoje só entra no esperado se o dia estiver fechado (saída batida)
-    // ou se já passou das 20h (corte de falta)
-    final todayId = _diaId(DateTime(now.year, now.month, now.day));
-    final todayDoc = diasSnap.docs.where((d) => d.id == todayId).firstOrNull;
-    final bool diaHojeFechado =
-        (todayDoc?.data()['isClosed'] as bool?) ?? false;
-    final bool cutoffReached =
-        now.isAfter(DateTime(now.year, now.month, now.day, 20, 0));
-    final bool contarHoje = diaHojeFechado || cutoffReached;
-
-    int todayExpectedMinutes;
-    double monthBalance;
-    int expected = 0;
-    final today = DateTime(now.year, now.month, now.day);
-    for (var d = balanceStart;
-        d.isBefore(today) || (d.isAtSameMomentAs(today) && contarHoje);
-        d = d.add(const Duration(days: 1))) {
-      final isWeekend =
-          d.weekday == DateTime.saturday || d.weekday == DateTime.sunday;
-      final isHoliday = holidays.containsKey(d);
-      final isExcused = excusedDayIds.contains(_diaId(d));
-      if (!isWeekend && !isHoliday && !isExcused) {
-        expected += workloadMinutes;
-      }
-    }
-    // Dias anteriores ao balanceStart com registro manual real (workedMinutes > 0)
-    // também entram no esperado, para que as horas sejam tratadas como dia normal
-    // (trabalhado - esperado) e não como bônus puro.
-    // Docs com workedMinutes == 0 são apenas placeholders de falta auto-gerados
-    // e são ignorados aqui.
-    if (balanceStart.isAfter(monthStart)) {
-      for (final doc in diasSnap.docs) {
-        final d = _startOfDay(DateTime.parse(doc.id));
-        if (!d.isBefore(balanceStart)) continue;
-        final hasWork = ((doc.data()['workedMinutes'] as int?) ?? 0) > 0;
-        if (!hasWork) continue;
-        final isWeekend =
-            d.weekday == DateTime.saturday || d.weekday == DateTime.sunday;
-        final isHoliday = holidays.containsKey(d);
-        final isExcused = excusedDayIds.contains(doc.id);
-        if (!isWeekend && !isHoliday && !isExcused) {
-          expected += workloadMinutes;
-        }
-      }
-    }
-    todayExpectedMinutes = expected;
-
-    // Se hoje não entra no saldo esperado, também não conta as horas
-    // trabalhadas hoje para evitar que horas parciais inflem o saldo
-    final int todayWorked = (todayDoc?.data()['workedMinutes'] as int?) ?? 0;
-    final int workedForBalance = contarHoje ? workedMinutes : workedMinutes - todayWorked;
-
-    // Carry-over de meses anteriores: só conta dias que têm registro de ponto.
-    // Dias sem registro não geram débito (não são tratados como falta retroativa).
-    // Para cada dia com registro: pastBalance += workedMinutes - workloadMinutes.
-    int pastBalance = 0;
-    final currentMonthStartId = _diaId(monthStart);
-    final pastDiasSnap = await FirebaseFirestore.instance
-        .collection(_root)
-        .doc(uid)
-        .collection('dias')
-        .where('date', isLessThan: currentMonthStartId)
-        .get();
-
-    for (final doc in pastDiasSnap.docs) {
-      final worked = (doc.data()['workedMinutes'] as int?) ?? 0;
-      if (worked == 0) continue;
-      final d = _startOfDay(DateTime.parse(doc.id));
-      final isWeekend =
-          d.weekday == DateTime.saturday || d.weekday == DateTime.sunday;
-      final yearHolidays = getBrazilHolidays(d.year);
-      final isHoliday = yearHolidays.containsKey(d);
-      final isExcused = (doc.data()['isExcused'] as bool?) == true;
-      if (!isWeekend && !isHoliday && !isExcused) {
-        pastBalance += worked - workloadMinutes;
-      }
-    }
-
-    monthBalance = (workedForBalance - todayExpectedMinutes + pastBalance).toDouble();
-
-    return MesResumo(
-      workedMinutes: workedMinutes,
-      expectedMinutes: expectedMinutes,
-      businessDaysTotal: businessDaysTotal,
-      monthBalance: monthBalance,
-    );
+    return await calcularResumoMensal(user.uid, DateTime.now());
   }
 
   // Para a página de Relatórios (Admin ver saldo de qualquer usuário)
@@ -892,4 +915,22 @@ class MesResumo {
     required this.businessDaysTotal,
     required this.monthBalance,
   });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'workedMinutes': workedMinutes,
+      'expectedMinutes': expectedMinutes,
+      'businessDaysTotal': businessDaysTotal,
+      'monthBalance': monthBalance,
+    };
+  }
+
+  factory MesResumo.fromMap(Map<String, dynamic> map) {
+    return MesResumo(
+      workedMinutes: (map['workedMinutes'] as num? ?? 0).toInt(),
+      expectedMinutes: (map['expectedMinutes'] as num? ?? 0).toInt(),
+      businessDaysTotal: (map['businessDaysTotal'] as num? ?? 0).toInt(),
+      monthBalance: (map['monthBalance'] as num? ?? 0).toDouble(),
+    );
+  }
 }

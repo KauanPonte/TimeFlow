@@ -9,6 +9,10 @@ class CalendarService {
   // Nome da coleção centralizado para evitar erros de digitação
   static const String _collectionPath = 'calendar_events';
 
+  // Cache estático para evitar recálculos e queries repetidas na mesma sessão
+  static final Map<String, List<String>> _workloadReductionCache = {};
+  static final Map<int, Map<DateTime, String>> _brazilHolidaysCache = {};
+
   /// Formata DateTime para o ID usado nas queries do banco
   String _formatDateId(DateTime date) {
     return DateFormat('yyyy-MM-dd').format(date);
@@ -23,7 +27,7 @@ class CalendarService {
       'date': Timestamp.fromDate(cleanDate),
       'dateId': _formatDateId(cleanDate),
       'title': title,
-      'colorValue': color.value,
+      'colorValue': color.toARGB32(),
       'type': eventType.toLowerCase().trim(),
       'userId': uid,
       'createdAt': FieldValue.serverTimestamp(),
@@ -34,6 +38,11 @@ class CalendarService {
   }
 
   Future<List<String>> getDaysThatReduceWorkload(int year, int month) async {
+    final cacheKey = '$year-$month';
+    if (_workloadReductionCache.containsKey(cacheKey)) {
+      return _workloadReductionCache[cacheKey]!;
+    }
+
     // 1. Pega os feriados fixos da sua lógica (Brasil/CE)
     final holidaysMap = getBrazilHolidays(year);
     List<String> list = [];
@@ -58,7 +67,9 @@ class CalendarService {
       }
     }
 
-    return list.toSet().toList(); // Remove duplicados
+    final result = list.toSet().toList(); // Remove duplicados
+    _workloadReductionCache[cacheKey] = result;
+    return result;
   }
 
   Future<void> deleteEvent(String docId) async {
@@ -88,7 +99,7 @@ class CalendarService {
         final event = {
           'id': doc.id,
           'title': data['title'] ?? '',
-          'color': Color(data['colorValue'] ?? Colors.blue.value),
+          'color': Color(data['colorValue'] ?? Colors.blue.toARGB32()),
           'type': data['type'] ?? '',
           'userId': data['userId'] ?? '',
         };
@@ -118,6 +129,9 @@ class CalendarService {
 
   /// Lógica de Feriados movida para o Service para ser acessível globalmente
   Map<DateTime, String> getBrazilHolidays(int year) {
+    if (_brazilHolidaysCache.containsKey(year)) {
+      return _brazilHolidaysCache[year]!;
+    }
     Map<DateTime, String> holidays = {
       DateTime(year, 1, 1): "Confraternização Universal",
       DateTime(year, 4, 21): "Tiradentes",
@@ -153,6 +167,7 @@ class CalendarService {
     holidays[pascoa.subtract(const Duration(days: 47))] = "Carnaval";
     holidays[pascoa.add(const Duration(days: 60))] = "Corpus Christi";
 
+    _brazilHolidaysCache[year] = holidays;
     return holidays;
   }
 }

@@ -218,6 +218,7 @@ class _RegisteredUsersTabState extends State<RegisteredUsersTab>
                                       builder: (_) => HistoryPage(
                                         targetUid: user['id'],
                                         targetName: user['name'],
+                                        targetProfileImage: user['profileImage'] ?? user['profileImageURL'],
                                       ),
                                     ),
                                   );

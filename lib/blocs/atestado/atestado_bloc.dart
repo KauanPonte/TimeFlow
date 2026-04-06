@@ -35,9 +35,12 @@ class AtestadoBloc extends Bloc<AtestadoEvent, AtestadoState> {
     Emitter<AtestadoState> emit,
   ) async {
     try {
-      final list = await repository.getPendingAtestados();
+      final list = event.isAdmin
+          ? await repository.getPendingAtestados()
+          : await repository.getMyAtestados();
       _lastList = list;
-      emit(AtestadoLoaded(atestados: list, isAdmin: true));
+      _isAdmin = event.isAdmin;
+      emit(AtestadoLoaded(atestados: list, isAdmin: event.isAdmin));
     } catch (_) {}
   }
 

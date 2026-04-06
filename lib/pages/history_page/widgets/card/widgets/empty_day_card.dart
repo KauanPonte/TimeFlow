@@ -32,7 +32,7 @@ class EmptyDayCard extends StatelessWidget {
     this.holidayName,
   });
 
-  bool get _isAbsentDay => !disabled && !isWeekendOrHoliday(diaId);
+  bool get _isAbsentDay => !disabled && !isWeekendOrHoliday(diaId) && holidayName == null;
 
   @override
   Widget build(BuildContext context) {

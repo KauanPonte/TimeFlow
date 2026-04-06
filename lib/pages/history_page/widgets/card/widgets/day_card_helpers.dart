@@ -22,6 +22,15 @@ String formatTime(DateTime? dt) {
   return DateFormat('HH:mm').format(dt);
 }
 
+bool isWeekendDay(String diaId) {
+  try {
+    final date = DateTime.parse(diaId);
+    return date.weekday == DateTime.saturday || date.weekday == DateTime.sunday;
+  } catch (_) {
+    return false;
+  }
+}
+
 bool isWeekendOrHoliday(String diaId) {
   try {
     final date = DateTime.parse(diaId);
@@ -35,6 +44,7 @@ bool isWeekendOrHoliday(String diaId) {
     return false;
   }
 }
+
 
 bool isWeekendOrHolidayWithCalendar(
   String diaId,

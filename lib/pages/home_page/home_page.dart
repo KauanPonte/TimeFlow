@@ -12,6 +12,10 @@ import 'package:flutter_application_appdeponto/blocs/solicitations/solicitation_
 import 'package:flutter_application_appdeponto/models/solicitation_model.dart';
 import 'package:flutter_application_appdeponto/services/ponto_service.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
+import 'package:flutter_application_appdeponto/blocs/atestado/atestado_bloc.dart';
+import 'package:flutter_application_appdeponto/blocs/atestado/atestado_event.dart';
+import 'package:flutter_application_appdeponto/blocs/justificativa/justificativa_bloc.dart';
+import 'package:flutter_application_appdeponto/blocs/justificativa/justificativa_event.dart';
 import 'package:flutter_application_appdeponto/widgets/main_app_bar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -101,10 +105,23 @@ class _HomePageState extends State<HomePage> {
     context.read<SolicitationBloc>().add(
           SilentReloadSolicitationsEvent(isAdmin: _isAdmin),
         );
+    context.read<AtestadoBloc>().add(
+          SilentLoadAtestadosEvent(isAdmin: _isAdmin),
+        );
+    context.read<JustificativaBloc>().add(
+          SilentLoadJustificativasEvent(isAdmin: _isAdmin),
+        );
+
     _solTimer = Timer.periodic(const Duration(minutes: 2), (_) {
       if (mounted) {
         context.read<SolicitationBloc>().add(
               SilentReloadSolicitationsEvent(isAdmin: _isAdmin),
+            );
+        context.read<AtestadoBloc>().add(
+              SilentLoadAtestadosEvent(isAdmin: _isAdmin),
+            );
+        context.read<JustificativaBloc>().add(
+              SilentLoadJustificativasEvent(isAdmin: _isAdmin),
             );
       }
     });
@@ -139,6 +156,9 @@ class _HomePageState extends State<HomePage> {
           }
         }
       }
+
+      if (!mounted) return;
+
       if (shouldRefresh) {
         context.read<PontoTodayCubit>().refresh();
         context

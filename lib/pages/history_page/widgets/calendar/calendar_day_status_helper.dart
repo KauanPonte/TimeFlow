@@ -9,6 +9,7 @@ enum CalendarDayStatus {
   incomplete,
   pending,
   incompleteWithPending,
+  holiday,
 }
 
 class CalendarDayStatusHelper {
@@ -17,12 +18,14 @@ class CalendarDayStatusHelper {
   final String Function(DateTime day) dayIdFor;
   final bool Function(DateTime day) isFutureDate;
   final Set<String> holidayDayIds;
+  final Map<DateTime, List<Map<String, dynamic>>> calendarEvents;
 
   const CalendarDayStatusHelper({
     required this.daysMap,
     required this.pendingDayIds,
     required this.dayIdFor,
     required this.isFutureDate,
+    required this.calendarEvents,
     this.holidayDayIds = const {},
   });
 
@@ -32,13 +35,23 @@ class CalendarDayStatusHelper {
 
   List<Map<String, dynamic>> eventLoader(DateTime day) {
     final dayId = dayIdFor(day);
-    final eventos = daysMap[dayId] ?? const <Map<String, dynamic>>[];
+    final eventos = daysMap[dayId] ?? [];
+    
+    // Inclui feriados/recessos para garantir que o TableCalendar mostre marcadores
+    final holidayEvents = calendarEvents[normalizeDay(day)] ?? [];
+    
     if (pendingDayIds.contains(dayId) && eventos.isEmpty) {
-      return const <Map<String, dynamic>>[
+      return [
         {'_pendingOnly': true},
+        ...holidayEvents,
       ];
     }
-    return eventos;
+    
+    return [...eventos, ...holidayEvents];
+  }
+
+  static DateTime normalizeDay(DateTime day) {
+    return DateTime(day.year, day.month, day.day);
   }
 
   CalendarDayStatus statusForDay(DateTime day) {
@@ -69,6 +82,10 @@ class CalendarDayStatusHelper {
 
     if (hasPending) {
       return CalendarDayStatus.pending;
+    }
+
+    if (isHoliday(day)) {
+      return CalendarDayStatus.holiday;
     }
 
     return CalendarDayStatus.complete;
@@ -107,7 +124,7 @@ class CalendarDayStatusHelper {
     bool isHoliday = false,
   }) {
     final isWarning = _isWarningStatus(status);
-    //final isFuture = isFutureDate(day);
+    final isFuture = isFutureDate(day) && !isHoliday; // Feriados futuros ficam normais
 
     BoxDecoration? decoration;
     if (isSelected) {
@@ -145,11 +162,16 @@ class CalendarDayStatusHelper {
       );
     }
 
-    final textColor = isHoliday
+    Color textColor = isHoliday
         ? Colors.green[700]!
         : isWarning
             ? AppColors.warning
             : Colors.black;
+
+    // Se for futuro e não for feriado, acinzenta
+    if (isFuture) {
+      textColor = AppColors.textSecondary.withValues(alpha: 0.4);
+    }
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -217,6 +239,17 @@ class CalendarDayStatusHelper {
               shape: BoxShape.circle,
             ),
           ),
+        ),
+      );
+    }
+
+    if (status == CalendarDayStatus.holiday) {
+      return Container(
+        width: 6,
+        height: 6,
+        decoration: BoxDecoration(
+          color: Colors.green.withValues(alpha: 0.6),
+          shape: BoxShape.circle,
         ),
       );
     }
