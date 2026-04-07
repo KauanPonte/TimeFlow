@@ -170,4 +170,10 @@ class CalendarService {
     _brazilHolidaysCache[year] = holidays;
     return holidays;
   }
+
+  /// Limpa todos os caches estáticos do serviço.
+  static void clearStaticCache() {
+    _workloadReductionCache.clear();
+    _brazilHolidaysCache.clear();
+  }
 }

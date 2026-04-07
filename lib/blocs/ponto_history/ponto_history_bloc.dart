@@ -89,13 +89,6 @@ class PontoHistoryBloc extends Bloc<PontoHistoryEvent, PontoHistoryState> {
     }
   }
 
-  Future<Map<String, List<Map<String, dynamic>>>> _reloadMonth(String uid) {
-    return repository.loadDaysByMonth(
-      uid: uid,
-      year: _currentMonth.year,
-      month: _currentMonth.month,
-    );
-  }
 
   /// Recarrega sem emitir PontoHistoryLoading — mantém os dados atuais visíveis.
   Future<void> _onSilentReload(
@@ -133,13 +126,22 @@ class PontoHistoryBloc extends Bloc<PontoHistoryEvent, PontoHistoryState> {
         tipo: event.tipo,
         horario: event.horario,
       );
-      final daysMap = await _reloadMonth(_currentUid ?? event.uid);
-      _monthCache[_cacheKey(_currentMonth, _currentUid)] = daysMap;
-      _lastDaysMap = daysMap;
+      // Otimização: Recarrega apenas o dia alterado
+      final newDayEvents = await repository.loadEventsForDay(event.uid, event.diaId);
+      final updatedDaysMap = Map<String, List<Map<String, dynamic>>>.from(_lastDaysMap);
+      if (newDayEvents.isEmpty) {
+        updatedDaysMap.remove(event.diaId);
+      } else {
+        updatedDaysMap[event.diaId] = newDayEvents;
+      }
+      
+      _monthCache[_cacheKey(_currentMonth, _currentUid)] = updatedDaysMap;
+      _lastDaysMap = updatedDaysMap;
+      
       globalLoading?.hide();
       emit(PontoHistoryActionSuccess(
         message: 'Ponto adicionado com sucesso',
-        daysMap: daysMap,
+        daysMap: updatedDaysMap,
       ));
     } catch (e) {
       globalLoading?.hide();
@@ -167,13 +169,22 @@ class PontoHistoryBloc extends Bloc<PontoHistoryEvent, PontoHistoryState> {
         tipo: event.tipo,
         horario: event.horario,
       );
-      final daysMap = await _reloadMonth(_currentUid ?? event.uid);
-      _monthCache[_cacheKey(_currentMonth, _currentUid)] = daysMap;
-      _lastDaysMap = daysMap;
+      // Otimização: Recarrega apenas o dia alterado
+      final newDayEvents = await repository.loadEventsForDay(event.uid, event.diaId);
+      final updatedDaysMap = Map<String, List<Map<String, dynamic>>>.from(_lastDaysMap);
+      if (newDayEvents.isEmpty) {
+        updatedDaysMap.remove(event.diaId);
+      } else {
+        updatedDaysMap[event.diaId] = newDayEvents;
+      }
+      
+      _monthCache[_cacheKey(_currentMonth, _currentUid)] = updatedDaysMap;
+      _lastDaysMap = updatedDaysMap;
+
       globalLoading?.hide();
       emit(PontoHistoryActionSuccess(
         message: 'Ponto atualizado com sucesso',
-        daysMap: daysMap,
+        daysMap: updatedDaysMap,
       ));
     } catch (e) {
       globalLoading?.hide();
@@ -199,13 +210,22 @@ class PontoHistoryBloc extends Bloc<PontoHistoryEvent, PontoHistoryState> {
         diaId: event.diaId,
         eventoId: event.eventoId,
       );
-      final daysMap = await _reloadMonth(_currentUid ?? event.uid);
-      _monthCache[_cacheKey(_currentMonth, _currentUid)] = daysMap;
-      _lastDaysMap = daysMap;
+      // Otimização: Recarrega apenas o dia alterado
+      final newDayEvents = await repository.loadEventsForDay(event.uid, event.diaId);
+      final updatedDaysMap = Map<String, List<Map<String, dynamic>>>.from(_lastDaysMap);
+      if (newDayEvents.isEmpty) {
+        updatedDaysMap.remove(event.diaId);
+      } else {
+        updatedDaysMap[event.diaId] = newDayEvents;
+      }
+      
+      _monthCache[_cacheKey(_currentMonth, _currentUid)] = updatedDaysMap;
+      _lastDaysMap = updatedDaysMap;
+
       globalLoading?.hide();
       emit(PontoHistoryActionSuccess(
         message: 'Ponto removido com sucesso',
-        daysMap: daysMap,
+        daysMap: updatedDaysMap,
       ));
     } catch (e) {
       globalLoading?.hide();
@@ -233,13 +253,22 @@ class PontoHistoryBloc extends Bloc<PontoHistoryEvent, PontoHistoryState> {
         deletes: event.deletes,
         adds: event.adds,
       );
-      final daysMap = await _reloadMonth(_currentUid ?? event.uid);
-      _monthCache[_cacheKey(_currentMonth, _currentUid)] = daysMap;
-      _lastDaysMap = daysMap;
+      // Otimização: Recarrega apenas o dia alterado
+      final newDayEvents = await repository.loadEventsForDay(event.uid, event.diaId);
+      final updatedDaysMap = Map<String, List<Map<String, dynamic>>>.from(_lastDaysMap);
+      if (newDayEvents.isEmpty) {
+        updatedDaysMap.remove(event.diaId);
+      } else {
+        updatedDaysMap[event.diaId] = newDayEvents;
+      }
+      
+      _monthCache[_cacheKey(_currentMonth, _currentUid)] = updatedDaysMap;
+      _lastDaysMap = updatedDaysMap;
+
       globalLoading?.hide();
       emit(PontoHistoryActionSuccess(
         message: 'Alterações salvas com sucesso',
-        daysMap: daysMap,
+        daysMap: updatedDaysMap,
       ));
     } catch (e) {
       globalLoading?.hide();

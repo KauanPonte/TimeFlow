@@ -770,6 +770,8 @@ class PontoService {
     return (snap.data()?['balanceMinutes'] as int?) ?? 0;
   }
 
+  static final Map<String, DateTime> _recalcThrottleMap = {};
+
   /// Garante o desconto de faltas em dias úteis passados (mês atual),
   /// e também para o dia de hoje após o horário de corte.
   static Future<void> recalcularFaltasMesAtual({
@@ -778,8 +780,15 @@ class PontoService {
   }) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
-
     final uid = user.uid;
+
+    // Cache/Throttle: não recalcula se foi feito nos últimos 5 minutos
+    final lastTime = _recalcThrottleMap[uid];
+    if (lastTime != null && 
+        DateTime.now().difference(lastTime).inMinutes < 5) {
+      return;
+    }
+    _recalcThrottleMap[uid] = DateTime.now();
     final now = DateTime.now();
     final monthStart = DateTime(now.year, now.month, 1);
     final nextMonthStart = DateTime(now.year, now.month + 1, 1);

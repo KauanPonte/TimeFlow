@@ -1,33 +1,16 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/material.dart';
+
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 
-class DailyReminderSettings {
-  final TimeOfDay time;
-  final bool enabled;
-
-  const DailyReminderSettings({
-    required this.time,
-    required this.enabled,
-  });
-}
+import '../models/scheduled_reminder.dart';
 
 class NotificationService {
-  static const int _dailyNotificationId = 999;
-  static const String _dailyChannelId = 'daily_reminder_channel_v2';
-  static const String _dailyChannelName = 'Lembrete Diário de Ponto';
-  static const int _defaultDailyHour = 9;
-  static const int _defaultDailyMinute = 0;
-  static const bool _defaultDailyEnabled = true;
   static const String _usersCollection = 'usuarios';
-  static const String _dailyReminderHourField = 'dailyReminderHour';
-  static const String _dailyReminderMinuteField = 'dailyReminderMinute';
-  static const String _dailyReminderEnabledField = 'dailyReminderEnabled';
   static const String _sessionUidKey = 'userUid';
 
   // Instância principal do plugin
@@ -37,12 +20,6 @@ class NotificationService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   static String? _cachedUid;
-  static bool _hasCachedSettings = false;
-  static TimeOfDay _cachedDailyReminderTime = const TimeOfDay(
-    hour: _defaultDailyHour,
-    minute: _defaultDailyMinute,
-  );
-  static bool _cachedDailyReminderEnabled = _defaultDailyEnabled;
 
   /// Inicialização do sistema de notificações
   static Future<void> init() async {
@@ -115,219 +92,177 @@ class NotificationService {
     return uid;
   }
 
-  static DailyReminderSettings _defaultSettings() {
-    return const DailyReminderSettings(
-      time: TimeOfDay(
-        hour: _defaultDailyHour,
-        minute: _defaultDailyMinute,
-      ),
-      enabled: _defaultDailyEnabled,
-    );
+  /// Reagenda o lembrete da última conta logada no dispositivo.
+  static Future<void> scheduleForLastLoggedUser() async {
+    final uid = await _resolveUid();
+    if (uid == null) {
+      await cancelAllScheduledReminders();
+      return;
+    }
+    await scheduleAllReminders(uid: uid);
   }
 
-  static DailyReminderSettings _cachedSettings() {
-    return DailyReminderSettings(
-      time: _cachedDailyReminderTime,
-      enabled: _cachedDailyReminderEnabled,
-    );
-  }
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 📋 NOTIFICAÇÕES AGENDADAS POR CATEGORIA (entrada, pausa, volta, saída)
+  // ═══════════════════════════════════════════════════════════════════════════
 
-  static void _updateCache({
-    required String uid,
-    required TimeOfDay time,
-    required bool enabled,
-  }) {
-    _cachedUid = uid;
-    _hasCachedSettings = true;
-    _cachedDailyReminderTime = time;
-    _cachedDailyReminderEnabled = enabled;
-  }
+  static const String _scheduledRemindersField = 'scheduledReminders';
+  static const String _scheduledChannelId = 'scheduled_reminders_channel';
+  static const String _scheduledChannelName = 'Lembretes Agendados';
 
-  static bool _canUseCache(String uid) {
-    return _hasCachedSettings && _cachedUid == uid;
-  }
+  // Cache de lembretes agendados
+  static List<ScheduledReminder> _cachedScheduledReminders = [];
+  static bool _hasLoadedScheduledReminders = false;
 
-  /// Carrega hora + status do lembrete do servidor e mantém em cache.
-  static Future<DailyReminderSettings> preloadDailyReminderSettings({
+  /// Carrega todos os lembretes agendados do usuário.
+  static Future<List<ScheduledReminder>> getScheduledReminders({
     String? uid,
   }) async {
     final resolvedUid = uid ?? await _resolveUid();
-    if (resolvedUid == null) {
-      return _defaultSettings();
+    if (resolvedUid == null) return [];
+
+    // Retorna do cache se já carregado para o mesmo usuário
+    if (_hasLoadedScheduledReminders && _cachedUid == resolvedUid) {
+      return List.unmodifiable(_cachedScheduledReminders);
     }
 
     try {
       final snap =
           await _firestore.collection(_usersCollection).doc(resolvedUid).get();
-      final data = snap.data() ?? <String, dynamic>{};
+      final data = snap.data();
+      if (data == null || !data.containsKey(_scheduledRemindersField)) {
+        _cachedScheduledReminders = [];
+        _hasLoadedScheduledReminders = true;
+        _cachedUid = resolvedUid;
+        return [];
+      }
 
-      final hour = (data[_dailyReminderHourField] as int?) ?? _defaultDailyHour;
-      final minute =
-          (data[_dailyReminderMinuteField] as int?) ?? _defaultDailyMinute;
-      final enabled =
-          (data[_dailyReminderEnabledField] as bool?) ?? _defaultDailyEnabled;
+      final remindersList = data[_scheduledRemindersField] as List<dynamic>;
+      _cachedScheduledReminders = remindersList
+          .map((e) => ScheduledReminder.fromFirestore(e as Map<String, dynamic>))
+          .toList();
+      _hasLoadedScheduledReminders = true;
+      _cachedUid = resolvedUid;
 
-      final settings = DailyReminderSettings(
-        time: TimeOfDay(hour: hour, minute: minute),
-        enabled: enabled,
-      );
-
-      _updateCache(
-        uid: resolvedUid,
-        time: settings.time,
-        enabled: settings.enabled,
-      );
-      return settings;
+      return List.unmodifiable(_cachedScheduledReminders);
     } catch (_) {
-      if (_canUseCache(resolvedUid)) return _cachedSettings();
-      return _defaultSettings();
+      return List.unmodifiable(_cachedScheduledReminders);
     }
   }
 
-  static Future<DailyReminderSettings> getDailyReminderSettings(
-      {String? uid}) async {
-    final resolvedUid = uid ?? await _resolveUid();
-    if (resolvedUid == null) return _defaultSettings();
-    if (_canUseCache(resolvedUid)) return _cachedSettings();
-    return preloadDailyReminderSettings(uid: resolvedUid);
-  }
-
-  /// Retorna o horário diário salvo no servidor para o usuário (ou 09:00).
-  static Future<TimeOfDay> getDailyReminderTime({String? uid}) async {
-    final settings = await getDailyReminderSettings(uid: uid);
-    return settings.time;
-  }
-
-  static Future<bool> isDailyReminderEnabled({String? uid}) async {
-    final settings = await getDailyReminderSettings(uid: uid);
-    return settings.enabled;
-  }
-
-  /// Persiste no servidor o horário escolhido para o lembrete diário.
-  static Future<void> saveDailyReminderTime({
-    required int hour,
-    required int minute,
+  /// Salva a lista de lembretes agendados no Firestore.
+  static Future<void> saveScheduledReminders(
+    List<ScheduledReminder> reminders, {
     String? uid,
   }) async {
     final resolvedUid = uid ?? await _resolveUid();
     if (resolvedUid == null) return;
 
     await _firestore.collection(_usersCollection).doc(resolvedUid).set({
-      _dailyReminderHourField: hour,
-      _dailyReminderMinuteField: minute,
+      _scheduledRemindersField: reminders.map((r) => r.toFirestore()).toList(),
     }, SetOptions(merge: true));
 
-    _updateCache(
-      uid: resolvedUid,
-      time: TimeOfDay(hour: hour, minute: minute),
-      enabled: _canUseCache(resolvedUid)
-          ? _cachedDailyReminderEnabled
-          : _defaultDailyEnabled,
-    );
+    _cachedScheduledReminders = List.from(reminders);
+    _hasLoadedScheduledReminders = true;
+    _cachedUid = resolvedUid;
   }
 
-  static Future<void> setDailyReminderEnabled({
+  /// Adiciona um novo lembrete agendado.
+  static Future<void> addScheduledReminder(
+    ScheduledReminder reminder, {
+    String? uid,
+  }) async {
+    final current = await getScheduledReminders(uid: uid);
+    final updated = [...current, reminder];
+    await saveScheduledReminders(updated, uid: uid);
+    
+    if (reminder.enabled) {
+      await _scheduleReminder(reminder);
+    }
+  }
+
+  /// Atualiza um lembrete existente.
+  static Future<void> updateScheduledReminder(
+    ScheduledReminder reminder, {
+    String? uid,
+  }) async {
+    final current = await getScheduledReminders(uid: uid);
+    final index = current.indexWhere((r) => r.id == reminder.id);
+    if (index == -1) return;
+
+    final updated = List<ScheduledReminder>.from(current);
+    updated[index] = reminder;
+    await saveScheduledReminders(updated, uid: uid);
+
+    // Cancela a notificação anterior e reagenda se habilitada
+    await _cancelReminder(reminder);
+    if (reminder.enabled) {
+      await _scheduleReminder(reminder);
+    }
+  }
+
+  /// Remove um lembrete agendado.
+  static Future<void> removeScheduledReminder(
+    String reminderId, {
+    String? uid,
+  }) async {
+    final current = await getScheduledReminders(uid: uid);
+    final reminder = current.cast<ScheduledReminder?>().firstWhere(
+          (r) => r?.id == reminderId,
+          orElse: () => null,
+        );
+
+    if (reminder != null) {
+      await _cancelReminder(reminder);
+    }
+
+    final updated = current.where((r) => r.id != reminderId).toList();
+    await saveScheduledReminders(updated, uid: uid);
+  }
+
+  /// Alterna o estado habilitado/desabilitado de um lembrete.
+  static Future<void> toggleScheduledReminder(
+    String reminderId, {
     required bool enabled,
     String? uid,
   }) async {
-    final resolvedUid = uid ?? await _resolveUid();
-    if (resolvedUid == null) return;
+    final current = await getScheduledReminders(uid: uid);
+    final index = current.indexWhere((r) => r.id == reminderId);
+    if (index == -1) return;
 
-    await _firestore.collection(_usersCollection).doc(resolvedUid).set({
-      _dailyReminderEnabledField: enabled,
-    }, SetOptions(merge: true));
-
-    _updateCache(
-      uid: resolvedUid,
-      time: _canUseCache(resolvedUid)
-          ? _cachedDailyReminderTime
-          : const TimeOfDay(
-              hour: _defaultDailyHour,
-              minute: _defaultDailyMinute,
-            ),
-      enabled: enabled,
-    );
+    final updated = List<ScheduledReminder>.from(current);
+    updated[index] = updated[index].copyWith(enabled: enabled);
+    await saveScheduledReminders(updated, uid: uid);
 
     if (enabled) {
-      await scheduleSavedDailyReminder(uid: resolvedUid);
+      await _scheduleReminder(updated[index]);
     } else {
-      await cancelDailyReminder();
+      await _cancelReminder(updated[index]);
     }
   }
 
-  /// Agenda o lembrete diário usando o horário salvo no servidor.
-  static Future<void> scheduleSavedDailyReminder({String? uid}) async {
-    final settings = await getDailyReminderSettings(uid: uid);
-    if (!settings.enabled) {
-      await cancelDailyReminder();
-      return;
+  /// Agenda todas as notificações habilitadas do usuário.
+  static Future<void> scheduleAllReminders({String? uid}) async {
+    final reminders = await getScheduledReminders(uid: uid);
+    
+    for (final reminder in reminders) {
+      if (reminder.enabled) {
+        await _scheduleReminder(reminder);
+      }
     }
-
-    final time = settings.time;
-    await scheduleDailyNotification(
-      title: _getGreeting(time.hour),
-      body: 'Mais um day office! Já bateu seu ponto hoje?',
-      hour: time.hour,
-      minute: time.minute,
-    );
   }
 
-  /// Garante que o lembrete diário esteja realmente agendado no SO.
-  ///
-  /// Em alguns aparelhos, o agendamento pode ser removido pelo sistema.
-  /// Esse método verifica pendências e recria quando necessário.
-  static Future<void> ensureDailyReminderScheduled({String? uid}) async {
-    final settings = await getDailyReminderSettings(uid: uid);
-    if (!settings.enabled) {
-      await cancelDailyReminder();
-      return;
+  /// Cancela todas as notificações agendadas do usuário.
+  static Future<void> cancelAllScheduledReminders({String? uid}) async {
+    final reminders = await getScheduledReminders(uid: uid);
+    
+    for (final reminder in reminders) {
+      await _cancelReminder(reminder);
     }
-
-    final pending = await _plugin.pendingNotificationRequests();
-    final alreadyScheduled = pending.any((n) => n.id == _dailyNotificationId);
-
-    if (alreadyScheduled) return;
-
-    await scheduleDailyNotification(
-      title: _getGreeting(settings.time.hour),
-      body: 'Mais um day office! Já bateu seu ponto hoje?',
-      hour: settings.time.hour,
-      minute: settings.time.minute,
-    );
   }
 
-  /// Salva e agenda imediatamente o lembrete diário.
-  static Future<void> updateAndScheduleDailyReminder({
-    required int hour,
-    required int minute,
-    String? uid,
-  }) async {
-    await saveDailyReminderTime(hour: hour, minute: minute, uid: uid);
-    await scheduleSavedDailyReminder(uid: uid);
-  }
-
-  /// Reagenda o lembrete da última conta logada no dispositivo.
-  static Future<void> scheduleForLastLoggedUser() async {
-    final uid = await _resolveUid();
-    if (uid == null) {
-      await cancelDailyReminder();
-      return;
-    }
-    await preloadDailyReminderSettings(uid: uid);
-    await ensureDailyReminderScheduled(uid: uid);
-  }
-
-  static Future<void> cancelDailyReminder() async {
-    await _plugin.cancel(_dailyNotificationId);
-  }
-
-  /// Notificação diária
-  static Future<void> scheduleDailyNotification({
-    required String title,
-    required String body,
-    required int hour,
-    required int minute,
-  }) async {
+  /// Agenda uma notificação individual.
+  static Future<void> _scheduleReminder(ScheduledReminder reminder) async {
     final now = tz.TZDateTime.now(tz.local);
 
     var scheduledDate = tz.TZDateTime(
@@ -335,31 +270,31 @@ class NotificationService {
       now.year,
       now.month,
       now.day,
-      hour,
-      minute,
+      reminder.hour,
+      reminder.minute,
     );
 
-    // se já passou hoje → agenda amanhã
+    // Se já passou hoje, agenda para amanhã
     if (scheduledDate.isBefore(now)) {
       scheduledDate = scheduledDate.add(const Duration(days: 1));
     }
 
-    const details = NotificationDetails(
+    final details = NotificationDetails(
       android: AndroidNotificationDetails(
-        _dailyChannelId,
-        _dailyChannelName,
+        _scheduledChannelId,
+        _scheduledChannelName,
         importance: Importance.max,
         priority: Priority.high,
+        color: reminder.category.color,
       ),
     );
 
-    await requestPermissions();
-    // Evita estados inconsistentes quando o SO mantém um agendamento antigo.
-    await cancelDailyReminder();
+    final title = reminder.label ?? reminder.category.notificationTitle;
+    final body = reminder.category.notificationBody;
 
     try {
       await _plugin.zonedSchedule(
-        _dailyNotificationId,
+        reminder.notificationId,
         title,
         body,
         scheduledDate,
@@ -368,10 +303,9 @@ class NotificationService {
         matchDateTimeComponents: DateTimeComponents.time,
       );
     } catch (_) {
-      // Fallback: agendamento inexato quando a permissão de alarme exato
-      // não foi concedida pelo usuário (Android 12+).
+      // Fallback para agendamento inexato
       await _plugin.zonedSchedule(
-        _dailyNotificationId,
+        reminder.notificationId,
         title,
         body,
         scheduledDate,
@@ -380,21 +314,17 @@ class NotificationService {
         matchDateTimeComponents: DateTimeComponents.time,
       );
     }
-
-    final pending = await _plugin.pendingNotificationRequests();
-    final isScheduled = pending.any((n) => n.id == _dailyNotificationId);
-    if (!isScheduled) {
-      throw Exception('Falha ao agendar lembrete diário no sistema.');
-    }
   }
 
-  static String _getGreeting(int hour) {
-    if (hour >= 5 && hour < 12) {
-      return 'Bom dia! ☀️';
-    } else if (hour >= 12 && hour < 18) {
-      return 'Boa tarde! 🌤️';
-    } else {
-      return 'Boa noite! 🌙';
-    }
+  /// Cancela uma notificação individual.
+  static Future<void> _cancelReminder(ScheduledReminder reminder) async {
+    await _plugin.cancel(reminder.notificationId);
+  }
+
+  /// Invalida o cache de lembretes agendados.
+  static void invalidateScheduledRemindersCache() {
+    _hasLoadedScheduledReminders = false;
+    _cachedScheduledReminders = [];
+    _cachedUid = null;
   }
 }

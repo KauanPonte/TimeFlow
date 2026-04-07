@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/ponto_data/ponto_data_changed_cubit.dart';
 import 'package:flutter_application_appdeponto/services/ponto_service.dart';
@@ -36,9 +38,6 @@ class PontoTodayCubit extends Cubit<PontoTodayState> {
       await PontoService.recalcularFaltasMesAtual();
       final results = await Future.wait([
         PontoService.loadEventosHoje(),
-        PontoService.loadEventosHojeFormatados(),
-        PontoService.getUltimoTipoHoje(),
-        PontoService.loadRegistros(),
         PontoService.getLockedWorkModeHoje(),
         PontoService.getResumoMesAtual(),
         PontoService.getCargaHorariaUsuarioAtual(),
@@ -47,19 +46,33 @@ class PontoTodayCubit extends Cubit<PontoTodayState> {
       _loadedOnce = true;
 
       if (!isClosed) {
-        final ultimoTipo = results[2] as String?;
-        final mesResumo = results[5] as MesResumo;
-        final workloadMinutes = results[6] as int;
+        final eventos = results[0] as List<Map<String, dynamic>>;
+        final lockedWorkMode = results[1] as String?;
+        final mesResumo = results[2] as MesResumo;
+        final workloadMinutes = results[3] as int;
 
         _scheduleCutoffRefresh();
 
+        // Formata os eventos aqui mesmo para evitar query duplicada
+        final eventosFormatados = eventos.map((m) {
+          final at = m['at'];
+          final hora = at is Timestamp 
+              ? DateFormat('HH:mm').format(at.toDate())
+              : '';
+          return {
+            'tipo': m['tipo'].toString(),
+            'hora': hora,
+            'workMode': m['workMode'].toString(),
+            'origin': m['origin'].toString(),
+          };
+        }).toList();
+
         emit(PontoTodayState(
           loading: false,
-          eventosHoje: results[0] as List<Map<String, dynamic>>,
-          eventosHojeFormatados: results[1] as List<Map<String, String>>,
-          ultimoTipo: ultimoTipo,
-          lockedWorkMode: results[4] as String?,
-          registros: results[3] as Map<String, Map<String, String>>,
+          eventosHoje: eventos,
+          eventosHojeFormatados: eventosFormatados,
+          ultimoTipo: eventos.isNotEmpty ? eventos.last['tipo'].toString() : null,
+          lockedWorkMode: lockedWorkMode,
           monthBalance: mesResumo.monthBalance,
           monthWorkedMinutes: mesResumo.workedMinutes,
           monthExpectedMinutes: mesResumo.expectedMinutes,
