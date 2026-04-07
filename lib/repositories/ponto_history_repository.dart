@@ -61,6 +61,19 @@ class PontoHistoryRepository {
     return result;
   }
 
+  /// Carrega os eventos de um dia específico.
+  Future<List<Map<String, dynamic>>> loadEventsForDay(String uid, String diaId) async {
+    final doc = await _firestore
+        .collection(_root)
+        .doc(uid)
+        .collection('dias')
+        .doc(diaId)
+        .get();
+
+    if (!doc.exists) return [];
+    return _extractEventos(doc);
+  }
+
   /// Carrega apenas os dias de um mês específico.
   /// Retorna mapa de diaId → eventos para merge na UI.
   ///
@@ -80,19 +93,15 @@ class PontoHistoryRepository {
     final prefix =
         '${year.toString().padLeft(4, '0')}-${month.toString().padLeft(2, '0')}';
 
-    // Busca TODOS os docs de dias e filtra pelo prefixo do mês via doc ID.
-    // Isso evita depender do campo 'date' (que pode estar ausente em docs
-    // criados pela transação de recalcularBancoDeHorasDoDia).
-    final allDiasSnap = await _firestore
+    final monthDocsSnap = await _firestore
         .collection(_root)
         .doc(resolvedUid)
         .collection('dias')
+        .where(FieldPath.documentId, isGreaterThanOrEqualTo: '$prefix-01')
+        .where(FieldPath.documentId, isLessThanOrEqualTo: '$prefix-31')
         .get();
 
-    final monthDocs = allDiasSnap.docs
-        .where((doc) => doc.id.startsWith(prefix))
-        .toList();
-
+    final monthDocs = monthDocsSnap.docs;
     final result = <String, List<Map<String, dynamic>>>{};
 
     // Processa todos os dias em PARALELO (antes era sequencial = lento)

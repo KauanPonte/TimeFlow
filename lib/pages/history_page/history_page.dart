@@ -178,8 +178,11 @@ class _HistoryViewState extends State<_HistoryView> {
       });
       _loadedFixedHolidaysYears.add(year);
 
-      final snapshot =
-          await FirebaseFirestore.instance.collection('calendar_events').get();
+      final snapshot = await FirebaseFirestore.instance
+          .collection('calendar_events')
+          .where('year', isEqualTo: year)
+          .where('month', isEqualTo: _currentMonth.month)
+          .get();
 
       for (var doc in snapshot.docs) {
         final data = doc.data();
