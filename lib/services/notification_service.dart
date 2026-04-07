@@ -325,5 +325,6 @@ class NotificationService {
   static void invalidateScheduledRemindersCache() {
     _hasLoadedScheduledReminders = false;
     _cachedScheduledReminders = [];
+    _cachedUid = null;
   }
 }

@@ -4,6 +4,8 @@ import 'package:flutter_application_appdeponto/models/auth_field.dart';
 import 'package:flutter_application_appdeponto/blocs/auth/auth_state.dart';
 import 'package:flutter_application_appdeponto/repositories/auth_repository.dart';
 import 'package:flutter_application_appdeponto/services/notification_service.dart';
+import 'package:flutter_application_appdeponto/services/excused_days_cache_service.dart';
+import 'package:flutter_application_appdeponto/pages/home_page/pages/calendar_service.dart';
 
 /// BLoC responsible for managing all authentication logic
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
@@ -326,13 +328,20 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     }
   }
 
-  /// Handler for logout
   Future<void> _onLogoutRequested(
     LogoutRequested event,
     Emitter<AuthState> emit,
   ) async {
-    await _authRepository.clearUserSession();
-    await NotificationService.cancelAllScheduledReminders();
+    // 1. Firebase SignOut e SharedPreferences clear
+    await _authRepository.logout();
+
+    // 2. Clear in-memory service caches
+    NotificationService.cancelAllScheduledReminders(); // Silencioso
+    NotificationService.invalidateScheduledRemindersCache();
+    ExcusedDaysCacheService().clearAllCache();
+    CalendarService.clearStaticCache();
+
+    // 3. Reset state
     _fieldsState = const AuthFieldsState();
     emit(_fieldsState);
   }
