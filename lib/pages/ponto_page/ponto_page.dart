@@ -10,13 +10,14 @@ import '../../widgets/custom_snackbar.dart';
 import '../../services/notification_service.dart';
 import '../../services/ponto_validator.dart';
 import '../../services/location_service.dart';
-import '../../widgets/time_picker.dart';
+
 import '../../theme/app_colors.dart';
 import '../../theme/app_text_styles.dart';
 import 'widgets/clock_card.dart';
 import 'widgets/status_badge.dart';
 import 'widgets/action_row.dart';
 import 'widgets/today_timeline.dart';
+import 'widgets/scheduled_reminders_modal.dart';
 
 class PontoPage extends StatefulWidget {
   const PontoPage({super.key});
@@ -32,8 +33,6 @@ class _PontoPageState extends State<PontoPage> {
   late DateTime _now;
   Timer? _clockTimer;
   String? _selectedWorkMode;
-  TimeOfDay _dailyReminderTime = const TimeOfDay(hour: 9, minute: 0);
-  bool _dailyReminderEnabled = true;
 
   /// Modo efetivo: usa o lock do cubit se existir, senão a seleção local.
   String? _effectiveWorkMode(PontoTodayState state) {
@@ -48,7 +47,6 @@ class _PontoPageState extends State<PontoPage> {
   void initState() {
     super.initState();
     _checkFeriadoStatus();
-    _loadDailyReminderSettings();
     _now = DateTime.now();
     _clockTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted) setState(() => _now = DateTime.now());
@@ -56,69 +54,6 @@ class _PontoPageState extends State<PontoPage> {
 
     // Garante que o cubit tenha dados carregados.
     context.read<PontoTodayCubit>().load();
-  }
-
-  Future<void> _loadDailyReminderSettings() async {
-    final settings = await NotificationService.getDailyReminderSettings();
-    await NotificationService.ensureDailyReminderScheduled();
-    if (!mounted) return;
-    setState(() {
-      _dailyReminderTime = settings.time;
-      _dailyReminderEnabled = settings.enabled;
-    });
-  }
-
-  String _formatTime(TimeOfDay time) {
-    return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
-  }
-
-  Future<void> _pickDailyReminderTime() async {
-    final picked = await showTimePicker24h(context, _dailyReminderTime);
-    if (picked == null) return;
-
-    try {
-      await NotificationService.updateAndScheduleDailyReminder(
-        hour: picked.hour,
-        minute: picked.minute,
-      );
-    } catch (_) {
-      if (!mounted) return;
-      CustomSnackbar.showError(
-        context,
-        'Não foi possível salvar o lembrete no servidor.',
-      );
-      return;
-    }
-
-    if (!mounted) return;
-    setState(() => _dailyReminderTime = picked);
-    CustomSnackbar.showSuccess(
-      context,
-      _dailyReminderEnabled
-          ? 'Lembrete diário definido para ${_formatTime(picked)}.'
-          : 'Horário salvo (${_formatTime(picked)}). Ative o lembrete para notificar.',
-    );
-  }
-
-  Future<void> _toggleDailyReminder(bool value) async {
-    final previous = _dailyReminderEnabled;
-    setState(() => _dailyReminderEnabled = value);
-
-    try {
-      await NotificationService.setDailyReminderEnabled(enabled: value);
-      if (!mounted) return;
-      CustomSnackbar.showSuccess(
-        context,
-        value ? 'Lembrete diário ativado.' : 'Lembrete diário desativado.',
-      );
-    } catch (_) {
-      if (!mounted) return;
-      setState(() => _dailyReminderEnabled = previous);
-      CustomSnackbar.showError(
-        context,
-        'Não foi possível atualizar o lembrete.',
-      );
-    }
   }
 
   Future<void> _checkFeriadoStatus() async {
@@ -375,6 +310,7 @@ class _PontoPageState extends State<PontoPage> {
                     ClockCard(now: _now),
                     const SizedBox(height: 16),
 
+                    // Card de Lembretes
                     Container(
                       decoration: BoxDecoration(
                         color: AppColors.surface,
@@ -388,43 +324,46 @@ class _PontoPageState extends State<PontoPage> {
                           ),
                         ],
                       ),
-                      child: ListTile(
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 4,
-                        ),
-                        leading: Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: AppColors.primaryLight10,
-                            borderRadius: BorderRadius.circular(10),
+                      child: Column(
+                        children: [
+                          // Lembretes personalizados
+                          ListTile(
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 4,
+                            ),
+                            leading: Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                color: AppColors.primaryLight10,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Icon(
+                                Icons.notifications_active_rounded,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                            title: Text(
+                              'Lembretes personalizados',
+                              style: AppTextStyles.bodyLarge.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                            subtitle: Text(
+                              'Entrada, pausa, volta e saída',
+                              style: AppTextStyles.bodyMedium.copyWith(
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                            trailing: const Icon(
+                              Icons.chevron_right_rounded,
+                              color: AppColors.textSecondary,
+                            ),
+                            onTap: () => ScheduledRemindersModal.show(context),
                           ),
-                          child: const Icon(
-                            Icons.alarm,
-                            color: AppColors.primary,
-                          ),
-                        ),
-                        title: Text(
-                          'Lembrete diário de ponto',
-                          style: AppTextStyles.bodyLarge.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                        subtitle: Text(
-                          _dailyReminderEnabled
-                              ? 'Ativo às ${_formatTime(_dailyReminderTime)}'
-                              : 'Desativado • Horário salvo ${_formatTime(_dailyReminderTime)}',
-                          style: AppTextStyles.bodyMedium.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                        trailing: Switch.adaptive(
-                          value: _dailyReminderEnabled,
-                          onChanged: _toggleDailyReminder,
-                        ),
-                        onTap: _pickDailyReminderTime,
+                        ],
                       ),
                     ),
                     const SizedBox(height: 20),

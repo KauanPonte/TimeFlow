@@ -68,9 +68,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
       // Save user session
       await _authRepository.saveUserSession(userData);
-      await NotificationService.scheduleSavedDailyReminder(
-        uid: (userData['uid'] ?? '').toString(),
-      );
+      final uid = (userData['uid'] ?? '').toString();
+      await NotificationService.scheduleAllReminders(uid: uid);
 
       _fieldsState = const AuthFieldsState();
       emit(UserAuthenticated(userData: userData));
@@ -333,7 +332,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     Emitter<AuthState> emit,
   ) async {
     await _authRepository.clearUserSession();
-    await NotificationService.cancelDailyReminder();
+    await NotificationService.cancelAllScheduledReminders();
     _fieldsState = const AuthFieldsState();
     emit(_fieldsState);
   }
@@ -351,9 +350,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         // Validate that user still exists in registered users
         final userExists = await _authRepository.validateEmail(email);
         if (userExists) {
-          await NotificationService.scheduleSavedDailyReminder(
-            uid: (userData['uid'] ?? '').toString(),
-          );
+          final uid = (userData['uid'] ?? '').toString();
+          await NotificationService.scheduleAllReminders(uid: uid);
           // User is authenticated and exists
           emit(UserAuthenticated(userData: userData));
           return;
