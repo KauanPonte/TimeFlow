@@ -20,43 +20,55 @@ class PontoTodayCubit extends Cubit<PontoTodayState> {
     _dataChangedSub = _dataChangedCubit.stream.listen((_) => refresh());
   }
 
-  /// Carrega todos os dados do dia.
+  /// Carrega todos os dados do dia, incluindo o saldo acumulado.
   Future<void> load() async {
     if (!_loadedOnce) {
       emit(state.copyWith(loading: true));
     }
-    await _fetchAll();
+    await _fetchAll(updateBalance: true);
   }
 
-  /// Atualiza silenciosamente (sem trocar loading para true).
+  /// Atualiza silenciosamente os eventos do dia (sem recalcular o saldo acumulado).
   Future<void> refresh() async {
-    await _fetchAll();
+    await _fetchAll(updateBalance: false);
   }
 
-  Future<void> _fetchAll() async {
+  /// [updateBalance]: quando true, recalcula o saldo acumulado.
+  /// O saldo só deve ser atualizado no carregamento inicial e após bater saída.
+  Future<void> _fetchAll({required bool updateBalance}) async {
     try {
       await PontoService.recalcularFaltasMesAtual();
-      final results = await Future.wait([
-        PontoService.loadEventosHoje(),
-        PontoService.getLockedWorkModeHoje(),
-        PontoService.getResumoMesAtual(),
-        PontoService.getCargaHorariaUsuarioAtual(),
-      ]);
+
+      final eventosF = PontoService.loadEventosHoje();
+      final workModeF = PontoService.getLockedWorkModeHoje();
+      final mesResumoF = PontoService.getResumoMesAtual();
+      final workloadF = PontoService.getCargaHorariaUsuarioAtual();
+
+      final basicResults =
+          await Future.wait([eventosF, workModeF, mesResumoF, workloadF]);
 
       _loadedOnce = true;
 
       if (!isClosed) {
-        final eventos = results[0] as List<Map<String, dynamic>>;
-        final lockedWorkMode = results[1] as String?;
-        final mesResumo = results[2] as MesResumo;
-        final workloadMinutes = results[3] as int;
+        final eventos = basicResults[0] as List<Map<String, dynamic>>;
+        final lockedWorkMode = basicResults[1] as String?;
+        final mesResumo = basicResults[2] as MesResumo;
+        final workloadMinutes = basicResults[3] as int;
+
+        // Saldo acumulado: só recalcula no load inicial ou após ponto de saída
+        double newMonthBalance = state.monthBalance;
+        if (updateBalance) {
+          final saldoMinutes =
+              await PontoService.calcularSaldoAcumuladoTotal();
+          newMonthBalance = saldoMinutes.toDouble();
+        }
 
         _scheduleCutoffRefresh();
 
         // Formata os eventos aqui mesmo para evitar query duplicada
         final eventosFormatados = eventos.map((m) {
           final at = m['at'];
-          final hora = at is Timestamp 
+          final hora = at is Timestamp
               ? DateFormat('HH:mm').format(at.toDate())
               : '';
           return {
@@ -71,9 +83,10 @@ class PontoTodayCubit extends Cubit<PontoTodayState> {
           loading: false,
           eventosHoje: eventos,
           eventosHojeFormatados: eventosFormatados,
-          ultimoTipo: eventos.isNotEmpty ? eventos.last['tipo'].toString() : null,
+          ultimoTipo:
+              eventos.isNotEmpty ? eventos.last['tipo'].toString() : null,
           lockedWorkMode: lockedWorkMode,
-          monthBalance: mesResumo.monthBalance,
+          monthBalance: newMonthBalance,
           monthWorkedMinutes: mesResumo.workedMinutes,
           monthExpectedMinutes: mesResumo.expectedMinutes,
           monthBusinessDays: mesResumo.businessDaysTotal,
@@ -101,7 +114,7 @@ class PontoTodayCubit extends Cubit<PontoTodayState> {
   Future<PontoResult> registrar(String tipo, {required String workMode}) async {
     final result = await PontoService.registrarPonto(tipo, workMode: workMode);
     if (result.success) {
-      await _fetchAll();
+      await _fetchAll(updateBalance: tipo == 'saida');
       _dataChangedCubit.notifyChanged();
     }
     return result;
