@@ -688,25 +688,7 @@ class PontoService {
     
     final int expectedMinutesTotal = diasUteisNoMes * workloadMinutes;
 
-    // "saldo: contabiliza todos os dias uteis ... até o dia atual do mês"
-    // Caso seja um mês passado, contabiliza até o último dia daquele mês.
-    final limitDay = isCurrentMonth ? now.day : ultimoDia;
-    
-    int expectedMinutesUntilLimit = 0;
-    for (int i = 1; i <= limitDay; i++) {
-      final date = DateTime(month.year, month.month, i);
-      final diaId = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-      bool isWeekend = date.weekday == DateTime.saturday || date.weekday == DateTime.sunday;
-      bool isFolga = folgas.contains(diaId);
-      bool isAtestado = atestadoDays.contains(diaId);
-      
-      // Assim como no user_reports_page, contabiliza apenas dias úteis na meta de saldo.
-      if (!isWeekend && !isFolga && !isAtestado) expectedMinutesUntilLimit += workloadMinutes;
-    }
-
-    // Pega as horas reais trabalhadas neste mês consultado
-    int workedMinutes = 0;
-    
+    // Pega os registros de dias do mês primeiro para verificar status de hoje
     final diasSnap = await FirebaseFirestore.instance
         .collection(_root)
         .doc(uid)
@@ -715,9 +697,41 @@ class PontoService {
         .where('date', isLessThanOrEqualTo: '$prefix-31')
         .get();
 
-    for (final doc in diasSnap.docs) {
-      final m = doc.data();
-      workedMinutes += (m['workedMinutes'] as int?) ?? 0;
+    // Monta mapa para acesso rápido por diaId
+    final Map<String, Map<String, dynamic>> dayDataMap = {
+      for (final doc in diasSnap.docs) doc.id: doc.data(),
+    };
+
+    // Para o mês atual: verifica se hoje está fechado (tem saída registrada).
+    // Hoje só entra na expectativa e nas horas trabalhadas após o ponto de saída.
+    final todayId = _diaId(now);
+    final todayData = isCurrentMonth ? dayDataMap[todayId] : null;
+    final todayIsClosed = (todayData?['isClosed'] as bool?) ?? false;
+
+    // "saldo: contabiliza todos os dias uteis ... até o dia atual do mês"
+    // Caso seja um mês passado, contabiliza até o último dia daquele mês.
+    final limitDay = isCurrentMonth ? now.day : ultimoDia;
+
+    int expectedMinutesUntilLimit = 0;
+    for (int i = 1; i <= limitDay; i++) {
+      // Hoje só conta na expectativa se o dia estiver fechado (tem saída)
+      if (isCurrentMonth && i == now.day && !todayIsClosed) continue;
+
+      final date = DateTime(month.year, month.month, i);
+      final diaId = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+      bool isWeekend = date.weekday == DateTime.saturday || date.weekday == DateTime.sunday;
+      bool isFolga = folgas.contains(diaId);
+      bool isAtestado = atestadoDays.contains(diaId);
+
+      // Assim como no user_reports_page, contabiliza apenas dias úteis na meta de saldo.
+      if (!isWeekend && !isFolga && !isAtestado) expectedMinutesUntilLimit += workloadMinutes;
+    }
+
+    // Soma as horas reais trabalhadas, excluindo hoje se o dia ainda não foi fechado
+    int workedMinutes = 0;
+    for (final entry in dayDataMap.entries) {
+      if (isCurrentMonth && !todayIsClosed && entry.key == todayId) continue;
+      workedMinutes += (entry.value['workedMinutes'] as int?) ?? 0;
     }
 
     // "subtrai isso (expectativa) pelo q realmente tem trabalhado e ent temos os saldo"
@@ -754,6 +768,75 @@ class PontoService {
       );
     }
     return await calcularResumoMensal(user.uid, DateTime.now());
+  }
+
+  /// Saldo acumulado total (em minutos) desde a criação da conta até hoje.
+  static Future<int> calcularSaldoAcumuladoTotal() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return 0;
+    final uid = user.uid;
+
+    final createdAt = await _getUserCreatedAt(uid);
+    if (createdAt == null) return 0;
+
+    final now = DateTime.now();
+    final workloadMinutes = await _getWorkloadMinutes(uid);
+    int totalBalance = 0;
+
+    DateTime cursor = DateTime(createdAt.year, createdAt.month, 1);
+    final currentMonthStart = DateTime(now.year, now.month, 1);
+    bool isFirstMonth = true;
+
+    while (!cursor.isAfter(currentMonthStart)) {
+      final resumo = await calcularResumoMensal(uid, cursor);
+      int monthBalance = resumo.monthBalance.toInt();
+
+      // Ajuste do primeiro mês: remove expectativa de dias antes de createdAt
+      // que não têm registro de ponto (dias com ponto ficam como dias normais).
+      if (isFirstMonth && createdAt.day > 1) {
+        final prefix =
+            '${cursor.year}-${cursor.month.toString().padLeft(2, '0')}';
+        final createdDayId =
+            '${createdAt.year}-${createdAt.month.toString().padLeft(2, '0')}-${createdAt.day.toString().padLeft(2, '0')}';
+
+        // Busca dias anteriores à criação que tenham workedMinutes > 0
+        final diasAntesSnap = await FirebaseFirestore.instance
+            .collection(_root)
+            .doc(uid)
+            .collection('dias')
+            .where('date', isGreaterThanOrEqualTo: '$prefix-01')
+            .where('date', isLessThan: createdDayId)
+            .get();
+
+        final daysWithPunch = diasAntesSnap.docs
+            .where((d) => ((d.data()['workedMinutes'] as int?) ?? 0) > 0)
+            .map((d) => d.id)
+            .toSet();
+
+        final calendarService = CalendarService();
+        final folgas = await calendarService
+            .getDaysThatReduceWorkload(cursor.year, cursor.month);
+
+        for (int i = 1; i < createdAt.day; i++) {
+          final date = DateTime(cursor.year, cursor.month, i);
+          final diaId =
+              '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+          final isWeekend = date.weekday == DateTime.saturday ||
+              date.weekday == DateTime.sunday;
+          final isFolga = folgas.contains(diaId);
+          if (!isWeekend && !isFolga && !daysWithPunch.contains(diaId)) {
+            // Dia útil sem ponto antes da criação: reverte a expectativa
+            monthBalance += workloadMinutes;
+          }
+        }
+      }
+      isFirstMonth = false;
+
+      totalBalance += monthBalance;
+      cursor = DateTime(cursor.year, cursor.month + 1, 1);
+    }
+
+    return totalBalance;
   }
 
   // Para a página de Relatórios (Admin ver saldo de qualquer usuário)
