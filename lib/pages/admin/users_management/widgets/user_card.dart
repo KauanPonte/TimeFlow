@@ -6,6 +6,7 @@ import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
 
 class UserCard extends StatelessWidget {
   final Map<String, dynamic> user;
+  final bool isCurrentUser;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
   final VoidCallback? onTap;
@@ -13,6 +14,7 @@ class UserCard extends StatelessWidget {
   const UserCard({
     super.key,
     required this.user,
+    this.isCurrentUser = false,
     required this.onEdit,
     required this.onDelete,
     this.onTap,
@@ -60,9 +62,13 @@ class UserCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: isCurrentUser ? AppColors.primaryLight10 : AppColors.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.borderLight),
+        border: Border.all(
+          color:
+              isCurrentUser ? AppColors.primaryLight20 : AppColors.borderLight,
+          width: 1.2,
+        ),
         boxShadow: const [
           BoxShadow(
             color: AppColors.shadow,
@@ -77,9 +83,24 @@ class UserCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           onTap: onTap ?? () {},
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.only(
+                left: isCurrentUser ? 0 : 16, top: 16, bottom: 16, right: 12),
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                if (isCurrentUser)
+                  Container(
+                    width: 4,
+                    height: 88,
+                    margin: const EdgeInsets.only(right: 12),
+                    decoration: const BoxDecoration(
+                      color: AppColors.primary,
+                      borderRadius: BorderRadius.only(
+                        topRight: Radius.circular(16),
+                        bottomRight: Radius.circular(16),
+                      ),
+                    ),
+                  ),
                 // Avatar
                 Container(
                   width: 56,
@@ -121,12 +142,40 @@ class UserCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        user['name'],
-                        style: AppTextStyles.bodyLarge.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
-                        ),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              user['name'],
+                              style: AppTextStyles.bodyLarge.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                          ),
+                          if (isCurrentUser)
+                            Padding(
+                              padding: const EdgeInsets.only(right: 12),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primaryLight10,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const Text(
+                                  'Você',
+                                  style: TextStyle(
+                                    color: AppColors.primary,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                       const SizedBox(height: 4),
                       Row(
@@ -192,47 +241,63 @@ class UserCard extends StatelessWidget {
                     size: 20,
                     color: AppColors.textSecondary,
                   ),
+                  constraints: const BoxConstraints(),
+                  style: IconButton.styleFrom(
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    minimumSize: Size.zero,
+                    padding: EdgeInsets.zero,
+                  ),
+                  padding: EdgeInsets.zero,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  itemBuilder: (context) => [
-                    PopupMenuItem(
-                      child: const Row(
-                        children: [
-                          Icon(
-                            Icons.manage_accounts_rounded,
-                            size: 16,
-                            color: AppColors.primary,
-                          ),
-                          SizedBox(width: 12),
-                          Text('Editar'),
-                        ],
+                  itemBuilder: (context) {
+                    final items = <PopupMenuEntry<String>>[
+                      PopupMenuItem(
+                        child: const Row(
+                          children: [
+                            Icon(
+                              Icons.manage_accounts_rounded,
+                              size: 16,
+                              color: AppColors.primary,
+                            ),
+                            SizedBox(width: 12),
+                            Text('Editar'),
+                          ],
+                        ),
+                        onTap: () {
+                          Future.delayed(Duration.zero, onEdit);
+                        },
                       ),
-                      onTap: () {
-                        Future.delayed(Duration.zero, onEdit);
-                      },
-                    ),
-                    const PopupMenuDivider(),
-                    PopupMenuItem(
-                      child: const Row(
-                        children: [
-                          Icon(
-                            Icons.delete,
-                            size: 16,
-                            color: AppColors.error,
+                    ];
+
+                    if (!isCurrentUser) {
+                      items.add(const PopupMenuDivider());
+                      items.add(
+                        PopupMenuItem(
+                          child: const Row(
+                            children: [
+                              Icon(
+                                Icons.delete,
+                                size: 16,
+                                color: AppColors.error,
+                              ),
+                              SizedBox(width: 12),
+                              Text(
+                                'Excluir',
+                                style: TextStyle(color: AppColors.error),
+                              ),
+                            ],
                           ),
-                          SizedBox(width: 12),
-                          Text(
-                            'Excluir',
-                            style: TextStyle(color: AppColors.error),
-                          ),
-                        ],
-                      ),
-                      onTap: () {
-                        Future.delayed(Duration.zero, onDelete);
-                      },
-                    ),
-                  ],
+                          onTap: () {
+                            Future.delayed(Duration.zero, onDelete);
+                          },
+                        ),
+                      );
+                    }
+
+                    return items;
+                  },
                 ),
               ],
             ),
