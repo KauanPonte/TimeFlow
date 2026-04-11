@@ -20,12 +20,14 @@ import 'package:flutter_application_appdeponto/widgets/custom_snackbar.dart';
 import 'package:flutter_application_appdeponto/widgets/app_dialog_components.dart';
 import 'package:flutter_application_appdeponto/services/ponto_edit_dialogs.dart';
 import 'package:flutter_application_appdeponto/services/excused_days_cache_service.dart';
+import 'package:flutter_application_appdeponto/services/monthly_summary_cache_service.dart';
 import '../../history_page/widgets/card/day_card.dart';
 import '../../history_page/widgets/history_mode_calendar_view.dart';
 import '../../history_page/widgets/history_mode_list_view.dart';
 import '../../history_page/widgets/history_shared_utils.dart';
 import '../../history_page/widgets/history_view_mode_icon_button.dart';
 import '../../history_page/widgets/month_selector.dart';
+import '../../history_page/widgets/monthly_summary_card.dart';
 import '../../history_page/widgets/dialogs/day_edit_dialog.dart';
 
 class HomeHistorySection extends StatefulWidget {
@@ -68,6 +70,9 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
   HistoryViewPreference _viewPreference =
       HistoryViewPreferenceRepository.currentMode;
   final _excusedDaysCacheService = ExcusedDaysCacheService();
+  final _monthlySummaryCache = MonthlySummaryCacheService();
+
+  Future<MesResumo>? _mesResumoFuture;
 
   @override
   void initState() {
@@ -78,6 +83,7 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
     // 2. Chama o carregamento dos feriados ao iniciar
     _loadCalendarEvents();
     _loadExcusedDays();
+    _loadMesResumo();
   }
 
   Future<void> _loadExcusedDays() async {
@@ -201,6 +207,13 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
     _pendingScrollDayId = null;
   }
 
+  void _schedulePendingScrollAfterBuild() {
+    if (_pendingScrollDayId == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _scrollToPendingDay();
+    });
+  }
+
   Future<void> _setPreferredView(HistoryViewPreference value) async {
     if (_viewPreference == value) return;
     setState(() => _viewPreference = value);
@@ -210,6 +223,46 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
     } catch (_) {
       // Evita travar UI se persistência falhar momentaneamente.
     }
+  }
+
+  void _loadMesResumo() {
+    final uid = widget.uid ?? FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+
+    final cached = _monthlySummaryCache.get(uid, widget.currentMonth);
+    if (cached != null) {
+      setState(() {
+        _mesResumoFuture = Future.value(cached);
+      });
+      return;
+    }
+
+    final future = PontoService.calcularResumoMensal(uid, widget.currentMonth)
+        .then((resumo) {
+      _monthlySummaryCache.set(uid, widget.currentMonth, resumo);
+      if (mounted) setState(() {});
+      return resumo;
+    }).catchError((_) {
+      const fallback = MesResumo(
+        workedMinutes: 0,
+        expectedMinutes: 0,
+        businessDaysTotal: 0,
+        monthBalance: 0,
+      );
+      _monthlySummaryCache.set(uid, widget.currentMonth, fallback);
+      if (mounted) setState(() {});
+      return fallback;
+    });
+
+    setState(() {
+      _mesResumoFuture = future;
+    });
+  }
+
+  bool _isCurrentResumoReady() {
+    final uid = widget.uid ?? FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return false;
+    return _monthlySummaryCache.has(uid, widget.currentMonth);
   }
 
   GlobalKey _keyForDay(String diaId) =>
@@ -228,6 +281,7 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
 
       _requestScrollToDay(HistorySharedUtils.toDayId(_selectedCalendarDay));
       _loadExcusedDays();
+      _loadMesResumo();
       if (widget.currentMonth.year != oldWidget.currentMonth.year) {
         _loadCalendarEvents();
       }
@@ -299,10 +353,16 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
             onPrevious: widget.onPrevious,
             onNext: widget.onNext,
           ),
-          const SizedBox(height: 8),
           BlocConsumer<PontoHistoryBloc, PontoHistoryState>(
             listener: (context, state) {
               if (state is PontoHistoryActionSuccess) {
+                final uid =
+                    widget.uid ?? FirebaseAuth.instance.currentUser?.uid;
+                if (uid != null) {
+                  _monthlySummaryCache.invalidateMonth(
+                      uid, widget.currentMonth);
+                  _loadMesResumo();
+                }
                 CustomSnackbar.showSuccess(context, state.message);
                 widget.onActionSuccess();
               } else if (state is PontoHistoryActionError) {
@@ -319,15 +379,25 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
               }
             },
             builder: (context, state) {
-              if (state is PontoHistoryLoading) {
-                return const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 32),
-                  child: Center(
-                    child: CircularProgressIndicator(
-                      valueColor:
-                          AlwaysStoppedAnimation<Color>(AppColors.primary),
+              final loading = state is PontoHistoryLoading;
+              final combinedLoading = loading || !_isCurrentResumoReady();
+              final summaryCard = MonthlySummaryCard(
+                mesResumoFuture: _mesResumoFuture,
+              );
+
+              if (combinedLoading) {
+                return const Column(
+                  children: [
+                    Padding(
+                      padding: EdgeInsets.symmetric(vertical: 32),
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          valueColor:
+                              AlwaysStoppedAnimation<Color>(AppColors.primary),
+                        ),
+                      ),
                     ),
-                  ),
+                  ],
                 );
               }
 
@@ -336,17 +406,25 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
                   HistorySharedUtils.generateMonthDays(widget.currentMonth);
 
               if (allDays.isEmpty) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 24),
-                  child: Center(
-                    child: Text(
-                      'Nenhum dia para exibir',
-                      style: AppTextStyles.bodyMedium
-                          .copyWith(color: AppColors.textSecondary),
+                return Column(
+                  children: [
+                    summaryCard,
+                    const SizedBox(height: 8),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 24),
+                      child: Center(
+                        child: Text(
+                          'Nenhum dia para exibir',
+                          style: AppTextStyles.bodyMedium
+                              .copyWith(color: AppColors.textSecondary),
+                        ),
+                      ),
                     ),
-                  ),
+                  ],
                 );
               }
+
+              _schedulePendingScrollAfterBuild();
 
               final canEdit = widget.isAdmin && widget.uid != null;
 
@@ -459,27 +537,39 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
                 }).toSet();
                 holidayDayIds.addAll(_excusedDayIds);
 
-                return HistoryModeCalendarView(
-                  month: widget.currentMonth,
-                  selectedDay: _selectedCalendarDay,
-                  daysMap: daysMap,
-                  calendarEvents: _allVisibleEvents,
-                  dayIdFor: HistorySharedUtils.toDayId,
-                  isFutureDate: HistorySharedUtils.isFutureDate,
-                  pendingDayIds: pendingDayIds,
-                  holidayDayIds: holidayDayIds,
-                  onDaySelected: (day) {
-                    setState(() => _selectedCalendarDay = day);
-                    _requestScrollToDay(HistorySharedUtils.toDayId(day));
-                  },
-                  dayBuilder: (dayId) => buildDayCard(dayId),
+                return Column(
+                  children: [
+                    summaryCard,
+                    const SizedBox(height: 8),
+                    HistoryModeCalendarView(
+                      month: widget.currentMonth,
+                      selectedDay: _selectedCalendarDay,
+                      daysMap: daysMap,
+                      calendarEvents: _allVisibleEvents,
+                      dayIdFor: HistorySharedUtils.toDayId,
+                      isFutureDate: HistorySharedUtils.isFutureDate,
+                      pendingDayIds: pendingDayIds,
+                      holidayDayIds: holidayDayIds,
+                      onDaySelected: (day) {
+                        setState(() => _selectedCalendarDay = day);
+                        _requestScrollToDay(HistorySharedUtils.toDayId(day));
+                      },
+                      dayBuilder: (dayId) => buildDayCard(dayId),
+                    ),
+                  ],
                 );
               }
 
-              return HistoryModeListView(
-                dayIds: allDays,
-                dayBuilder: (dayId) => buildDayCard(dayId),
-                embedInParentScroll: true,
+              return Column(
+                children: [
+                  summaryCard,
+                  const SizedBox(height: 8),
+                  HistoryModeListView(
+                    dayIds: allDays,
+                    dayBuilder: (dayId) => buildDayCard(dayId),
+                    embedInParentScroll: true,
+                  ),
+                ],
               );
             },
           ),

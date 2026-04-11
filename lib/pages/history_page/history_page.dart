@@ -13,6 +13,7 @@ import 'package:flutter_application_appdeponto/repositories/justificativa_reposi
 import 'package:flutter_application_appdeponto/repositories/ponto_history_repository.dart';
 import 'package:flutter_application_appdeponto/repositories/history_view_preference_repository.dart';
 import 'package:flutter_application_appdeponto/services/excused_days_cache_service.dart';
+import 'package:flutter_application_appdeponto/services/monthly_summary_cache_service.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/widgets/custom_snackbar.dart';
 import 'package:flutter_application_appdeponto/services/ponto_service.dart';
@@ -97,10 +98,10 @@ class _HistoryViewState extends State<_HistoryView> {
 
   Future<MesResumo>? _mesResumoFuture;
   Uint8List? _profileBytesCache;
+  final _monthlySummaryCache = MonthlySummaryCacheService();
 
   /// Cache para persistência durante a navegação entre meses
   final Map<String, Map<String, String>> _blockedDaysCache = {};
-  final Map<String, MesResumo> _resumoCache = {};
   final Map<String, List<JustificativaModel>> _justificativasCache = {};
   final _excusedDaysCacheService = ExcusedDaysCacheService();
 
@@ -135,22 +136,40 @@ class _HistoryViewState extends State<_HistoryView> {
     final uid = widget.targetUid ?? FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
 
-    final key = "${uid}_${DateFormat('yyyy-MM').format(_currentMonth)}";
-
-    if (_resumoCache.containsKey(key)) {
+    final cached = _monthlySummaryCache.get(uid, _currentMonth);
+    if (cached != null) {
       setState(() {
-        _mesResumoFuture = Future.value(_resumoCache[key]);
+        _mesResumoFuture = Future.value(cached);
       });
       return;
     }
 
-    setState(() {
-      _mesResumoFuture =
-          PontoService.calcularResumoMensal(uid, _currentMonth).then((resumo) {
-        _resumoCache[key] = resumo;
-        return resumo;
-      });
+    final future =
+        PontoService.calcularResumoMensal(uid, _currentMonth).then((resumo) {
+      _monthlySummaryCache.set(uid, _currentMonth, resumo);
+      if (mounted) setState(() {});
+      return resumo;
+    }).catchError((_) {
+      const fallback = MesResumo(
+        workedMinutes: 0,
+        expectedMinutes: 0,
+        businessDaysTotal: 0,
+        monthBalance: 0,
+      );
+      _monthlySummaryCache.set(uid, _currentMonth, fallback);
+      if (mounted) setState(() {});
+      return fallback;
     });
+
+    setState(() {
+      _mesResumoFuture = future;
+    });
+  }
+
+  bool _isCurrentResumoReady() {
+    final uid = widget.targetUid ?? FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return false;
+    return _monthlySummaryCache.has(uid, _currentMonth);
   }
 
   Future<void> _loadCalendarBlockedDays() async {
@@ -296,13 +315,13 @@ class _HistoryViewState extends State<_HistoryView> {
 
   Future<void> _refreshHistory() async {
     _blockedDaysCache.clear();
-    _resumoCache.clear();
     _justificativasCache.clear();
 
     // Invalida cache de dias excusados para forçar reload
     final uid = widget.targetUid ?? FirebaseAuth.instance.currentUser?.uid;
     if (uid != null) {
       _excusedDaysCacheService.invalidateCache(uid);
+      _monthlySummaryCache.invalidateUid(uid);
     }
 
     context.read<PontoHistoryBloc>().add(
@@ -400,6 +419,12 @@ class _HistoryViewState extends State<_HistoryView> {
       body: BlocConsumer<PontoHistoryBloc, PontoHistoryState>(
         listener: (context, state) {
           if (state is PontoHistoryActionSuccess) {
+            final uid =
+                widget.targetUid ?? FirebaseAuth.instance.currentUser?.uid;
+            if (uid != null) {
+              _monthlySummaryCache.invalidateMonth(uid, _currentMonth);
+              _loadMesResumo();
+            }
             CustomSnackbar.showSuccess(context, state.message);
           } else if (state is PontoHistoryActionError) {
             CustomSnackbar.showError(context, state.message);
@@ -408,6 +433,29 @@ class _HistoryViewState extends State<_HistoryView> {
           }
         },
         builder: (context, state) {
+          final combinedLoading =
+              state is PontoHistoryLoading || !_isCurrentResumoReady();
+
+          if (combinedLoading) {
+            return Column(
+              children: [
+                MonthSelector(
+                  currentMonth: _currentMonth,
+                  onPrevious: _goToPreviousMonth,
+                  onNext: _goToNextMonth,
+                ),
+                const Expanded(
+                  child: Center(
+                    child: CircularProgressIndicator(
+                      valueColor:
+                          AlwaysStoppedAnimation<Color>(AppColors.primary),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          }
+
           return Column(
             children: [
               MonthSelector(
@@ -415,7 +463,9 @@ class _HistoryViewState extends State<_HistoryView> {
                 onPrevious: _goToPreviousMonth,
                 onNext: _goToNextMonth,
               ),
-              MonthlySummaryCard(mesResumoFuture: _mesResumoFuture),
+              MonthlySummaryCard(
+                mesResumoFuture: _mesResumoFuture,
+              ),
               Expanded(
                 child: HistoryContentBody(
                   state: state,
