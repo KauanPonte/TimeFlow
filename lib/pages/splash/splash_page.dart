@@ -169,7 +169,26 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
 
     if (!mounted) return;
 
-    // Dispatch event to check authentication status via BLoC
+    final authState = context.read<AuthBloc>().state;
+    if (authState is AdminAuthenticated) {
+      _bootstrapAndNavigate(
+        isAdmin: true,
+        userData: authState.userData,
+        route: '/admin',
+      );
+      return;
+    } else if (authState is UserAuthenticated) {
+      final role = (authState.userData['role'] ?? '').toString();
+      final isAdmin = role.toUpperCase().contains('ADM');
+      _bootstrapAndNavigate(
+        isAdmin: isAdmin,
+        userData: authState.userData,
+        route: '/home',
+      );
+      return;
+    }
+
+    // Dispatch event to check authentication status via BLoC se ainda não estiver autenticado.
     context.read<AuthBloc>().add(const CheckAuthStatus());
   }
 
