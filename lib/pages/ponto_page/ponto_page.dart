@@ -28,7 +28,6 @@ class PontoPage extends StatefulWidget {
 
 class _PontoPageState extends State<PontoPage> {
   bool registering = false;
-  bool _hojeEhFeriado = false;
   bool _validatingLocation = false;
   late DateTime _now;
   Timer? _clockTimer;
@@ -46,19 +45,16 @@ class _PontoPageState extends State<PontoPage> {
   @override
   void initState() {
     super.initState();
-    _checkFeriadoStatus();
     _now = DateTime.now();
     _clockTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted) setState(() => _now = DateTime.now());
     });
 
-    // Garante que o cubit tenha dados carregados.
-    context.read<PontoTodayCubit>().load();
-  }
-
-  Future<void> _checkFeriadoStatus() async {
-    bool feriado = await PontoService.isFeriado(DateTime.now());
-    if (mounted) setState(() => _hojeEhFeriado = feriado);
+    // Dados já carregados pelo splash (incluindo isFeriadoHoje) — não precisa re-fazer o load.
+    final pontoTodayCubit = context.read<PontoTodayCubit>();
+    if (!pontoTodayCubit.hasLoadedOnce) {
+      pontoTodayCubit.load();
+    }
   }
 
   @override
@@ -262,7 +258,7 @@ class _PontoPageState extends State<PontoPage> {
     final hoje = _hojeMapComputed(pontoState);
     final proximas = _proximasAcoes(pontoState);
     final effectiveMode = _effectiveWorkMode(pontoState);
-    final bool isPanelAccessible = effectiveMode != null && !_hojeEhFeriado;
+    final bool isPanelAccessible = effectiveMode != null && !pontoState.isFeriadoHoje;
 
     return Scaffold(
       backgroundColor: AppColors.bgLight,
@@ -295,7 +291,8 @@ class _PontoPageState extends State<PontoPage> {
         isAdmin: isAdmin,
         args: args,
       ),
-      body: pontoState.loading
+      // Só exibe spinner se for o primeiro carregamento (splash não terminou).
+      body: (pontoState.loading && pontoState.registros.isEmpty)
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
               onRefresh: () async {

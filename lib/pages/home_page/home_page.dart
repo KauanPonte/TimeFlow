@@ -93,8 +93,15 @@ class _HomePageState extends State<HomePage> {
     });
 
     _resolveUserData();
-    context.read<PontoTodayCubit>().load();
 
+    // Dados do PontoTodayCubit: se o splash já carregou, não re-dispara.
+    // Apenas agenda um refresh silencioso em background.
+    final pontoTodayCubit = context.read<PontoTodayCubit>();
+    if (!pontoTodayCubit.hasLoadedOnce) {
+      pontoTodayCubit.load();
+    }
+
+    // Histórico: se o splash já carregou o mês atual, usa silencioso.
     final historyBloc = context.read<PontoHistoryBloc>();
     if (historyBloc.state is PontoHistoryInitial ||
         historyBloc.currentMonth.year != _currentMonth.year ||
@@ -102,6 +109,8 @@ class _HomePageState extends State<HomePage> {
       historyBloc.add(LoadHistoryEvent(month: _currentMonth));
     }
 
+    // Solicitations/atestados/justificativas: apenas silent reload
+    // (splash já fez o load principal, aqui só atualiza em background).
     context.read<SolicitationBloc>().add(
           SilentReloadSolicitationsEvent(isAdmin: _isAdmin),
         );
@@ -319,7 +328,9 @@ class _HomePageState extends State<HomePage> {
           'employeeRole': widget.employeeRole,
         },
       ),
-      body: pontoState.loading
+      // Só exibe o loading se for o primeiro carregamento (splash não conseguiu carregar).
+      // Se o splash já carregou, os dados do cubit já estão populados.
+      body: (pontoState.loading && pontoState.registros.isEmpty)
           ? const Center(
               child: CircularProgressIndicator(
                 valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
