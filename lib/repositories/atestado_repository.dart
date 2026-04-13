@@ -73,6 +73,14 @@ class AtestadoRepository {
     return list;
   }
 
+  Future<List<AtestadoModel>> getAllAtestados() async {
+    final snap = await _atestadosRef.get();
+
+    final list = snap.docs.map((d) => AtestadoModel.fromDoc(d)).toList();
+    list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return list;
+  }
+
   Future<List<AtestadoModel>> getApprovedAtestadosForUser(String uid) async {
     final snap = await _atestadosRef
         .where('uid', isEqualTo: uid)
@@ -89,35 +97,13 @@ class AtestadoRepository {
     final doc = await _atestadosRef.doc(atestadoId).get();
     final atestado = AtestadoModel.fromDoc(doc);
 
-    final startLocal = DateTime.parse(atestado.dataInicio);
-    final endLocal = DateTime.parse(atestado.dataFim);
-
-    final start =
-        DateTime.utc(startLocal.year, startLocal.month, startLocal.day, 12);
-    final end = DateTime.utc(endLocal.year, endLocal.month, endLocal.day, 12);
-
-    // Marca cada dia do intervalo como facultativo e recalcula
-    for (var d = start; !d.isAfter(end); d = d.add(const Duration(days: 1))) {
-      final diaId =
-          '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
-
-      await FirebaseFirestore.instance
-          .collection(_pontosCollection)
-          .doc(atestado.uid)
-          .collection('dias')
-          .doc(diaId)
-          .set({'isExcused': true}, SetOptions(merge: true));
-
-      await PontoService.recalcularBancoDeHorasDoDia(
-        uid: atestado.uid,
-        diaId: diaId,
-      );
-    }
+    await _syncExcusedDays(atestado, isExcused: true);
 
     await _atestadosRef.doc(atestadoId).update({
       'status': 'approved',
       'resolvedAt': Timestamp.now(),
       'resolvedBy': admin.uid,
+      'reason': null,
     });
 
     // Invalida cache de dias excusados para forçar reload
@@ -131,6 +117,10 @@ class AtestadoRepository {
     final doc = await _atestadosRef.doc(atestadoId).get();
     final atestado = AtestadoModel.fromDoc(doc);
 
+    if (atestado.status == AtestadoStatus.approved) {
+      await _syncExcusedDays(atestado, isExcused: false);
+    }
+
     await _atestadosRef.doc(atestadoId).update({
       'status': 'rejected',
       'resolvedAt': Timestamp.now(),
@@ -140,6 +130,35 @@ class AtestadoRepository {
 
     // Invalida cache de dias excusados
     ExcusedDaysCacheService().invalidateCache(atestado.uid);
+  }
+
+  Future<void> _syncExcusedDays(
+    AtestadoModel atestado, {
+    required bool isExcused,
+  }) async {
+    final startLocal = DateTime.parse(atestado.dataInicio);
+    final endLocal = DateTime.parse(atestado.dataFim);
+
+    final start =
+        DateTime.utc(startLocal.year, startLocal.month, startLocal.day, 12);
+    final end = DateTime.utc(endLocal.year, endLocal.month, endLocal.day, 12);
+
+    for (var d = start; !d.isAfter(end); d = d.add(const Duration(days: 1))) {
+      final diaId =
+          '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
+      await FirebaseFirestore.instance
+          .collection(_pontosCollection)
+          .doc(atestado.uid)
+          .collection('dias')
+          .doc(diaId)
+          .set({'isExcused': isExcused}, SetOptions(merge: true));
+
+      await PontoService.recalcularBancoDeHorasDoDia(
+        uid: atestado.uid,
+        diaId: diaId,
+      );
+    }
   }
 
   Future<void> markSeenByEmployee(String atestadoId) async {

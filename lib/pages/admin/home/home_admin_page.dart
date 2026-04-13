@@ -78,7 +78,9 @@ class _HomeAdminViewState extends State<HomeAdminView> {
           const SilentReloadSolicitationsEvent(isAdmin: true),
         );
     context.read<AtestadoBloc>().add(const SilentLoadAtestadosEvent());
-    context.read<JustificativaBloc>().add(const SilentLoadJustificativasEvent());
+    context
+        .read<JustificativaBloc>()
+        .add(const SilentLoadJustificativasEvent());
     // Atualização periódica a cada 2 minutos.
     _solTimer = Timer.periodic(const Duration(minutes: 2), (_) {
       if (mounted) {
@@ -86,7 +88,9 @@ class _HomeAdminViewState extends State<HomeAdminView> {
               const SilentReloadSolicitationsEvent(isAdmin: true),
             );
         context.read<AtestadoBloc>().add(const SilentLoadAtestadosEvent());
-        context.read<JustificativaBloc>().add(const SilentLoadJustificativasEvent());
+        context
+            .read<JustificativaBloc>()
+            .add(const SilentLoadJustificativasEvent());
       }
     });
   }
@@ -159,7 +163,9 @@ class _HomeAdminViewState extends State<HomeAdminView> {
               context.read<SolicitationBloc>().add(
                     const SilentReloadSolicitationsEvent(isAdmin: true),
                   );
-              context.read<AtestadoBloc>().add(const SilentLoadAtestadosEvent());
+              context
+                  .read<AtestadoBloc>()
+                  .add(const SilentLoadAtestadosEvent());
             },
             child: BlocListener<SolicitationBloc, SolicitationState>(
               listener: (context, solState) {
@@ -194,13 +200,17 @@ class _HomeAdminViewState extends State<HomeAdminView> {
                           final solPendentes = solState is SolicitationLoaded
                               ? solState.pendingCount
                               : 0;
-                          return BlocBuilder<JustificativaBloc, JustificativaState>(
+                          return BlocBuilder<JustificativaBloc,
+                              JustificativaState>(
                             builder: (context, justState) {
-                              final justPendentes = justState is JustificativaLoaded
-                                  ? justState.justificativas.length
-                                  : 0;
-                              final totalPendencias =
-                                  atestadosPendentes + solPendentes + justPendentes + stats.pendingRequests;
+                              final justPendentes =
+                                  justState is JustificativaLoaded
+                                      ? justState.justificativas.length
+                                      : 0;
+                              final totalPendencias = atestadosPendentes +
+                                  solPendentes +
+                                  justPendentes +
+                                  stats.pendingRequests;
                               return Row(
                                 children: [
                                   Expanded(
@@ -277,7 +287,6 @@ class _HomeAdminViewState extends State<HomeAdminView> {
                       }
                     },
                   ),
-
                 ],
               ),
             ),

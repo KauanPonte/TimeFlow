@@ -689,7 +689,8 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 8, vertical: 3),
                               decoration: BoxDecoration(
-                                color: AppColors.primary.withValues(alpha: 0.12),
+                                color:
+                                    AppColors.primary.withValues(alpha: 0.12),
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text(
@@ -1504,8 +1505,7 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
     );
   }
 
-  void _openJustificativaReview(
-      BuildContext context, JustificativaModel just) {
+  void _openJustificativaReview(BuildContext context, JustificativaModel just) {
     final date = DateTime.tryParse(just.diaId);
     final dateLabel = date != null
         ? DateFormat('dd/MM/yyyy', 'pt_BR').format(date)
@@ -1721,8 +1721,7 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                   )),
               const Spacer(),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                 decoration: BoxDecoration(
                   color: statusColor.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(6),
@@ -1979,7 +1978,8 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                 pendingUsers;
             final hasNotification = totalCount > 0;
             final badgeColor = isAdmin
-                ? (pendingAtestados.isNotEmpty || pendingJustificativas.isNotEmpty
+                ? (pendingAtestados.isNotEmpty ||
+                        pendingJustificativas.isNotEmpty
                     ? AppColors.warning
                     : solCount > 0
                         ? AppColors.primary
@@ -2128,9 +2128,19 @@ class _PendingUsersSheetState extends State<_PendingUsersSheet> {
   Future<void> _load() async {
     try {
       final requests = await UserRepository.getPendingRequests();
-      if (mounted) setState(() { _requests = requests; _loading = false; });
+      if (mounted) {
+        setState(() {
+          _requests = requests;
+          _loading = false;
+        });
+      }
     } catch (e) {
-      if (mounted) setState(() { _error = e.toString(); _loading = false; });
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+          _loading = false;
+        });
+      }
     }
   }
 

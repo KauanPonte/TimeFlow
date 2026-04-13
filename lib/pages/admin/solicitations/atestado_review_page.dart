@@ -20,7 +20,12 @@ class _AtestadoReviewPageState extends State<AtestadoReviewPage> {
   @override
   void initState() {
     super.initState();
-    context.read<AtestadoBloc>().add(const LoadAtestadosEvent(isAdmin: true));
+    context.read<AtestadoBloc>().add(
+          const LoadAtestadosEvent(
+            isAdmin: true,
+            includeReviewed: true,
+          ),
+        );
   }
 
   @override
@@ -28,7 +33,7 @@ class _AtestadoReviewPageState extends State<AtestadoReviewPage> {
     return Scaffold(
       backgroundColor: AppColors.bgLight,
       appBar: AppBar(
-        title: const Text('Atestados Pendentes'),
+        title: const Text('Atestados'),
         backgroundColor: AppColors.surface,
         elevation: 0,
       ),
@@ -52,6 +57,13 @@ class _AtestadoReviewPageState extends State<AtestadoReviewPage> {
             _ => <AtestadoModel>[],
           };
 
+          final pendingAtestados = atestados
+              .where((a) => a.status == AtestadoStatus.pending)
+              .toList();
+          final reviewedAtestados = atestados
+              .where((a) => a.status != AtestadoStatus.pending)
+              .toList();
+
           if (atestados.isEmpty) {
             return Center(
               child: Column(
@@ -61,7 +73,7 @@ class _AtestadoReviewPageState extends State<AtestadoReviewPage> {
                       size: 64, color: AppColors.primary),
                   const SizedBox(height: 16),
                   Text(
-                    'Nenhum atestado pendente',
+                    'Nenhum atestado para revisar',
                     style: AppTextStyles.bodyLarge.copyWith(
                       color: AppColors.textSecondary,
                     ),
@@ -73,16 +85,33 @@ class _AtestadoReviewPageState extends State<AtestadoReviewPage> {
 
           return RefreshIndicator(
             onRefresh: () async {
-              context
-                  .read<AtestadoBloc>()
-                  .add(const LoadAtestadosEvent(isAdmin: true));
+              context.read<AtestadoBloc>().add(const LoadAtestadosEvent(
+                    isAdmin: true,
+                    includeReviewed: true,
+                  ));
             },
-            child: ListView.separated(
+            child: ListView(
               padding: const EdgeInsets.all(20),
-              itemCount: atestados.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
-              itemBuilder: (context, index) =>
-                  _AtestadoPendingCard(atestado: atestados[index]),
+              children: [
+                if (pendingAtestados.isNotEmpty) ...[
+                  const Text('Pendentes', style: AppTextStyles.h3),
+                  const SizedBox(height: 12),
+                  ...pendingAtestados.map(
+                    (atestado) => _AtestadoReviewCard(atestado: atestado),
+                  ),
+                ],
+                if (reviewedAtestados.isNotEmpty) ...[
+                  if (pendingAtestados.isNotEmpty) const SizedBox(height: 16),
+                  const Text('Já decididos', style: AppTextStyles.h3),
+                  const SizedBox(height: 12),
+                  ...reviewedAtestados.map(
+                    (atestado) => _AtestadoReviewCard(
+                      atestado: atestado,
+                      showCurrentStatus: true,
+                    ),
+                  ),
+                ],
+              ],
             ),
           );
         },
@@ -91,10 +120,14 @@ class _AtestadoReviewPageState extends State<AtestadoReviewPage> {
   }
 }
 
-class _AtestadoPendingCard extends StatelessWidget {
+class _AtestadoReviewCard extends StatelessWidget {
   final AtestadoModel atestado;
+  final bool showCurrentStatus;
 
-  const _AtestadoPendingCard({required this.atestado});
+  const _AtestadoReviewCard({
+    required this.atestado,
+    this.showCurrentStatus = false,
+  });
 
   void _showRejectDialog(BuildContext context) {
     final controller = TextEditingController();
@@ -127,7 +160,8 @@ class _AtestadoPendingCard extends StatelessWidget {
                     ),
                   );
             },
-            child: const Text('Recusar', style: TextStyle(color: AppColors.error)),
+            child:
+                const Text('Recusar', style: TextStyle(color: AppColors.error)),
           ),
         ],
       ),
@@ -140,6 +174,15 @@ class _AtestadoPendingCard extends StatelessWidget {
     final inicio = fmt.format(DateTime.parse(atestado.dataInicio));
     final fim = fmt.format(DateTime.parse(atestado.dataFim));
     final mesmodia = atestado.dataInicio == atestado.dataFim;
+    final isApproved = atestado.status == AtestadoStatus.approved;
+    final statusColor = isApproved ? AppColors.success : AppColors.error;
+    final statusLabel = isApproved ? 'Aprovado' : 'Recusado';
+    final approveLabel = atestado.status == AtestadoStatus.pending
+        ? 'Aprovar'
+        : 'Aprovar novamente';
+    final rejectLabel = atestado.status == AtestadoStatus.pending
+        ? 'Recusar'
+        : 'Recusar novamente';
 
     // Calcula dias cobertos
     final startDate = DateTime.parse(atestado.dataInicio);
@@ -166,7 +209,8 @@ class _AtestadoPendingCard extends StatelessWidget {
           // Header: nome + data envio
           Row(
             children: [
-              const Icon(Icons.person_outline, size: 18, color: AppColors.primary),
+              const Icon(Icons.person_outline,
+                  size: 18, color: AppColors.primary),
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
@@ -188,10 +232,34 @@ class _AtestadoPendingCard extends StatelessWidget {
           const Divider(height: 1),
           const SizedBox(height: 10),
 
+          if (showCurrentStatus) ...[
+            Row(
+              children: [
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: statusColor.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    statusLabel,
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: statusColor,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+          ],
+
           // Período
           Row(
             children: [
-              const Icon(Icons.date_range_outlined, size: 16, color: AppColors.textSecondary),
+              const Icon(Icons.date_range_outlined,
+                  size: 16, color: AppColors.textSecondary),
               const SizedBox(width: 6),
               Text(
                 mesmodia ? inicio : '$inicio – $fim',
@@ -219,7 +287,8 @@ class _AtestadoPendingCard extends StatelessWidget {
           // Arquivo
           Row(
             children: [
-              const Icon(Icons.picture_as_pdf, size: 16, color: AppColors.textSecondary),
+              const Icon(Icons.picture_as_pdf,
+                  size: 16, color: AppColors.textSecondary),
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
@@ -247,7 +316,7 @@ class _AtestadoPendingCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(10),
                     ),
                   ),
-                  child: const Text('Recusar'),
+                  child: Text(rejectLabel),
                 ),
               ),
               const SizedBox(width: 12),
@@ -265,11 +334,33 @@ class _AtestadoPendingCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(10),
                     ),
                   ),
-                  child: const Text('Aprovar'),
+                  child: Text(approveLabel),
                 ),
               ),
             ],
           ),
+
+          if (showCurrentStatus &&
+              !isApproved &&
+              atestado.reason != null &&
+              atestado.reason!.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Text(
+              'Motivo da recusa anterior',
+              style: AppTextStyles.bodySmall.copyWith(
+                color: AppColors.textSecondary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              atestado.reason!,
+              style: AppTextStyles.bodySmall.copyWith(
+                color: AppColors.textSecondary,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ],
         ],
       ),
     );

@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter_application_appdeponto/blocs/auth/auth_bloc.dart';
+import 'package:flutter_application_appdeponto/blocs/auth/auth_state.dart';
 import 'package:flutter_application_appdeponto/blocs/atestado/atestado_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/atestado/atestado_event.dart';
 import 'package:flutter_application_appdeponto/blocs/atestado/atestado_state.dart';
 import 'package:flutter_application_appdeponto/models/atestado_model.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
+import 'package:flutter_application_appdeponto/widgets/app_dialog_components.dart';
 import 'upload_atestado_page.dart';
 
 class SolicitacoesPage extends StatefulWidget {
@@ -17,14 +20,31 @@ class SolicitacoesPage extends StatefulWidget {
 }
 
 class _SolicitacoesPageState extends State<SolicitacoesPage> {
+  bool _isAdmin = false;
+  List<AtestadoModel> _adminHistoryCache = [];
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context
-          .read<AtestadoBloc>()
-          .add(const LoadAtestadosEvent(isAdmin: false));
+      _isAdmin = _resolveIsAdmin(context);
+      context.read<AtestadoBloc>().add(
+            LoadAtestadosEvent(
+              isAdmin: _isAdmin,
+              includeReviewed: _isAdmin,
+            ),
+          );
     });
+  }
+
+  bool _resolveIsAdmin(BuildContext context) {
+    final authState = context.read<AuthBloc>().state;
+    if (authState is AdminAuthenticated) return true;
+    if (authState is UserAuthenticated) {
+      final role = (authState.userData['role'] ?? '').toString();
+      return role.toUpperCase().contains('ADM');
+    }
+    return false;
   }
 
   @override
@@ -72,6 +92,24 @@ class _SolicitacoesPageState extends State<SolicitacoesPage> {
             _ => <AtestadoModel>[],
           };
 
+          var visibleAtestados = atestados;
+          if (_isAdmin) {
+            if (atestados.isNotEmpty) {
+              final merged = {
+                for (final item in _adminHistoryCache) item.id: item,
+              };
+              for (final item in atestados) {
+                merged[item.id] = item;
+              }
+              _adminHistoryCache = merged.values.toList()
+                ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+            }
+
+            if (_adminHistoryCache.isNotEmpty) {
+              visibleAtestados = _adminHistoryCache;
+            }
+          }
+
           return ListView(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
             children: [
@@ -88,15 +126,18 @@ class _SolicitacoesPageState extends State<SolicitacoesPage> {
                     ),
                   ).then((_) {
                     if (context.mounted) {
-                      context
-                          .read<AtestadoBloc>()
-                          .add(const LoadAtestadosEvent(isAdmin: false));
+                      context.read<AtestadoBloc>().add(
+                            LoadAtestadosEvent(
+                              isAdmin: _isAdmin,
+                              includeReviewed: _isAdmin,
+                            ),
+                          );
                     }
                   });
                 },
               ),
 
-              if (atestados.isNotEmpty) ...[
+              if (visibleAtestados.isNotEmpty) ...[
                 const SizedBox(height: 32),
                 Row(
                   children: [
@@ -116,7 +157,25 @@ class _SolicitacoesPageState extends State<SolicitacoesPage> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                ...atestados.map((a) => _AtestadoCard(atestado: a)),
+                ...visibleAtestados.map(
+                  (a) => _AtestadoCard(
+                    atestado: a,
+                    isAdmin: _isAdmin,
+                    onApprove: _isAdmin
+                        ? () => context
+                            .read<AtestadoBloc>()
+                            .add(ApproveAtestadoEvent(a.id))
+                        : null,
+                    onReject: _isAdmin
+                        ? (reason) => context.read<AtestadoBloc>().add(
+                              RejectAtestadoEvent(
+                                a.id,
+                                reason: reason,
+                              ),
+                            )
+                        : null,
+                  ),
+                ),
               ] else if (state is! AtestadoLoading) ...[
                 const SizedBox(height: 60),
                 Center(
@@ -236,8 +295,45 @@ class _ActionCard extends StatelessWidget {
 
 class _AtestadoCard extends StatelessWidget {
   final AtestadoModel atestado;
+  final bool isAdmin;
+  final VoidCallback? onApprove;
+  final void Function(String? reason)? onReject;
 
-  const _AtestadoCard({required this.atestado});
+  const _AtestadoCard({
+    required this.atestado,
+    this.isAdmin = false,
+    this.onApprove,
+    this.onReject,
+  });
+
+  void _showRejectDialog(BuildContext context) {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (_) => AppDialogScaffold(
+        title: 'Recusar Atestado',
+        subtitle: 'Informe um motivo opcional antes de recusar este atestado.',
+        icon: Icons.close,
+        isDestructive: true,
+        confirmLabel: 'Recusar',
+        onConfirm: () {
+          final raw = controller.text.trim();
+          final reason = raw.isEmpty ? null : raw;
+          Navigator.pop(context);
+          onReject?.call(reason);
+        },
+        children: [
+          AppDialogField(
+            label: 'Motivo (opcional)',
+            hintText: 'Digite uma observação breve',
+            controller: controller,
+            errorText: null,
+            icon: Icons.comment_outlined,
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -358,6 +454,53 @@ class _AtestadoCard extends StatelessWidget {
               icon: Icons.check_circle_outline_rounded,
               message: 'Dias marcados como facultativos no seu banco de horas.',
             ),
+
+          if (isAdmin) ...[
+            const SizedBox(height: 12),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: Row(
+                children: [
+                  if (atestado.status == AtestadoStatus.approved) ...[
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => _showRejectDialog(context),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.error,
+                          side: const BorderSide(color: AppColors.error),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        child: const Text(
+                          'Recusar',
+                        ),
+                      ),
+                    ),
+                  ],
+                  if (atestado.status == AtestadoStatus.pending)
+                    const SizedBox(width: 12),
+                  if (atestado.status == AtestadoStatus.rejected) ...[
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: onApprove,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        child: const Text(
+                          'Aprovar',
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
