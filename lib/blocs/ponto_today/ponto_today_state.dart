@@ -12,6 +12,7 @@ class PontoTodayState extends Equatable {
   final int monthExpectedMinutes;
   final int monthBusinessDays;
   final int workloadMinutes;
+  final bool isFeriadoHoje;
 
   const PontoTodayState({
     this.loading = true,
@@ -25,6 +26,7 @@ class PontoTodayState extends Equatable {
     this.monthExpectedMinutes = 0,
     this.monthBusinessDays = 0,
     this.workloadMinutes = 8 * 60,
+    this.isFeriadoHoje = false,
   });
 
   PontoTodayState copyWith({
@@ -41,6 +43,7 @@ class PontoTodayState extends Equatable {
     int? monthExpectedMinutes,
     int? monthBusinessDays,
     int? workloadMinutes,
+    bool? isFeriadoHoje,
   }) {
     return PontoTodayState(
       loading: loading ?? this.loading,
@@ -56,6 +59,7 @@ class PontoTodayState extends Equatable {
       monthExpectedMinutes: monthExpectedMinutes ?? this.monthExpectedMinutes,
       monthBusinessDays: monthBusinessDays ?? this.monthBusinessDays,
       workloadMinutes: workloadMinutes ?? this.workloadMinutes,
+      isFeriadoHoje: isFeriadoHoje ?? this.isFeriadoHoje,
     );
   }
 
@@ -72,5 +76,6 @@ class PontoTodayState extends Equatable {
         monthExpectedMinutes,
         monthBusinessDays,
         workloadMinutes,
+        isFeriadoHoje,
       ];
 }

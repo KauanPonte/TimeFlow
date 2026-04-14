@@ -10,6 +10,7 @@ class AtestadoBloc extends Bloc<AtestadoEvent, AtestadoState> {
   final GlobalLoadingCubit? globalLoading;
 
   bool _isAdmin = false;
+  bool _includeReviewed = false;
   List<AtestadoModel> _lastList = [];
 
   AtestadoBloc({
@@ -35,11 +36,13 @@ class AtestadoBloc extends Bloc<AtestadoEvent, AtestadoState> {
     Emitter<AtestadoState> emit,
   ) async {
     try {
-      final list = event.isAdmin
-          ? await repository.getPendingAtestados()
-          : await repository.getMyAtestados();
+      final list = await _loadAtestados(
+        isAdmin: event.isAdmin,
+        includeReviewed: event.includeReviewed,
+      );
       _lastList = list;
       _isAdmin = event.isAdmin;
+      _includeReviewed = event.includeReviewed;
       emit(AtestadoLoaded(atestados: list, isAdmin: event.isAdmin));
     } catch (_) {}
   }
@@ -49,11 +52,13 @@ class AtestadoBloc extends Bloc<AtestadoEvent, AtestadoState> {
     Emitter<AtestadoState> emit,
   ) async {
     _isAdmin = event.isAdmin;
+    _includeReviewed = event.includeReviewed;
     emit(const AtestadoLoading());
     try {
-      final list = _isAdmin
-          ? await repository.getPendingAtestados()
-          : await repository.getMyAtestados();
+      final list = await _loadAtestados(
+        isAdmin: _isAdmin,
+        includeReviewed: _includeReviewed,
+      );
       _lastList = list;
       emit(AtestadoLoaded(atestados: list, isAdmin: _isAdmin));
     } catch (e) {
@@ -99,7 +104,7 @@ class AtestadoBloc extends Bloc<AtestadoEvent, AtestadoState> {
     globalLoading?.show('Aprovando atestado...');
     try {
       await repository.approveAtestado(event.atestadoId);
-      final list = await repository.getPendingAtestados();
+      final list = await _loadCurrentAtestados();
       _lastList = list;
       globalLoading?.hide();
       emit(AtestadoActionSuccess(
@@ -121,7 +126,8 @@ class AtestadoBloc extends Bloc<AtestadoEvent, AtestadoState> {
   ) async {
     await repository.markSeenByEmployee(event.atestadoId);
     _lastList = _lastList
-        .map((a) => a.id == event.atestadoId ? a.copyWith(seenByEmployee: true) : a)
+        .map((a) =>
+            a.id == event.atestadoId ? a.copyWith(seenByEmployee: true) : a)
         .toList();
     emit(AtestadoLoaded(atestados: _lastList, isAdmin: _isAdmin));
   }
@@ -133,7 +139,7 @@ class AtestadoBloc extends Bloc<AtestadoEvent, AtestadoState> {
     globalLoading?.show('Recusando atestado...');
     try {
       await repository.rejectAtestado(event.atestadoId, reason: event.reason);
-      final list = await repository.getPendingAtestados();
+      final list = await _loadCurrentAtestados();
       _lastList = list;
       globalLoading?.hide();
       emit(AtestadoActionSuccess(
@@ -147,5 +153,24 @@ class AtestadoBloc extends Bloc<AtestadoEvent, AtestadoState> {
         atestados: _lastList,
       ));
     }
+  }
+
+  Future<List<AtestadoModel>> _loadAtestados({
+    required bool isAdmin,
+    required bool includeReviewed,
+  }) async {
+    if (isAdmin) {
+      return includeReviewed
+          ? repository.getAllAtestados()
+          : repository.getPendingAtestados();
+    }
+    return repository.getMyAtestados();
+  }
+
+  Future<List<AtestadoModel>> _loadCurrentAtestados() {
+    return _loadAtestados(
+      isAdmin: _isAdmin,
+      includeReviewed: _includeReviewed,
+    );
   }
 }

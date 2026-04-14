@@ -6,7 +6,12 @@ abstract class AtestadoEvent {
 
 class LoadAtestadosEvent extends AtestadoEvent {
   final bool isAdmin;
-  const LoadAtestadosEvent({this.isAdmin = false});
+  final bool includeReviewed;
+
+  const LoadAtestadosEvent({
+    this.isAdmin = false,
+    this.includeReviewed = false,
+  });
 }
 
 class SubmitAtestadoEvent extends AtestadoEvent {
@@ -36,7 +41,12 @@ class RejectAtestadoEvent extends AtestadoEvent {
 
 class SilentLoadAtestadosEvent extends AtestadoEvent {
   final bool isAdmin;
-  const SilentLoadAtestadosEvent({this.isAdmin = true});
+  final bool includeReviewed;
+
+  const SilentLoadAtestadosEvent({
+    this.isAdmin = true,
+    this.includeReviewed = false,
+  });
 }
 
 class ResetAtestadosEvent extends AtestadoEvent {

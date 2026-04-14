@@ -1,7 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/global_loading/global_loading_cubit.dart';
 import 'package:flutter_application_appdeponto/repositories/user_repository.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'user_management_event.dart';
 import 'user_management_state.dart';
 
@@ -33,10 +32,7 @@ class UserManagementBloc
       if (state is! UsersLoaded) {
         emit(const UserManagementLoading());
       }
-      // Exclui o próprio admin logado da listagem
-      final prefs = await SharedPreferences.getInstance();
-      final currentUid = prefs.getString('userUid');
-      final users = await UserRepository.getUsers(excludeUid: currentUid);
+      final users = await UserRepository.getUsers();
       emit(UsersLoaded(users: users));
     } catch (e) {
       emit(UserManagementError(
@@ -158,10 +154,7 @@ class UserManagementBloc
 
       await UserRepository.updateUserRole(event.userId, event.newRole);
 
-      // Recarrega os usuários excluindo o admin logado
-      final prefs = await SharedPreferences.getInstance();
-      final currentUid = prefs.getString('userUid');
-      final users = await UserRepository.getUsers(excludeUid: currentUid);
+      final users = await UserRepository.getUsers();
       final newState = UsersLoaded(
         users: users,
         searchQuery:
@@ -235,9 +228,7 @@ class UserManagementBloc
         UserRepository.updateUserWorkload(event.userId, event.workloadMinutes),
       ]);
 
-      final prefs = await SharedPreferences.getInstance();
-      final currentUid = prefs.getString('userUid');
-      final users = await UserRepository.getUsers(excludeUid: currentUid);
+      final users = await UserRepository.getUsers();
       final newState = UsersLoaded(
         users: users,
         searchQuery:
@@ -270,10 +261,7 @@ class UserManagementBloc
 
       await UserRepository.deleteUser(event.userId);
 
-      // Recarrega os usuários excluindo o admin logado
-      final prefs = await SharedPreferences.getInstance();
-      final currentUid = prefs.getString('userUid');
-      final users = await UserRepository.getUsers(excludeUid: currentUid);
+      final users = await UserRepository.getUsers();
       final newState = UsersLoaded(
         users: users,
         searchQuery:

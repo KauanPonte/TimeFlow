@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_application_appdeponto/blocs/user_management/user_management_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/user_management/user_management_event.dart';
 import 'package:flutter_application_appdeponto/blocs/user_management/user_management_state.dart';
@@ -23,6 +24,7 @@ class _RegisteredUsersTabState extends State<RegisteredUsersTab>
   final _searchController = TextEditingController();
   List<Map<String, dynamic>>? _cachedUsers;
   String _cachedSearchQuery = '';
+  String? _currentUid;
   TabController? _tabController;
 
   @override
@@ -31,6 +33,7 @@ class _RegisteredUsersTabState extends State<RegisteredUsersTab>
   @override
   void initState() {
     super.initState();
+    _loadCurrentUid();
     // Carrega os usuários apenas se ainda não foram carregados
     final currentState = context.read<UserManagementBloc>().state;
     if (currentState is! UsersLoaded) {
@@ -63,6 +66,13 @@ class _RegisteredUsersTabState extends State<RegisteredUsersTab>
     _tabController?.removeListener(_onTabChanged);
     _searchController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadCurrentUid() async {
+    final prefs = await SharedPreferences.getInstance();
+    final currentUid = prefs.getString('userUid');
+    if (!mounted) return;
+    setState(() => _currentUid = currentUid);
   }
 
   @override
@@ -211,6 +221,7 @@ class _RegisteredUsersTabState extends State<RegisteredUsersTab>
                               final user = filteredUsers[index];
                               return UserCard(
                                 user: user,
+                                isCurrentUser: user['id'] == _currentUid,
                                 onTap: () {
                                   Navigator.push(
                                     context,
@@ -218,7 +229,9 @@ class _RegisteredUsersTabState extends State<RegisteredUsersTab>
                                       builder: (_) => HistoryPage(
                                         targetUid: user['id'],
                                         targetName: user['name'],
-                                        targetProfileImage: user['profileImage'] ?? user['profileImageURL'],
+                                        targetProfileImage:
+                                            user['profileImage'] ??
+                                                user['profileImageURL'],
                                       ),
                                     ),
                                   );
