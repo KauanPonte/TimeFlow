@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_application_appdeponto/pages/home_page/pages/calendar_service.dart';
-
+import 'package:flutter_application_appdeponto/services/server_time_service.dart';
 
 class PontoResult {
   final bool success;
@@ -15,7 +15,7 @@ class PontoService {
 
   static String _mesIdFromDiaId(String diaId) => diaId.substring(0, 7);
 
-  static String _hojeId() => DateFormat('yyyy-MM-dd').format(DateTime.now());
+  static String _hojeId() => ServerTimeService.todayId();
   static String _diaId(DateTime d) => DateFormat('yyyy-MM-dd').format(d);
   static DateTime _startOfDay(DateTime d) => DateTime(d.year, d.month, d.day);
 
@@ -94,7 +94,7 @@ class PontoService {
         return const PontoResult(
             success: false, message: 'Você precisa estar logado.');
       }
-      final hoje = DateTime.now();
+      final hoje = ServerTimeService.now();
       final bool feriado = await isFeriado(hoje);
 
       if (feriado) {
@@ -111,8 +111,8 @@ class PontoService {
       final diaId = _hojeId();
       final refDia = _refDia(uid, diaId);
       final refEventos = _refEventos(uid, diaId);
-      // Registra sem segundos (truncado ao minuto).
-      final nowRaw = DateTime.now();
+      // Registra sem segundos (truncado ao minuto) usando horário corrigido do servidor.
+      final nowRaw = ServerTimeService.now();
       final nowTruncated = DateTime(
           nowRaw.year, nowRaw.month, nowRaw.day, nowRaw.hour, nowRaw.minute);
       final now = Timestamp.fromDate(nowTruncated);
@@ -174,7 +174,7 @@ class PontoService {
       // Atualiza eventosCache no doc do dia
       await _rebuildEventosCache(uid: uid, diaId: diaId);
 
-      final horas = DateFormat('HH:mm').format(DateTime.now());
+      final horas = DateFormat('HH:mm').format(ServerTimeService.now());
       return PontoResult(
           success: true, message: 'Ponto "$tipo" registrado às $horas.');
     } catch (e) {
@@ -355,8 +355,10 @@ class PontoService {
       final cleanDate = DateTime(date.year, date.month, date.day);
 
       // Expande a janela de busca para lidar com diferenças de timezone (ex: salvo em UTC)
-      final expandedStart = Timestamp.fromDate(cleanDate.subtract(const Duration(days: 1)));
-      final expandedEnd = Timestamp.fromDate(cleanDate.add(const Duration(days: 2)));
+      final expandedStart =
+          Timestamp.fromDate(cleanDate.subtract(const Duration(days: 1)));
+      final expandedEnd =
+          Timestamp.fromDate(cleanDate.add(const Duration(days: 2)));
 
       const blockingTypes = {
         'feriado',
@@ -376,7 +378,8 @@ class PontoService {
           if (evDate.year == cleanDate.year &&
               evDate.month == cleanDate.month &&
               evDate.day == cleanDate.day) {
-            final tipo = (doc.data()['type'] ?? '').toString().toLowerCase().trim();
+            final tipo =
+                (doc.data()['type'] ?? '').toString().toLowerCase().trim();
             if (blockingTypes.contains(tipo)) return true;
           }
         }
@@ -414,8 +417,8 @@ class PontoService {
     final String? ultimoTipoEvento =
         eventos.isNotEmpty ? (eventos.last['tipo'] ?? '').toString() : null;
     final bool diaFechado = ultimoTipoEvento == 'saida';
-    final hojeId = DateFormat('yyyy-MM-dd').format(DateTime.now());
-    final bool ehHoje = diaId == hojeId;
+    final todayId = _hojeId();
+    final bool ehHoje = diaId == todayId;
 
     final date = DateTime.parse(diaId);
     final holidays = getBrazilHolidays(date.year);
@@ -507,7 +510,7 @@ class PontoService {
     }
 
     final uid = user.uid;
-    final now = DateTime.now();
+    final now = ServerTimeService.now();
     final monthStart = DateTime(now.year, now.month, 1);
     final nextMonthStart = DateTime(now.year, now.month + 1, 1);
     final workloadMinutes = await _getWorkloadMinutes(uid);
@@ -624,8 +627,9 @@ class PontoService {
 
   /// Resumo do mês: horas feitas vs horas previstas (dias úteis),
   /// descontando finais de semana e feriados (BR + CE).
-  static Future<MesResumo> calcularResumoMensal(String uid, DateTime month) async {
-    final now = DateTime.now();
+  static Future<MesResumo> calcularResumoMensal(
+      String uid, DateTime month) async {
+    final now = ServerTimeService.now();
     final isCurrentMonth = month.year == now.year && month.month == now.month;
     final mesId = DateFormat('yyyy-MM').format(month);
     final refMes = _refMes(uid, mesId);
@@ -635,15 +639,17 @@ class PontoService {
       try {
         final snap = await refMes.get();
         if (snap.exists && snap.data()!.containsKey('summaryCache')) {
-          final cacheData = snap.data()!['summaryCache'] as Map<String, dynamic>;
+          final cacheData =
+              snap.data()!['summaryCache'] as Map<String, dynamic>;
           return MesResumo.fromMap(cacheData);
         }
       } catch (_) {}
     }
 
     final calendarService = CalendarService();
-    final folgas = await calendarService.getDaysThatReduceWorkload(month.year, month.month);
-    
+    final folgas = await calendarService.getDaysThatReduceWorkload(
+        month.year, month.month);
+
     // Buscar atestados aprovados que caem neste mês para abonar a meta de saldo
     final prefix = '${month.year}-${month.month.toString().padLeft(2, '0')}';
     final atestadosSnap = await FirebaseFirestore.instance
@@ -661,10 +667,15 @@ class PontoService {
         final startLocal = DateTime.tryParse(startStr);
         final endLocal = DateTime.tryParse(endStr);
         if (startLocal != null && endLocal != null) {
-          final start = DateTime.utc(startLocal.year, startLocal.month, startLocal.day, 12);
-          final end = DateTime.utc(endLocal.year, endLocal.month, endLocal.day, 12);
-          for (var d = start; !d.isAfter(end); d = d.add(const Duration(days: 1))) {
-            final diaId = '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+          final start = DateTime.utc(
+              startLocal.year, startLocal.month, startLocal.day, 12);
+          final end =
+              DateTime.utc(endLocal.year, endLocal.month, endLocal.day, 12);
+          for (var d = start;
+              !d.isAfter(end);
+              d = d.add(const Duration(days: 1))) {
+            final diaId =
+                '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
             if (diaId.startsWith(prefix)) atestadoDays.add(diaId);
           }
         }
@@ -679,13 +690,16 @@ class PontoService {
 
     for (int i = 1; i <= ultimoDia; i++) {
       final date = DateTime(month.year, month.month, i);
-      final diaId = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-      bool isWeekend = date.weekday == DateTime.saturday || date.weekday == DateTime.sunday;
-      bool isFolga = folgas.contains(diaId); // Inclui feriados fixos e artificiais via CalendarService
+      final diaId =
+          '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+      bool isWeekend =
+          date.weekday == DateTime.saturday || date.weekday == DateTime.sunday;
+      bool isFolga = folgas.contains(
+          diaId); // Inclui feriados fixos e artificiais via CalendarService
       bool isAtestado = atestadoDays.contains(diaId);
       if (!isWeekend && !isFolga && !isAtestado) diasUteisNoMes++;
     }
-    
+
     final int expectedMinutesTotal = diasUteisNoMes * workloadMinutes;
 
     // Pega os registros de dias do mês primeiro para verificar status de hoje
@@ -718,13 +732,16 @@ class PontoService {
       if (isCurrentMonth && i == now.day && !todayIsClosed) continue;
 
       final date = DateTime(month.year, month.month, i);
-      final diaId = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-      bool isWeekend = date.weekday == DateTime.saturday || date.weekday == DateTime.sunday;
+      final diaId =
+          '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+      bool isWeekend =
+          date.weekday == DateTime.saturday || date.weekday == DateTime.sunday;
       bool isFolga = folgas.contains(diaId);
       bool isAtestado = atestadoDays.contains(diaId);
 
       // Assim como no user_reports_page, contabiliza apenas dias úteis na meta de saldo.
-      if (!isWeekend && !isFolga && !isAtestado) expectedMinutesUntilLimit += workloadMinutes;
+      if (!isWeekend && !isFolga && !isAtestado)
+        expectedMinutesUntilLimit += workloadMinutes;
     }
 
     // Soma as horas reais trabalhadas, excluindo hoje se o dia ainda não foi fechado
@@ -735,7 +752,8 @@ class PontoService {
     }
 
     // "subtrai isso (expectativa) pelo q realmente tem trabalhado e ent temos os saldo"
-    final double monthBalance = (workedMinutes - expectedMinutesUntilLimit).toDouble();
+    final double monthBalance =
+        (workedMinutes - expectedMinutesUntilLimit).toDouble();
 
     final resumo = MesResumo(
       workedMinutes: workedMinutes,
@@ -767,7 +785,7 @@ class PontoService {
         monthBalance: 0.0,
       );
     }
-    return await calcularResumoMensal(user.uid, DateTime.now());
+    return await calcularResumoMensal(user.uid, ServerTimeService.now());
   }
 
   /// Saldo acumulado total (em minutos) desde a criação da conta até hoje.
@@ -779,7 +797,7 @@ class PontoService {
     final createdAt = await _getUserCreatedAt(uid);
     if (createdAt == null) return 0;
 
-    final now = DateTime.now();
+    final now = ServerTimeService.now();
     final workloadMinutes = await _getWorkloadMinutes(uid);
     int totalBalance = 0;
 
@@ -814,8 +832,8 @@ class PontoService {
             .toSet();
 
         final calendarService = CalendarService();
-        final folgas = await calendarService
-            .getDaysThatReduceWorkload(cursor.year, cursor.month);
+        final folgas = await calendarService.getDaysThatReduceWorkload(
+            cursor.year, cursor.month);
 
         for (int i = 1; i < createdAt.day; i++) {
           final date = DateTime(cursor.year, cursor.month, i);
@@ -867,19 +885,19 @@ class PontoService {
 
     // Cache/Throttle: não recalcula se foi feito nos últimos 5 minutos
     final lastTime = _recalcThrottleMap[uid];
-    if (lastTime != null && 
-        DateTime.now().difference(lastTime).inMinutes < 5) {
+    final now = ServerTimeService.now();
+    if (lastTime != null && now.difference(lastTime).inMinutes < 5) {
       return;
     }
-    _recalcThrottleMap[uid] = DateTime.now();
-    final now = DateTime.now();
+    _recalcThrottleMap[uid] = now;
     final monthStart = DateTime(now.year, now.month, 1);
     final nextMonthStart = DateTime(now.year, now.month + 1, 1);
 
     final userCreatedAt = await _getUserCreatedAt(uid);
-    final balanceStart = (userCreatedAt != null && userCreatedAt.isAfter(monthStart))
-        ? userCreatedAt
-        : monthStart;
+    final balanceStart =
+        (userCreatedAt != null && userCreatedAt.isAfter(monthStart))
+            ? userCreatedAt
+            : monthStart;
 
     final prefix =
         '${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}';
@@ -950,7 +968,6 @@ class PontoService {
     final feriadosFixos = getBrazilHolidays(date.year);
     return feriadosFixos.containsKey(cleanDate);
   }*/
-
 
   static Map<DateTime, String> getBrazilHolidays(int year) {
     Map<DateTime, String> holidays = {

@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/ponto_data/ponto_data_changed_cubit.dart';
 import 'package:flutter_application_appdeponto/services/ponto_service.dart';
+import 'package:flutter_application_appdeponto/services/server_time_service.dart';
 import 'ponto_today_state.dart';
 
 /// Cubit global que mantém os dados de ponto do dia atual.
@@ -50,12 +51,12 @@ class PontoTodayCubit extends Cubit<PontoTodayState> {
 
       // Queries de dados da UI — todas em paralelo.
       final results = await Future.wait([
-        PontoService.loadEventosHoje(),              // 0
-        PontoService.getLockedWorkModeHoje(),         // 1
-        PontoService.loadRegistros(),                 // 2
-        PontoService.getResumoMesAtual(),             // 3
-        PontoService.getCargaHorariaUsuarioAtual(),   // 4
-        PontoService.isFeriado(DateTime.now()),       // 5
+        PontoService.loadEventosHoje(), // 0
+        PontoService.getLockedWorkModeHoje(), // 1
+        PontoService.loadRegistros(), // 2
+        PontoService.getResumoMesAtual(), // 3
+        PontoService.getCargaHorariaUsuarioAtual(), // 4
+        PontoService.isFeriado(ServerTimeService.now()), // 5
       ]);
 
       _loadedOnce = true;
@@ -143,7 +144,7 @@ class PontoTodayCubit extends Cubit<PontoTodayState> {
   }
 
   void _scheduleCutoffRefresh() {
-    final now = DateTime.now();
+    final now = ServerTimeService.now();
     final todayId =
         '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
     if (_cutoffScheduledDayId == todayId) return;
