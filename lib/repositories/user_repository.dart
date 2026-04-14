@@ -35,7 +35,11 @@ class UserRepository {
   /// sorted alphabetically by role.
   static Future<List<Map<String, dynamic>>> getUsers({
     String? excludeUid,
+    bool includeTodayStatus = false,
   }) async {
+    final todayWorkModes =
+        includeTodayStatus ? await _loadTodayPunchWorkModes() : {};
+
     final snapshot = await _db
         .collection(_usersCollection)
         .where('status', isEqualTo: 'active')
@@ -45,6 +49,7 @@ class UserRepository {
         .where((doc) => excludeUid == null || doc.id != excludeUid)
         .map((doc) {
       final data = doc.data();
+      final todayWorkMode = todayWorkModes[doc.id];
 
       return {
         'id': doc.id,
@@ -55,6 +60,8 @@ class UserRepository {
         'workloadMinutes': data['workloadMinutes'] ?? 0,
         'registeredAt': _formatTimestamp(data['createdAt']),
         'profileImage': data['profileImage'] ?? '',
+        'todayWorkMode': todayWorkMode ?? '',
+        'didPunchToday': todayWorkMode != null,
       };
     }).toList();
 
@@ -70,6 +77,36 @@ class UserRepository {
     });
 
     return users;
+  }
+
+  static Future<Map<String, String>> _loadTodayPunchWorkModes() async {
+    final now = DateTime.now();
+    final todayStart = DateTime(now.year, now.month, now.day);
+    final tomorrowStart = todayStart.add(const Duration(days: 1));
+
+    final snapshot = await _db
+        .collectionGroup('eventos')
+        .where('at', isGreaterThanOrEqualTo: Timestamp.fromDate(todayStart))
+        .where('at', isLessThan: Timestamp.fromDate(tomorrowStart))
+        .orderBy('at', descending: false)
+        .get();
+
+    final Map<String, String> workModes = {};
+
+    for (final doc in snapshot.docs) {
+      final workMode = (doc.data()['workMode'] ?? '').toString().toLowerCase();
+      if (workMode != 'presencial' && workMode != 'remoto') continue;
+
+      final segments = doc.reference.path.split('/');
+      if (segments.length < 2) continue;
+      final userId = segments[1];
+
+      if (!workModes.containsKey(userId)) {
+        workModes[userId] = workMode;
+      }
+    }
+
+    return workModes;
   }
 
   /// Get pending registration requests (status == 'pending')

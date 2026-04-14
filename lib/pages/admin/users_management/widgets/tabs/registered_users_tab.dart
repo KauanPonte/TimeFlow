@@ -26,6 +26,7 @@ class _RegisteredUsersTabState extends State<RegisteredUsersTab>
   String _cachedSearchQuery = '';
   String? _currentUid;
   TabController? _tabController;
+  String _selectedGroupFilter = 'all';
 
   @override
   bool get wantKeepAlive => true;
@@ -112,24 +113,13 @@ class _RegisteredUsersTabState extends State<RegisteredUsersTab>
 
         final usersNonNull = users;
 
-        final filteredUsers = searchQuery.isEmpty
-            ? usersNonNull
-            : usersNonNull.where((user) {
-                final name = user['name'].toString().toLowerCase();
-                final email = user['email'].toString().toLowerCase();
-                final role = user['role'].toString().toLowerCase();
-                final query = searchQuery.toLowerCase();
-
-                return name.contains(query) ||
-                    email.contains(query) ||
-                    role.contains(query);
-              }).toList();
+        final filteredUsers = _applyFilters(usersNonNull, searchQuery);
 
         return Column(
           children: [
             // Search Bar
             Container(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
               child: TextField(
                 controller: _searchController,
                 onChanged: (value) {
@@ -154,22 +144,43 @@ class _RegisteredUsersTabState extends State<RegisteredUsersTab>
                         )
                       : null,
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(10),
                     borderSide: const BorderSide(color: AppColors.borderLight),
                   ),
                   enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(10),
                     borderSide: const BorderSide(color: AppColors.borderLight),
                   ),
                   focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(10),
                     borderSide:
                         const BorderSide(color: AppColors.primary, width: 2),
                   ),
                   filled: true,
                   fillColor: AppColors.surface,
                   contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                ),
+              ),
+            ),
+
+            // Group Filter Chips
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                child: Row(
+                  children: [
+                    _buildFilterChip('all', 'Todos'),
+                    const SizedBox(width: 8),
+                    _buildFilterChip('presencial', 'Presencial'),
+                    const SizedBox(width: 8),
+                    _buildFilterChip('remoto', 'Remoto'),
+                    const SizedBox(width: 8),
+                    _buildFilterChip('not_punched', 'Não bateram'),
+                  ],
                 ),
               ),
             ),
@@ -250,6 +261,65 @@ class _RegisteredUsersTabState extends State<RegisteredUsersTab>
         );
       },
     );
+  }
+
+  Widget _buildFilterChip(String value, String label) {
+    return ChoiceChip(
+      label: Text(label),
+      selected: _selectedGroupFilter == value,
+      selectedColor: AppColors.primary,
+      backgroundColor: AppColors.surface,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      visualDensity: VisualDensity.compact,
+      labelStyle: TextStyle(
+        fontSize: 12,
+        color: _selectedGroupFilter == value
+            ? AppColors.surface
+            : AppColors.textSecondary,
+        fontWeight: FontWeight.w600,
+      ),
+      onSelected: (selected) {
+        if (!selected) return;
+        setState(() {
+          _selectedGroupFilter = value;
+        });
+      },
+    );
+  }
+
+  List<Map<String, dynamic>> _applyFilters(
+    List<Map<String, dynamic>> users,
+    String searchQuery,
+  ) {
+    final query = searchQuery.toLowerCase().trim();
+    final searchFiltered = query.isEmpty
+        ? users
+        : users.where((user) {
+            final name = user['name'].toString().toLowerCase();
+            final email = user['email'].toString().toLowerCase();
+            final role = user['role'].toString().toLowerCase();
+            return name.contains(query) ||
+                email.contains(query) ||
+                role.contains(query);
+          }).toList();
+
+    if (_selectedGroupFilter == 'all') return searchFiltered;
+
+    return searchFiltered.where((user) {
+      final workMode = user['todayWorkMode']?.toString().toLowerCase() ?? '';
+      final didPunch = user['didPunchToday'] == true;
+
+      if (_selectedGroupFilter == 'presencial') {
+        return didPunch && workMode == 'presencial';
+      }
+      if (_selectedGroupFilter == 'remoto') {
+        return didPunch && workMode == 'remoto';
+      }
+      if (_selectedGroupFilter == 'not_punched') {
+        return !didPunch;
+      }
+      return true;
+    }).toList();
   }
 
   Future<void> _showEditUserDialog(Map<String, dynamic> user) async {

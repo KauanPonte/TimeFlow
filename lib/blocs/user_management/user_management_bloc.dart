@@ -32,7 +32,7 @@ class UserManagementBloc
       if (state is! UsersLoaded) {
         emit(const UserManagementLoading());
       }
-      final users = await UserRepository.getUsers();
+      final users = await UserRepository.getUsers(includeTodayStatus: true);
       emit(UsersLoaded(users: users));
     } catch (e) {
       emit(UserManagementError(
@@ -154,7 +154,7 @@ class UserManagementBloc
 
       await UserRepository.updateUserRole(event.userId, event.newRole);
 
-      final users = await UserRepository.getUsers();
+      final users = await UserRepository.getUsers(includeTodayStatus: true);
       final newState = UsersLoaded(
         users: users,
         searchQuery:
@@ -228,7 +228,7 @@ class UserManagementBloc
         UserRepository.updateUserWorkload(event.userId, event.workloadMinutes),
       ]);
 
-      final users = await UserRepository.getUsers();
+      final users = await UserRepository.getUsers(includeTodayStatus: true);
       final newState = UsersLoaded(
         users: users,
         searchQuery:
@@ -261,7 +261,7 @@ class UserManagementBloc
 
       await UserRepository.deleteUser(event.userId);
 
-      final users = await UserRepository.getUsers();
+      final users = await UserRepository.getUsers(includeTodayStatus: true);
       final newState = UsersLoaded(
         users: users,
         searchQuery:
