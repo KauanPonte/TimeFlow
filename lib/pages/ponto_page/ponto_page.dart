@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_appdeponto/services/ponto_service.dart';
+import 'package:flutter_application_appdeponto/services/server_time_service.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../blocs/global_loading/global_loading_cubit.dart';
 import '../../blocs/ponto_today/ponto_today_cubit.dart';
@@ -45,9 +46,9 @@ class _PontoPageState extends State<PontoPage> {
   @override
   void initState() {
     super.initState();
-    _now = DateTime.now();
+    _now = ServerTimeService.now();
     _clockTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (mounted) setState(() => _now = DateTime.now());
+      if (mounted) setState(() => _now = ServerTimeService.now());
     });
 
     // Dados já carregados pelo splash (incluindo isFeriadoHoje) — não precisa re-fazer o load.
@@ -98,7 +99,7 @@ class _PontoPageState extends State<PontoPage> {
 
     // ---  TRAVA DE FERIADO AQUI ---
     globalLoading.show('Verificando calendário...');
-    bool ehFeriado = await PontoService.isFeriado(DateTime.now());
+    bool ehFeriado = await PontoService.isFeriado(ServerTimeService.now());
 
     if (!mounted) {
       globalLoading.hide();
@@ -258,7 +259,8 @@ class _PontoPageState extends State<PontoPage> {
     final hoje = _hojeMapComputed(pontoState);
     final proximas = _proximasAcoes(pontoState);
     final effectiveMode = _effectiveWorkMode(pontoState);
-    final bool isPanelAccessible = effectiveMode != null && !pontoState.isFeriadoHoje;
+    final bool isPanelAccessible =
+        effectiveMode != null && !pontoState.isFeriadoHoje;
 
     return Scaffold(
       backgroundColor: AppColors.bgLight,
