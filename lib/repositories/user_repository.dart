@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_application_appdeponto/services/server_time_service.dart';
 
 /// Repository for managing users and registration requests via Firebase
 class UserRepository {
@@ -80,9 +81,8 @@ class UserRepository {
   }
 
   static Future<Map<String, String>> _loadTodayPunchWorkModes() async {
-    final now = DateTime.now();
-    final todayStart = DateTime(now.year, now.month, now.day);
-    final tomorrowStart = todayStart.add(const Duration(days: 1));
+    final todayStart = ServerTimeService.todayStartUtc();
+    final tomorrowStart = ServerTimeService.tomorrowStartUtc();
 
     final snapshot = await _db
         .collectionGroup('eventos')

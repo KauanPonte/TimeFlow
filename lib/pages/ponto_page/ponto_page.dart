@@ -46,9 +46,9 @@ class _PontoPageState extends State<PontoPage> {
   @override
   void initState() {
     super.initState();
-    _now = ServerTimeService.now();
+    _now = ServerTimeService.nowBrazilUtc();
     _clockTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (mounted) setState(() => _now = ServerTimeService.now());
+      if (mounted) setState(() => _now = ServerTimeService.nowBrazilUtc());
     });
 
     // Dados já carregados pelo splash (incluindo isFeriadoHoje) — não precisa re-fazer o load.

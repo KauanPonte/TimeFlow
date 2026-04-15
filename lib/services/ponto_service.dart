@@ -94,7 +94,7 @@ class PontoService {
         return const PontoResult(
             success: false, message: 'Você precisa estar logado.');
       }
-      final hoje = ServerTimeService.now();
+      final hoje = ServerTimeService.nowBrazilUtc();
       final bool feriado = await isFeriado(hoje);
 
       if (feriado) {
@@ -112,10 +112,7 @@ class PontoService {
       final refDia = _refDia(uid, diaId);
       final refEventos = _refEventos(uid, diaId);
       // Registra sem segundos (truncado ao minuto) usando horário corrigido do servidor.
-      final nowRaw = ServerTimeService.now();
-      final nowTruncated = DateTime(
-          nowRaw.year, nowRaw.month, nowRaw.day, nowRaw.hour, nowRaw.minute);
-      final now = Timestamp.fromDate(nowTruncated);
+      final now = ServerTimeService.nowTimestampTruncated();
 
       final int workloadMinutes = await _getWorkloadMinutes(uid);
 
@@ -242,7 +239,8 @@ class PontoService {
         }
       });
 
-      final horas = DateFormat('HH:mm').format(ServerTimeService.now());
+      final horas =
+          DateFormat('HH:mm').format(ServerTimeService.nowBrazilUtc());
       return PontoResult(
           success: true, message: 'Ponto "$tipo" registrado às $horas.');
     } catch (e) {
