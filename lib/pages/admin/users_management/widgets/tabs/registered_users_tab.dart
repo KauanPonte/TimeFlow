@@ -278,6 +278,7 @@ class _RegisteredUsersTabState extends State<RegisteredUsersTab>
             : AppColors.textSecondary,
         fontWeight: FontWeight.w600,
       ),
+      checkmarkColor: AppColors.surface,
       onSelected: (selected) {
         if (!selected) return;
         setState(() {
