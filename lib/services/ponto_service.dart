@@ -94,7 +94,7 @@ class PontoService {
         return const PontoResult(
             success: false, message: 'Você precisa estar logado.');
       }
-      final hoje = ServerTimeService.now();
+      final hoje = ServerTimeService.nowBrazilUtc();
       final bool feriado = await isFeriado(hoje);
 
       if (feriado) {
@@ -112,69 +112,135 @@ class PontoService {
       final refDia = _refDia(uid, diaId);
       final refEventos = _refEventos(uid, diaId);
       // Registra sem segundos (truncado ao minuto) usando horário corrigido do servidor.
-      final nowRaw = ServerTimeService.now();
-      final nowTruncated = DateTime(
-          nowRaw.year, nowRaw.month, nowRaw.day, nowRaw.hour, nowRaw.minute);
-      final now = Timestamp.fromDate(nowTruncated);
+      final now = ServerTimeService.nowTimestampTruncated();
 
-      final diaSnapPre = await refDia.get();
+      final int workloadMinutes = await _getWorkloadMinutes(uid);
 
-      if (!diaSnapPre.exists) {
-        if (tipo != 'entrada') {
+      //  Escrita atômica com cache incremental e atualização mínima de mês
+      final eventId = refEventos.doc().id;
+      final eventData = {
+        'tipo': tipo,
+        'at': now,
+        'workMode': workMode,
+        'origin': 'registrado',
+      };
+      final eventCacheEntry = {
+        'id': eventId,
+        'tipo': tipo,
+        'at': now,
+        'workMode': workMode,
+        'origin': 'registrado',
+      };
+
+      await FirebaseFirestore.instance.runTransaction((tx) async {
+        final diaSnap = await tx.get(refDia);
+        final diaData = diaSnap.data();
+        final dynamic rawCache = diaData?['eventosCache'];
+        var existingCache = _normalizeEventosCache(rawCache as List<dynamic>?);
+
+        if (diaSnap.exists && rawCache == null) {
+          final eventsSnap =
+              await refEventos.orderBy('at', descending: false).get();
+          existingCache = eventsSnap.docs.map((doc) {
+            final data = doc.data();
+            return {
+              'id': doc.id,
+              'tipo': (data['tipo'] ?? '').toString(),
+              'at': data['at'],
+              'workMode': (data['workMode'] ?? '').toString(),
+              'origin': (data['origin'] ?? 'registrado').toString(),
+            };
+          }).toList();
+        }
+
+        if (diaSnap.exists) {
+          final String? ultimoTipo = diaData?['lastTipo']?.toString();
+          if (!_podeRegistrar(ultimoTipo: ultimoTipo, novoTipo: tipo)) {
+            throw Exception(_mensagemErroTransicao(ultimoTipo, tipo));
+          }
+
+          final Timestamp? lastAt = diaData?['lastAt'] as Timestamp?;
+          if (lastAt != null) {
+            final diffSeconds = now.seconds - lastAt.seconds;
+            if (diffSeconds < 60) {
+              throw Exception(
+                  'Aguarde pelo menos 1 minuto entre cada registro de ponto.');
+            }
+          }
+        } else if (tipo != 'entrada') {
           throw Exception('O primeiro ponto do dia precisa ser "entrada".');
         }
-      } else {
-        final diaDataPre = diaSnapPre.data() as Map<String, dynamic>;
-        final String? ultimoTipo = diaDataPre['lastTipo']?.toString();
 
-        if (!_podeRegistrar(ultimoTipo: ultimoTipo, novoTipo: tipo)) {
-          throw Exception(_mensagemErroTransicao(ultimoTipo, tipo));
+        final updatedCache = [...existingCache, eventCacheEntry];
+        final bool diaFechado = tipo == 'saida';
+        final int workedMinutes = diaFechado
+            ? _computeWorkedMinutesFromEventosFechado(updatedCache)
+            : (diaData?['workedMinutes'] as int?) ?? 0;
+        final bool isExcused = (diaData?['isExcused'] as bool?) ?? false;
+        final String mesId = _mesIdFromDiaId(diaId);
+        final DocumentReference<Map<String, dynamic>> refMes =
+            _refMes(uid, mesId);
+        final bool ehHoje = diaId == _hojeId();
+        final DateTime date = DateTime.parse(diaId);
+        final holidays = getBrazilHolidays(date.year);
+        final bool isWeekend = date.weekday == DateTime.saturday ||
+            date.weekday == DateTime.sunday;
+        final bool isHoliday = holidays.containsKey(date);
+        final bool falta = !ehHoje &&
+            updatedCache.isEmpty &&
+            !isWeekend &&
+            !isHoliday &&
+            !isExcused;
+        final int workloadMinutes =
+            await _getWorkloadMinutes(uid); // carrega apenas uma vez
+        final int deltaMinutes = isExcused
+            ? workedMinutes
+            : (falta
+                ? -workloadMinutes
+                : (diaFechado ? (workedMinutes - workloadMinutes) : 0));
+        final int oldDelta = (diaData?['deltaMinutes'] as int?) ?? 0;
+        final int balanceDiff = deltaMinutes - oldDelta;
+
+        final Map<String, dynamic> diaUpdate = {
+          'uid': uid,
+          'date': diaId,
+          'updatedAt': now,
+          'lastTipo': tipo,
+          'lastAt': now,
+          'eventosCache': updatedCache,
+          'workedMinutes': workedMinutes,
+          'deltaMinutes': deltaMinutes,
+          'workloadMinutes': workloadMinutes,
+          'isClosed': diaFechado,
+          'isOpen': !diaFechado && updatedCache.isNotEmpty,
+          'isAbsent': falta,
+        };
+
+        if (!diaSnap.exists) {
+          diaUpdate['createdAt'] = now;
         }
 
-        final Timestamp? lastAt = diaDataPre['lastAt'] as Timestamp?;
-        if (lastAt != null) {
-          final diffSeconds = now.seconds - lastAt.seconds;
-          if (diffSeconds < 60) {
-            throw Exception(
-                'Aguarde pelo menos 1 minuto entre cada registro de ponto.');
-          }
-        }
-      }
+        tx.set(refEventos.doc(eventId), eventData);
+        tx.set(refDia, diaUpdate, SetOptions(merge: true));
 
-      //  Escrita atômica (sem throws dentro da transação)
-      await FirebaseFirestore.instance.runTransaction((tx) async {
-        final newDoc = refEventos.doc();
-        tx.set(newDoc, {
-          'tipo': tipo,
-          'at': FieldValue.serverTimestamp(),
-          'workMode': workMode,
-          'origin': 'registrado',
-        });
-
-        if (!diaSnapPre.exists) {
-          tx.set(refDia, {
-            'uid': uid,
-            'date': diaId,
-            'createdAt': FieldValue.serverTimestamp(),
-            'updatedAt': FieldValue.serverTimestamp(),
-            'lastTipo': tipo,
-            'lastAt': FieldValue.serverTimestamp(),
-          });
-        } else {
-          tx.update(refDia, {
-            'updatedAt': FieldValue.serverTimestamp(),
-            'lastTipo': tipo,
-            'lastAt': FieldValue.serverTimestamp(),
-          });
+        if (balanceDiff != 0) {
+          final mesSnap = await tx.get(refMes);
+          final int oldBalance =
+              (mesSnap.data()?['balanceMinutes'] as int?) ?? 0;
+          tx.set(
+            refMes,
+            {
+              'balanceMinutes': oldBalance + balanceDiff,
+              'updatedAt': now,
+              'summaryCache': FieldValue.delete(),
+            },
+            SetOptions(merge: true),
+          );
         }
       });
 
-      await recalcularBancoDeHorasDoDia(uid: uid, diaId: diaId);
-
-      // Atualiza eventosCache no doc do dia
-      await _rebuildEventosCache(uid: uid, diaId: diaId);
-
-      final horas = DateFormat('HH:mm').format(ServerTimeService.now());
+      final horas =
+          DateFormat('HH:mm').format(ServerTimeService.nowBrazilUtc());
       return PontoResult(
           success: true, message: 'Ponto "$tipo" registrado às $horas.');
     } catch (e) {
@@ -212,8 +278,10 @@ class PontoService {
     final lastTipo = diaDoc.data()?['lastTipo']?.toString();
     if (lastTipo == null || lastTipo == 'saida') return null;
 
-    final eventosSnap =
-        await _refEventos(uid, diaId).orderBy('at', descending: true).get();
+    final eventosSnap = await _refEventos(uid, diaId)
+        .orderBy('at', descending: true)
+        .limit(1)
+        .get();
 
     bool hasPresencial = false;
     bool hasRemoto = false;
@@ -599,30 +667,18 @@ class PontoService {
     return totalMinutes;
   }
 
-  /// Reconstrói o array `eventosCache` no doc do dia após uma mutação.
-  /// Isso permite que `loadDaysByMonth` carregue eventos sem queries N+1.
-  static Future<void> _rebuildEventosCache({
-    required String uid,
-    required String diaId,
-  }) async {
-    final refDia = _refDia(uid, diaId);
-    final refEventos = _refEventos(uid, diaId);
-
-    final eventosSnap = await refEventos.orderBy('at', descending: false).get();
-    final eventosCache = eventosSnap.docs.map((d) {
-      final data = d.data();
+  static List<Map<String, dynamic>> _normalizeEventosCache(
+      List<dynamic>? rawCache) {
+    if (rawCache == null) return [];
+    return rawCache.whereType<Map<String, dynamic>>().map((data) {
       return {
-        'id': d.id,
+        'id': data['id']?.toString() ?? '',
         'tipo': (data['tipo'] ?? '').toString(),
         'at': data['at'],
         'workMode': (data['workMode'] ?? '').toString(),
         'origin': (data['origin'] ?? 'registrado').toString(),
       };
     }).toList();
-
-    await refDia.set({
-      'eventosCache': eventosCache,
-    }, SetOptions(merge: true));
   }
 
   /// Resumo do mês: horas feitas vs horas previstas (dias úteis),
@@ -740,8 +796,9 @@ class PontoService {
       bool isAtestado = atestadoDays.contains(diaId);
 
       // Assim como no user_reports_page, contabiliza apenas dias úteis na meta de saldo.
-      if (!isWeekend && !isFolga && !isAtestado)
+      if (!isWeekend && !isFolga && !isAtestado) {
         expectedMinutesUntilLimit += workloadMinutes;
+      }
     }
 
     // Soma as horas reais trabalhadas, excluindo hoje se o dia ainda não foi fechado

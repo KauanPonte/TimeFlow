@@ -56,7 +56,7 @@ class PontoTodayCubit extends Cubit<PontoTodayState> {
         PontoService.loadRegistros(), // 2
         PontoService.getResumoMesAtual(), // 3
         PontoService.getCargaHorariaUsuarioAtual(), // 4
-        PontoService.isFeriado(ServerTimeService.now()), // 5
+        PontoService.isFeriado(ServerTimeService.todayBrazilDate()), // 5
       ]);
 
       _loadedOnce = true;
@@ -144,12 +144,11 @@ class PontoTodayCubit extends Cubit<PontoTodayState> {
   }
 
   void _scheduleCutoffRefresh() {
-    final now = ServerTimeService.now();
-    final todayId =
-        '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+    final now = ServerTimeService.nowBrazilUtc();
+    final todayId = ServerTimeService.todayId();
     if (_cutoffScheduledDayId == todayId) return;
 
-    final cutoff = DateTime(now.year, now.month, now.day, 18, 0);
+    final cutoff = ServerTimeService.brazilTodayUtcAt(18);
     if (!now.isBefore(cutoff)) return;
 
     _cutoffTimer?.cancel();
