@@ -1,4 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_application_appdeponto/firebase_options.dart';
@@ -31,6 +33,7 @@ import 'package:flutter_application_appdeponto/repositories/ponto_history_reposi
 import 'package:flutter_application_appdeponto/repositories/profile_repository.dart';
 import 'package:flutter_application_appdeponto/repositories/solicitation_repository.dart';
 import 'package:flutter_application_appdeponto/widgets/action_loading_overlay.dart';
+import 'package:flutter_application_appdeponto/widgets/connectivity_guard.dart';
 import 'pages/splash/splash_page.dart';
 import 'services/notification_service.dart';
 import 'pages/auth/welcome/welcome_page.dart';
@@ -52,7 +55,17 @@ void main() async {
     DeviceOrientation.portraitUp,
   ]);
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  await ServerTimeService.sync();
+
+  // Verifica transporte de rede de forma instantânea antes de qualquer
+  // operação Firestore. Se offline, desabilita a rede do SDK para impedir
+  // tentativas de reconexão (WriteStream) e os erros de DNS associados.
+  final connectivityResult = await Connectivity().checkConnectivity();
+  final hasTransport = connectivityResult != ConnectivityResult.none;
+  if (hasTransport) {
+    await ServerTimeService.sync();
+  } else {
+    await FirebaseFirestore.instance.disableNetwork();
+  }
   await HistoryViewPreferenceRepository.initialize();
   await initializeDateFormatting('pt_BR');
   await NotificationService.init();
@@ -148,7 +161,7 @@ class TimeFlow extends StatelessWidget {
           Locale('pt', 'BR'), // Português Brasil
         ],
         builder: (context, child) {
-          return BlocListener<AuthBloc, AuthState>(
+          final appShell = BlocListener<AuthBloc, AuthState>(
             // Logout: limpa todos os dados ao sair de qualquer conta
             listenWhen: (previous, current) =>
                 (previous is UserAuthenticated ||
@@ -215,6 +228,8 @@ class TimeFlow extends StatelessWidget {
               ),
             ),
           );
+
+          return ConnectivityGuard(child: appShell);
         },
         theme: ThemeData(
           pageTransitionsTheme: const PageTransitionsTheme(

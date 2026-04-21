@@ -6,6 +6,9 @@ import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
+import 'package:flutter_application_appdeponto/services/internet_reachability_stub.dart'
+    if (dart.library.io) 'package:flutter_application_appdeponto/services/internet_reachability_io.dart'
+    as internet_reachability;
 
 import '../models/scheduled_reminder.dart';
 
@@ -99,6 +102,15 @@ class NotificationService {
       await cancelAllScheduledReminders();
       return;
     }
+
+    // Evita abrir stream do Firestore sem internet no startup.
+    try {
+      final hasInternet = await internet_reachability.hasInternetAccess();
+      if (!hasInternet) return;
+    } catch (_) {
+      return;
+    }
+
     await scheduleAllReminders(uid: uid);
   }
 
@@ -126,6 +138,16 @@ class NotificationService {
       return List.unmodifiable(_cachedScheduledReminders);
     }
 
+    // Sem internet, retorna cache local para não disparar consultas remotas.
+    try {
+      final hasInternet = await internet_reachability.hasInternetAccess();
+      if (!hasInternet) {
+        return List.unmodifiable(_cachedScheduledReminders);
+      }
+    } catch (_) {
+      return List.unmodifiable(_cachedScheduledReminders);
+    }
+
     try {
       final snap =
           await _firestore.collection(_usersCollection).doc(resolvedUid).get();
@@ -139,7 +161,8 @@ class NotificationService {
 
       final remindersList = data[_scheduledRemindersField] as List<dynamic>;
       _cachedScheduledReminders = remindersList
-          .map((e) => ScheduledReminder.fromFirestore(e as Map<String, dynamic>))
+          .map(
+              (e) => ScheduledReminder.fromFirestore(e as Map<String, dynamic>))
           .toList();
       _hasLoadedScheduledReminders = true;
       _cachedUid = resolvedUid;
@@ -175,7 +198,7 @@ class NotificationService {
     final current = await getScheduledReminders(uid: uid);
     final updated = [...current, reminder];
     await saveScheduledReminders(updated, uid: uid);
-    
+
     if (reminder.enabled) {
       await _scheduleReminder(reminder);
     }
@@ -244,7 +267,7 @@ class NotificationService {
   /// Agenda todas as notificações habilitadas do usuário.
   static Future<void> scheduleAllReminders({String? uid}) async {
     final reminders = await getScheduledReminders(uid: uid);
-    
+
     for (final reminder in reminders) {
       if (reminder.enabled) {
         await _scheduleReminder(reminder);
@@ -255,7 +278,7 @@ class NotificationService {
   /// Cancela todas as notificações agendadas do usuário.
   static Future<void> cancelAllScheduledReminders({String? uid}) async {
     final reminders = await getScheduledReminders(uid: uid);
-    
+
     for (final reminder in reminders) {
       await _cancelReminder(reminder);
     }

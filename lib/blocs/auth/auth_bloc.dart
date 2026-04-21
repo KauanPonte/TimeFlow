@@ -347,30 +347,48 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   }
 
   /// Handler to check authentication status
+  ///
+  /// Estratégia offline-first: se há sessão local, autentica imediatamente
+  /// com os dados em cache. A validação remota (se o usuário ainda existe)
+  /// roda em background — se falhar por falta de conexão, a sessão persiste
+  /// e o ConnectivityGuard cuida da UX offline.
   Future<void> _onCheckAuthStatus(
     CheckAuthStatus event,
     Emitter<AuthState> emit,
   ) async {
     final userData = await _authRepository.getUserSession();
 
-    if (userData != null) {
-      final email = userData['email'] as String?;
-      if (email != null && email.isNotEmpty) {
-        // Validate that user still exists in registered users
-        final userExists = await _authRepository.validateEmail(email);
-        if (userExists) {
-          final uid = (userData['uid'] ?? '').toString();
-          await NotificationService.scheduleAllReminders(uid: uid);
-          // User is authenticated and exists
-          emit(UserAuthenticated(userData: userData));
-          return;
-        }
-        // User was deleted, clear session
-        await _authRepository.clearUserSession();
-      }
+    if (userData == null) {
+      emit(const Unauthenticated());
+      return;
     }
 
-    // Not authenticated or user no longer exists
-    emit(const Unauthenticated());
+    final email = userData['email'] as String?;
+    if (email == null || email.isEmpty) {
+      emit(const Unauthenticated());
+      return;
+    }
+
+    // Autentica imediatamente com dados locais (SharedPreferences).
+    // Isso garante que o app funcione sem internet da mesma forma que
+    // quando a internet cai durante o uso.
+    emit(UserAuthenticated(userData: userData));
+
+    // Validação remota em background — não bloqueia a inicialização.
+    try {
+      final userExists = await _authRepository.validateEmail(email);
+      if (userExists) {
+        final uid = (userData['uid'] ?? '').toString();
+        await NotificationService.scheduleAllReminders(uid: uid);
+        // Sessão remota confirmada — nada a alterar.
+      } else {
+        // Usuário foi deletado remotamente → desautentica.
+        await _authRepository.clearUserSession();
+        emit(const Unauthenticated());
+      }
+    } catch (_) {
+      // Falha de rede (offline, timeout, etc.): mantém sessão local.
+      // O ConnectivityGuard exibirá "Sem internet" se necessário.
+    }
   }
 }
