@@ -27,6 +27,8 @@ import 'package:flutter_application_appdeponto/blocs/justificativa/justificativa
 import 'package:flutter_application_appdeponto/blocs/justificativa/justificativa_state.dart';
 import 'package:flutter_application_appdeponto/repositories/history_view_preference_repository.dart';
 import 'package:flutter_application_appdeponto/services/notification_service.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
 
@@ -364,10 +366,27 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
     if (_isNavigating || !mounted) return;
     _isNavigating = true;
 
+    // Verifica transporte de rede de forma instantânea (sem probe de DNS/socket)
+    // para decidir se faz preload. Se não há transporte, pula preload para evitar
+    // que o Firestore SDK tente reconectar e gere erros de DNS.
+    bool hasTransport = true;
     try {
-      await _preloadCoreData(isAdmin: isAdmin);
-    } catch (_) {
-      // Em caso de falha parcial de preload, segue fluxo para não bloquear acesso.
+      final dynamic result = await Connectivity().checkConnectivity();
+      if (result is List<ConnectivityResult>) {
+        hasTransport = result.any((r) => r != ConnectivityResult.none);
+      } else if (result is ConnectivityResult) {
+        hasTransport = result != ConnectivityResult.none;
+      }
+    } catch (_) {}
+
+    if (hasTransport) {
+      try {
+        await _preloadCoreData(isAdmin: isAdmin);
+      } catch (_) {
+        // Em caso de falha parcial de preload, segue fluxo para não bloquear acesso.
+      }
+    } else {
+      _setLoadingProgress(1.0);
     }
 
     final remaining = _remainingSplashTime();

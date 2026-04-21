@@ -62,7 +62,8 @@ class PontoHistoryRepository {
   }
 
   /// Carrega os eventos de um dia específico.
-  Future<List<Map<String, dynamic>>> loadEventsForDay(String uid, String diaId) async {
+  Future<List<Map<String, dynamic>>> loadEventsForDay(
+      String uid, String diaId) async {
     final doc = await _firestore
         .collection(_root)
         .doc(uid)
@@ -71,7 +72,30 @@ class PontoHistoryRepository {
         .get();
 
     if (!doc.exists) return [];
-    return _extractEventos(doc);
+
+    final cached = _extractEventos(doc);
+    if (cached.isNotEmpty) return cached;
+
+    final eventosSnap = await _firestore
+        .collection(_root)
+        .doc(uid)
+        .collection('dias')
+        .doc(diaId)
+        .collection('eventos')
+        .orderBy('at', descending: false)
+        .get();
+
+    return eventosSnap.docs.map((e) {
+      final data = e.data();
+      final ts = data['at'] as Timestamp?;
+      return {
+        'id': e.id,
+        'tipo': (data['tipo'] ?? '').toString(),
+        'at': ts?.toDate(),
+        'workMode': (data['workMode'] ?? '').toString(),
+        'origin': (data['origin'] ?? 'registrado').toString(),
+      };
+    }).toList();
   }
 
   /// Carrega apenas os dias de um mês específico.
@@ -112,21 +136,24 @@ class PontoHistoryRepository {
 
       // Tenta usar cache inline primeiro (evita query extra)
       if (cache is List && cache.isNotEmpty) {
-        final eventos = cache.map<Map<String, dynamic>>((e) {
-          final m = e as Map<String, dynamic>;
-          final ts = m['at'] as Timestamp?;
-          return {
-            'id': (m['id'] ?? '').toString(),
-            'tipo': (m['tipo'] ?? '').toString(),
-            'at': ts?.toDate(),
-            'workMode': (m['workMode'] ?? '').toString(),
-            'origin': (m['origin'] ?? 'registrado').toString(),
-          };
-        }).toList();
-        if (eventos.isNotEmpty) {
-          result[diaId] = eventos;
+        final rawCache = List<dynamic>.from(cache);
+        if (_isEventosCacheConsistent(data, rawCache)) {
+          final eventos = rawCache.map<Map<String, dynamic>>((e) {
+            final m = e as Map<String, dynamic>;
+            final ts = m['at'] as Timestamp?;
+            return {
+              'id': (m['id'] ?? '').toString(),
+              'tipo': (m['tipo'] ?? '').toString(),
+              'at': ts?.toDate(),
+              'workMode': (m['workMode'] ?? '').toString(),
+              'origin': (m['origin'] ?? 'registrado').toString(),
+            };
+          }).toList();
+          if (eventos.isNotEmpty) {
+            result[diaId] = eventos;
+          }
+          return;
         }
-        return;
       }
 
       // Sem cache → busca da subcollection (paralelizado)
@@ -161,7 +188,6 @@ class PontoHistoryRepository {
     return result;
   }
 
-
   /// Tenta extrair eventos do `eventosCache` inline.
   /// Retorna lista tipada pronta para a UI.
   List<Map<String, dynamic>> _extractEventos(
@@ -171,7 +197,10 @@ class PontoHistoryRepository {
 
     final cache = data['eventosCache'];
     if (cache is List && cache.isNotEmpty) {
-      return cache.map<Map<String, dynamic>>((e) {
+      final rawCache = List<dynamic>.from(cache);
+      if (!_isEventosCacheConsistent(data, rawCache)) return [];
+
+      return rawCache.map<Map<String, dynamic>>((e) {
         final m = e as Map<String, dynamic>;
         final ts = m['at'] as Timestamp?;
         return {
@@ -186,6 +215,34 @@ class PontoHistoryRepository {
     return [];
   }
 
+  /// Detecta cache do dia possivelmente obsoleto (ex: evento removido, mas
+  /// `eventosCache` ainda mantém o último tipo antigo).
+  bool _isEventosCacheConsistent(
+    Map<String, dynamic> dayData,
+    List<dynamic> rawCache,
+  ) {
+    final normalized = rawCache.whereType<Map<String, dynamic>>().toList();
+    if (normalized.isEmpty) return true;
+
+    final lastCache = normalized.last;
+    final cacheLastTipo = (lastCache['tipo'] ?? '').toString();
+    final cacheIsClosed = cacheLastTipo == 'saida';
+
+    final bool? docIsClosed = dayData['isClosed'] as bool?;
+    if (docIsClosed != null && docIsClosed != cacheIsClosed) {
+      return false;
+    }
+
+    final docLastTipo = (dayData['lastTipo'] ?? '').toString();
+    if (docLastTipo.isNotEmpty &&
+        cacheLastTipo.isNotEmpty &&
+        docLastTipo != cacheLastTipo) {
+      return false;
+    }
+
+    return true;
+  }
+
   /// Adiciona um evento de ponto para um usuário específico.
   Future<void> addEvento({
     required String uid,
@@ -198,7 +255,8 @@ class PontoHistoryRepository {
     if (date != null) {
       final ehFeriado = await PontoService.isFeriado(date);
       if (ehFeriado) {
-        throw Exception('Este dia é feriado/recesso. Não é permitido adicionar pontos.');
+        throw Exception(
+            'Este dia é feriado/recesso. Não é permitido adicionar pontos.');
       }
     }
 
@@ -367,7 +425,8 @@ class PontoHistoryRepository {
     final workedMinutes = _computeWorkedMinutes(eventos);
     final diaFechado = lastTipo == 'saida';
     final localNow = DateTime.now();
-    final hojeId = '${localNow.year.toString().padLeft(4, '0')}-${localNow.month.toString().padLeft(2, '0')}-${localNow.day.toString().padLeft(2, '0')}';
+    final hojeId =
+        '${localNow.year.toString().padLeft(4, '0')}-${localNow.month.toString().padLeft(2, '0')}-${localNow.day.toString().padLeft(2, '0')}';
     final ehHoje = diaId == hojeId;
     final falta = !ehHoje && eventos.isEmpty;
     final deltaMinutes = falta
@@ -458,7 +517,8 @@ class PontoHistoryRepository {
     if (date != null) {
       final ehFeriado = await PontoService.isFeriado(date);
       if (ehFeriado) {
-        throw Exception('Este dia é feriado/recesso. Não é permitido editar pontos.');
+        throw Exception(
+            'Este dia é feriado/recesso. Não é permitido editar pontos.');
       }
     }
 

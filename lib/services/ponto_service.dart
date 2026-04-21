@@ -474,6 +474,16 @@ class PontoService {
 
     final eventosSnap = await refEventos.orderBy('at', descending: false).get();
     final eventos = eventosSnap.docs.map((d) => d.data()).toList();
+    final eventosCache = eventosSnap.docs.map((doc) {
+      final data = doc.data();
+      return {
+        'id': doc.id,
+        'tipo': (data['tipo'] ?? '').toString(),
+        'at': data['at'],
+        'workMode': (data['workMode'] ?? '').toString(),
+        'origin': (data['origin'] ?? 'registrado').toString(),
+      };
+    }).toList();
 
     final workedMinutes = _computeWorkedMinutesFromEventosFechado(eventos);
     final workloadMinutes =
@@ -484,6 +494,8 @@ class PontoService {
 
     final String? ultimoTipoEvento =
         eventos.isNotEmpty ? (eventos.last['tipo'] ?? '').toString() : null;
+    final Timestamp? ultimoAtEvento =
+        eventos.isNotEmpty ? (eventos.last['at'] as Timestamp?) : null;
     final bool diaFechado = ultimoTipoEvento == 'saida';
     final todayId = _hojeId();
     final bool ehHoje = diaId == todayId;
@@ -511,6 +523,9 @@ class PontoService {
       await refDia.set({
         'uid': uid,
         'date': diaId,
+        'lastTipo': ultimoTipoEvento,
+        'lastAt': ultimoAtEvento,
+        'eventosCache': eventosCache,
         'workedMinutes': workedMinutes,
         'deltaMinutes': deltaMinutes,
         'workloadMinutes': workloadMinutes,
@@ -523,6 +538,7 @@ class PontoService {
       await refMes.set({
         'balanceMinutes': oldBalance + diff,
         'updatedAt': FieldValue.serverTimestamp(),
+        'summaryCache': FieldValue.delete(),
       }, SetOptions(merge: true));
     }
 
@@ -539,6 +555,9 @@ class PontoService {
             {
               'uid': uid,
               'date': diaId,
+              'lastTipo': ultimoTipoEvento,
+              'lastAt': ultimoAtEvento,
+              'eventosCache': eventosCache,
               'workedMinutes': workedMinutes,
               'deltaMinutes': deltaMinutes,
               'workloadMinutes': workloadMinutes,
