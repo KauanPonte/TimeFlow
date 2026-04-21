@@ -148,8 +148,11 @@ class _DayEditDialogState extends State<DayEditDialog> {
   }
 
   bool get _hasChanges {
-    if (_isSolicitation && _isAbsentDay &&
-        _justificativaController.text.trim().isNotEmpty) { return true; }
+    if (_isSolicitation &&
+        _isAbsentDay &&
+        _justificativaController.text.trim().isNotEmpty) {
+      return true;
+    }
     if (_newEntries.isNotEmpty) return true;
     return _existing.any((e) =>
         e.mode == RowMode.deleting ||
@@ -176,7 +179,8 @@ class _DayEditDialogState extends State<DayEditDialog> {
     final picked = await showTimePicker24h(context, ev.time);
     if (picked != null) {
       if (_isFutureTimeOnToday(picked)) {
-        setState(() => _validationError = 'Não é permitido registrar horários futuros.');
+        setState(() =>
+            _validationError = 'Não é permitido registrar horários futuros.');
         return;
       }
       setState(() {
@@ -190,7 +194,8 @@ class _DayEditDialogState extends State<DayEditDialog> {
     final picked = await showTimePicker24h(context, _newEntries[index].time);
     if (picked != null) {
       if (_isFutureTimeOnToday(picked)) {
-        setState(() => _validationError = 'Não é permitido registrar horários futuros.');
+        setState(() =>
+            _validationError = 'Não é permitido registrar horários futuros.');
         return;
       }
       setState(() {
@@ -417,14 +422,14 @@ class _DayEditDialogState extends State<DayEditDialog> {
                         onChanged: (_) => setState(() {}),
                       ),
                     ],
+                    if (_isSolicitation)
+                      ObservacaoField(controller: _reasonController),
                     if (_validationError != null)
                       ValidationErrorBanner(message: _validationError!),
                     const SizedBox(height: 8),
                   ],
                 ),
               ),
-              if (_isSolicitation)
-                ObservacaoField(controller: _reasonController),
               const SizedBox(height: 16),
               DayEditActions(
                 hasChanges: _hasChanges,
