@@ -45,6 +45,7 @@ class HistoryModeCalendarView extends StatelessWidget {
 
     final content = <Widget>[
       Container(
+        clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(14),
@@ -57,6 +58,7 @@ class HistoryModeCalendarView extends StatelessWidget {
             ),
           ],
         ),
+        padding: const EdgeInsets.only(bottom: 30),
         child: TableCalendar<Map<String, dynamic>>(
           locale: 'pt_BR',
           firstDay: DateTime(month.year, month.month, 1),
