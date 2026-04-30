@@ -1028,22 +1028,7 @@ class PontoService {
     }
   }
 
-  /*static Future<bool> isFeriado(DateTime date) async {
-    final cleanDate = DateTime(date.year, date.month, date.day);
 
-    // 1. Verifica no Firebase (Eventos criados pelo Admin)
-    final snapshot = await FirebaseFirestore.instance
-        .collection('calendar_events')
-        .where('date', isEqualTo: Timestamp.fromDate(cleanDate))
-        .where('type', isEqualTo: 'feriado')
-        .get();
-
-    if (snapshot.docs.isNotEmpty) return true;
-
-    // 2. Verifica Feriados Nacionais/Estaduais (Sua função local)
-    final feriadosFixos = getBrazilHolidays(date.year);
-    return feriadosFixos.containsKey(cleanDate);
-  }*/
 
   static Map<DateTime, String> getBrazilHolidays(int year) {
     Map<DateTime, String> holidays = {
