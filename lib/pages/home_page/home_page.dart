@@ -273,7 +273,7 @@ class _HomePageState extends State<HomePage> {
     _solSub?.cancel();
     _scrollController.dispose();
     super.dispose();
-  }
+  } 
 
   void _goToDay(DateTime date) {
     final targetMonth = DateTime(date.year, date.month);
