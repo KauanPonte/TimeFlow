@@ -67,6 +67,8 @@ flutter:
     - assets/app_icon/
     - assets/lottie/animacao.json
     - assets/lottie/gears.json
+    - assets/logoiracema_icon/logo_comprida.png
+    - assets/timbradologo_icon/timbrado.png
 
 flutter_launcher_icons:
   android: "launcher_icon"
