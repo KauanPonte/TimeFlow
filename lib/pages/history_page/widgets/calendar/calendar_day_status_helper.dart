@@ -3,6 +3,8 @@ import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:table_calendar/table_calendar.dart';
 import '../card/widgets/day_card_helpers.dart';
 
+const _justifiedColor = AppColors.error;
+
 enum CalendarDayStatus {
   none,
   complete,
@@ -10,6 +12,7 @@ enum CalendarDayStatus {
   pending,
   incompleteWithPending,
   holiday,
+  justifiedAbsence,
 }
 
 class CalendarDayStatusHelper {
@@ -18,6 +21,7 @@ class CalendarDayStatusHelper {
   final String Function(DateTime day) dayIdFor;
   final bool Function(DateTime day) isFutureDate;
   final Set<String> holidayDayIds;
+  final Set<String> justifiedAbsenceDayIds;
   final Map<DateTime, List<Map<String, dynamic>>> calendarEvents;
 
   const CalendarDayStatusHelper({
@@ -27,6 +31,7 @@ class CalendarDayStatusHelper {
     required this.isFutureDate,
     required this.calendarEvents,
     this.holidayDayIds = const {},
+    this.justifiedAbsenceDayIds = const {},
   });
 
   bool isHoliday(DateTime day) {
@@ -60,6 +65,9 @@ class CalendarDayStatusHelper {
     final hasPending = pendingDayIds.contains(dayId);
 
     if (eventos.isEmpty) {
+      if (justifiedAbsenceDayIds.contains(dayId)) {
+        return CalendarDayStatus.justifiedAbsence;
+      }
       return hasPending ? CalendarDayStatus.pending : CalendarDayStatus.none;
     }
 
@@ -124,49 +132,52 @@ class CalendarDayStatusHelper {
     bool isHoliday = false,
   }) {
     final isWarning = _isWarningStatus(status);
+    final isJustified = status == CalendarDayStatus.justifiedAbsence;
     final isFuture = isFutureDate(day) && !isHoliday; // Feriados futuros ficam normais
+
+    Color accentColor() {
+      if (isHoliday) return Colors.green;
+      if (isJustified) return _justifiedColor;
+      if (isWarning) return AppColors.warning;
+      return AppColors.primary;
+    }
 
     BoxDecoration? decoration;
     if (isSelected) {
       decoration = BoxDecoration(
         color: isHoliday
             ? Colors.green.withValues(alpha: 0.15)
-            : isWarning
-                ? AppColors.warningLight20
-                : AppColors.primaryLight10,
+            : isJustified
+                ? AppColors.errorLight20
+                : isWarning
+                    ? AppColors.warningLight20
+                    : AppColors.primaryLight10,
         shape: BoxShape.circle,
-        border: Border.all(
-          color: isHoliday
-              ? Colors.green
-              : isWarning
-                  ? AppColors.warning
-                  : AppColors.primary,
-        ),
+        border: Border.all(color: accentColor()),
       );
     } else if (isToday) {
       decoration = BoxDecoration(
         color: isHoliday
             ? Colors.green.withValues(alpha: 0.08)
-            : isWarning
-                ? AppColors.warningLight10
-                : AppColors.primaryLight10,
+            : isJustified
+                ? AppColors.errorLight10
+                : isWarning
+                    ? AppColors.warningLight10
+                    : AppColors.primaryLight10,
         shape: BoxShape.circle,
         border: Border.all(
-          color: (isHoliday
-                  ? Colors.green
-                  : isWarning
-                      ? AppColors.warning
-                      : AppColors.primary)
-              .withValues(alpha: 0.45),
+          color: accentColor().withValues(alpha: 0.45),
         ),
       );
     }
 
     Color textColor = isHoliday
         ? Colors.green[700]!
-        : isWarning
-            ? AppColors.warning
-            : Colors.black;
+        : isJustified
+            ? _justifiedColor
+            : isWarning
+                ? AppColors.warning
+                : Colors.black;
 
     // Se for futuro e não for feriado, acinzenta
     if (isFuture) {
@@ -186,7 +197,7 @@ class CalendarDayStatusHelper {
             '${day.day}',
             style: TextStyle(
               color: textColor,
-              fontWeight: isWarning ? FontWeight.w700 : FontWeight.w500,
+              fontWeight: (isWarning || isJustified) ? FontWeight.w700 : FontWeight.w500,
             ),
           ),
         ),
@@ -208,6 +219,17 @@ class CalendarDayStatusHelper {
   Widget _buildDayMarkerInline(CalendarDayStatus status) {
     final warning = _isWarningStatus(status);
     final color = warning ? AppColors.warning : AppColors.primary;
+
+    if (status == CalendarDayStatus.justifiedAbsence) {
+      return Container(
+        width: 6,
+        height: 6,
+        decoration: const BoxDecoration(
+          color: _justifiedColor,
+          shape: BoxShape.circle,
+        ),
+      );
+    }
 
     if (status == CalendarDayStatus.pending) {
       return Container(

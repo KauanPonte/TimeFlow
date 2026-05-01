@@ -537,6 +537,13 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
                 }).toSet();
                 holidayDayIds.addAll(_excusedDayIds);
 
+                final justifiedAbsenceDayIds = justificativasMap.entries
+                    .where((e) =>
+                        e.value.status == JustificativaStatus.approved &&
+                        (daysMap[e.key] == null || daysMap[e.key]!.isEmpty))
+                    .map((e) => e.key)
+                    .toSet();
+
                 return Column(
                   children: [
                     summaryCard,
@@ -550,6 +557,7 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
                       isFutureDate: HistorySharedUtils.isFutureDate,
                       pendingDayIds: pendingDayIds,
                       holidayDayIds: holidayDayIds,
+                      justifiedAbsenceDayIds: justifiedAbsenceDayIds,
                       onDaySelected: (day) {
                         setState(() => _selectedCalendarDay = day);
                         _requestScrollToDay(HistorySharedUtils.toDayId(day));
