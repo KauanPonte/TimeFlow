@@ -10,6 +10,7 @@ class HistoryModeCalendarView extends StatelessWidget {
   final String Function(DateTime day) dayIdFor;
   final bool Function(DateTime day) isFutureDate;
   final Set<String> pendingDayIds;
+  final Set<String> justifiedAbsenceDayIds;
   final ValueChanged<DateTime> onDaySelected;
   final Widget Function(String dayId) dayBuilder;
   final Future<void> Function()? onRefresh;
@@ -24,6 +25,7 @@ class HistoryModeCalendarView extends StatelessWidget {
     required this.dayIdFor,
     required this.isFutureDate,
     this.pendingDayIds = const {},
+    this.justifiedAbsenceDayIds = const {},
     required this.onDaySelected,
     required this.dayBuilder,
     this.holidayDayIds = const {},
@@ -37,6 +39,7 @@ class HistoryModeCalendarView extends StatelessWidget {
     final statusHelper = CalendarDayStatusHelper(
       daysMap: daysMap,
       pendingDayIds: pendingDayIds,
+      justifiedAbsenceDayIds: justifiedAbsenceDayIds,
       dayIdFor: dayIdFor,
       isFutureDate: isFutureDate,
       holidayDayIds: holidayDayIds,

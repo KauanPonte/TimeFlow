@@ -130,6 +130,13 @@ class HistoryContentBody extends StatelessWidget {
           .toSet();
       holidayDayIds.addAll(excusedDayIds);
 
+      final justifiedAbsenceDayIds = justificativasMap.entries
+          .where((e) =>
+              e.value.status == JustificativaStatus.approved &&
+              (daysMap[e.key] == null || daysMap[e.key]!.isEmpty))
+          .map((e) => e.key)
+          .toSet();
+
       return HistoryModeCalendarView(
         month: currentMonth,
         selectedDay: selectedCalendarDay,
@@ -140,6 +147,7 @@ class HistoryContentBody extends StatelessWidget {
         dayBuilder: buildDayCardById,
         onRefresh: onRefresh,
         holidayDayIds: holidayDayIds,
+        justifiedAbsenceDayIds: justifiedAbsenceDayIds,
         calendarEvents: allCalendarEvents,
       );
     }
