@@ -1,4 +1,3 @@
-import 'dart:html' as html;
 import 'download_pdf.dart';
 import 'dart:typed_data';
 import 'package:intl/intl.dart';
@@ -92,7 +91,7 @@ class PdfService {
                           fontSize: 12, fontWeight: pw.FontWeight.bold)),
                   pw.Text(
                     DateFormat('MM/yyyy').format(selectedDate),
-                    style: pw.TextStyle(fontSize: 9),
+                    style: const pw.TextStyle(fontSize: 9),
                   ),
                 ],
               ),
@@ -114,9 +113,9 @@ class PdfService {
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               children: [
                 pw.Text("Funcionário: $userName",
-                    style: pw.TextStyle(fontSize: 9)),
+                    style: const pw.TextStyle(fontSize: 9)),
                 pw.Text("Carga diária: ${formatMinutes(workloadMinutes)}",
-                    style: pw.TextStyle(fontSize: 9)),
+                    style: const pw.TextStyle(fontSize: 9)),
               ],
             ),
           ),
@@ -200,7 +199,7 @@ class PdfService {
           pw.Center(
             child: pw.Text(
               "Instituto Iracema de Pesquisa e Inovação - Documento gerado automaticamente",
-              style: pw.TextStyle(fontSize: 8, color: PdfColors.grey600),
+              style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey600),
             ),
           ),
         ],
@@ -213,16 +212,7 @@ class PdfService {
     final fileName =
         "$userName ${nomeMes[0].toUpperCase()}${nomeMes.substring(1)} ${selectedDate.year}.pdf";
 
-    //await downloadPdf(bytes, fileName);
-
-    final blob = html.Blob([bytes]);
-    final url = html.Url.createObjectUrlFromBlob(blob);
-
-    final anchor = html.AnchorElement(href: url)
-      ..setAttribute("download", fileName)
-      ..click();
-
-    html.Url.revokeObjectUrl(url);
+    await downloadPdf(bytes, fileName);
   }
 
   static String formatMinutes(int totalMinutes) {
@@ -312,7 +302,7 @@ class PdfService {
                 color: PdfColors.black,
               ),
         pw.SizedBox(height: 6),
-        pw.Text(label, style: pw.TextStyle(fontSize: 8)),
+        pw.Text(label, style: const pw.TextStyle(fontSize: 8)),
       ],
     );
   }
