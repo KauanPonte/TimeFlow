@@ -16,6 +16,7 @@ import 'widgets/profile_avatar.dart';
 import 'widgets/edit_profile_dialog.dart';
 import 'widgets/profile_header.dart';
 import 'widgets/profile_info_card.dart';
+import '../ponto_page/widgets/scheduled_reminders_modal.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -346,6 +347,59 @@ class _ProfilePageViewState extends State<_ProfilePageView> {
                 workloadMinutes: profileData.workloadMinutes,
                 isAdmin: isAdmin,
                 onEdit: () => _showEditProfileDialog(profileData!),
+              ),
+
+              const SizedBox(height: 16),
+
+              Container(
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.borderLight),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: AppColors.shadow,
+                      blurRadius: 8,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: ListTile(
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 4,
+                  ),
+                  leading: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryLight10,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.notifications_active_rounded,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                  title: Text(
+                    'Lembretes personalizados',
+                    style: AppTextStyles.bodyLarge.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  subtitle: Text(
+                    'Entrada, pausa, volta e saída',
+                    style: AppTextStyles.bodyMedium.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                  trailing: const Icon(
+                    Icons.chevron_right_rounded,
+                    color: AppColors.textSecondary,
+                  ),
+                  onTap: () => ScheduledRemindersModal.show(context),
+                ),
               ),
             ],
           );

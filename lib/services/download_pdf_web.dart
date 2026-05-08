@@ -1,7 +1,7 @@
 import 'dart:html' as html;
 import 'dart:typed_data';
 
-void downloadPdf(Uint8List bytes, String fileName) {
+Future<void> downloadPdf(Uint8List bytes, String fileName) async {
   final blob = html.Blob([bytes]);
   final url = html.Url.createObjectUrlFromBlob(blob);
 
