@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/services/server_time_service.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
 import 'package:flutter_application_appdeponto/widgets/app_dialog_components.dart';
@@ -55,12 +56,13 @@ class _CalendarPageState extends State<CalendarPage> {
 
   final CalendarService _calendarService = CalendarService();
   final CalendarFormat _calendarFormat = CalendarFormat.month;
-  DateTime _focusedDay = DateTime.now();
+  late DateTime _focusedDay;
   DateTime? _selectedDay;
 
   @override
   void initState() {
     super.initState();
+    _focusedDay = ServerTimeService.todayBrazilDate();
     _checkPermissions();
     _selectedDay = _focusedDay;
   }
@@ -544,8 +546,8 @@ class _CalendarPageState extends State<CalendarPage> {
       ),
       child: TableCalendar(
         locale: 'pt_BR',
-        firstDay: DateTime(DateTime.now().year - 10, 1, 1),
-        lastDay: DateTime(DateTime.now().year + 10, 12, 31),
+        firstDay: DateTime(ServerTimeService.nowBrazilUtc().year - 10, 1, 1),
+        lastDay: DateTime(ServerTimeService.nowBrazilUtc().year + 10, 12, 31),
         focusedDay: _focusedDay,
         eventLoader: (day) {
           final normalizedDay = _normalizeDate(day);
@@ -637,8 +639,8 @@ class _CalendarPageState extends State<CalendarPage> {
                 final isFixed = entry.value['isFixed'] == true;
                 return GestureDetector(
                   onLongPress: isFixed
-                      ? () => CustomSnackbar.showInfo(
-                          context, 'Este feriado é fixo e não pode ser removido.')
+                      ? () => CustomSnackbar.showInfo(context,
+                          'Este feriado é fixo e não pode ser removido.')
                       : () =>
                           _confirmDeleteEvent(dateOnly, entry.key, eventsMap),
                   child: Container(

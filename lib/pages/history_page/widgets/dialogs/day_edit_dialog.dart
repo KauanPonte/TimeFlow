@@ -5,6 +5,7 @@ import 'package:flutter_application_appdeponto/pages/history_page/widgets/dialog
 import 'package:flutter_application_appdeponto/pages/history_page/widgets/dialogs/widgets/pending_event_row.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/services/ponto_validator.dart';
+import 'package:flutter_application_appdeponto/services/server_time_service.dart';
 import 'package:flutter_application_appdeponto/widgets/time_picker.dart';
 import 'package:intl/intl.dart';
 import 'widgets/batch_edit_result.dart';
@@ -162,15 +163,17 @@ class _DayEditDialogState extends State<DayEditDialog> {
   // Helpers de validação de horário futuro
 
   bool _isToday() {
-    final now = DateTime.now();
+    final now = ServerTimeService.nowBrazilUtc();
     final d = _dateForDay();
     return d.year == now.year && d.month == now.month && d.day == now.day;
   }
 
   bool _isFutureTimeOnToday(TimeOfDay t) {
     if (!_isToday()) return false;
-    final now = TimeOfDay.now();
-    return t.hour > now.hour || (t.hour == now.hour && t.minute > now.minute);
+    final now = ServerTimeService.nowBrazilUtc();
+    final nowTime = TimeOfDay(hour: now.hour, minute: now.minute);
+    return t.hour > nowTime.hour ||
+        (t.hour == nowTime.hour && t.minute > nowTime.minute);
   }
 
   // Pick time

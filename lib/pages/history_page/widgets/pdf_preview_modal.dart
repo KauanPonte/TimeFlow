@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_appdeponto/services/pdf_service.dart';
 import 'package:flutter_application_appdeponto/services/ponto_service.dart';
+import 'package:flutter_application_appdeponto/services/server_time_service.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
 import 'package:intl/intl.dart';
@@ -27,8 +28,8 @@ class PdfPreviewModal {
 
     final ultimoDiaMes =
         DateTime(currentMonth.year, currentMonth.month + 1, 0).day;
-    final hojeApenasData =
-        DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+    final now = ServerTimeService.nowBrazilUtc();
+    final hojeApenasData = DateTime(now.year, now.month, now.day);
 
     List<Widget> tableRows = [];
     tableRows.add(

@@ -14,6 +14,7 @@ import 'package:flutter_application_appdeponto/repositories/ponto_history_reposi
 import 'package:flutter_application_appdeponto/repositories/history_view_preference_repository.dart';
 import 'package:flutter_application_appdeponto/services/excused_days_cache_service.dart';
 import 'package:flutter_application_appdeponto/services/monthly_summary_cache_service.dart';
+import 'package:flutter_application_appdeponto/services/server_time_service.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/widgets/custom_snackbar.dart';
 import 'package:flutter_application_appdeponto/services/ponto_service.dart';
@@ -42,7 +43,7 @@ class HistoryPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final now = DateTime.now();
+    final now = ServerTimeService.nowBrazilUtc();
     final startMonth = initialDate != null
         ? DateTime(initialDate!.year, initialDate!.month)
         : DateTime(now.year, now.month);
@@ -110,7 +111,7 @@ class _HistoryViewState extends State<_HistoryView> {
   @override
   void initState() {
     super.initState();
-    final now = DateTime.now();
+    final now = ServerTimeService.nowBrazilUtc();
     _currentMonth = widget.initialDate != null
         ? DateTime(widget.initialDate!.year, widget.initialDate!.month)
         : DateTime(now.year, now.month);
@@ -294,7 +295,7 @@ class _HistoryViewState extends State<_HistoryView> {
   }
 
   void _goToNextMonth() {
-    final now = DateTime.now();
+    final now = ServerTimeService.nowBrazilUtc();
     final nextMonth = DateTime(_currentMonth.year, _currentMonth.month + 1);
     if (nextMonth.year > now.year ||
         (nextMonth.year == now.year && nextMonth.month > now.month)) {

@@ -13,6 +13,7 @@ import 'package:flutter_application_appdeponto/blocs/solicitations/solicitation_
 import 'package:flutter_application_appdeponto/blocs/solicitations/solicitation_event.dart';
 import 'package:flutter_application_appdeponto/blocs/solicitations/solicitation_state.dart';
 import 'package:flutter_application_appdeponto/models/solicitation_model.dart';
+import 'package:flutter_application_appdeponto/services/server_time_service.dart';
 import 'package:flutter_application_appdeponto/blocs/atestado/atestado_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/atestado/atestado_event.dart';
 import 'package:flutter_application_appdeponto/blocs/atestado/atestado_state.dart';
@@ -59,7 +60,7 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
   // Incompletos helpers
   static List<MapEntry<String, Map<String, String>>> _computeIncompletos(
       PontoTodayState state) {
-    final now = DateTime.now();
+    final now = ServerTimeService.nowBrazilUtc();
     final hoje =
         '${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
     return state.registros.entries.where((e) {

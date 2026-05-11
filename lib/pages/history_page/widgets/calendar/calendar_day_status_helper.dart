@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
+import 'package:flutter_application_appdeponto/services/server_time_service.dart';
 import 'package:table_calendar/table_calendar.dart';
 import '../card/widgets/day_card_helpers.dart';
 
@@ -41,17 +42,17 @@ class CalendarDayStatusHelper {
   List<Map<String, dynamic>> eventLoader(DateTime day) {
     final dayId = dayIdFor(day);
     final eventos = daysMap[dayId] ?? [];
-    
+
     // Inclui feriados/recessos para garantir que o TableCalendar mostre marcadores
     final holidayEvents = calendarEvents[normalizeDay(day)] ?? [];
-    
+
     if (pendingDayIds.contains(dayId) && eventos.isEmpty) {
       return [
         {'_pendingOnly': true},
         ...holidayEvents,
       ];
     }
-    
+
     return [...eventos, ...holidayEvents];
   }
 
@@ -71,7 +72,7 @@ class CalendarDayStatusHelper {
       return hasPending ? CalendarDayStatus.pending : CalendarDayStatus.none;
     }
 
-    final now = DateTime.now();
+    final now = ServerTimeService.nowBrazilUtc();
     final isToday =
         day.year == now.year && day.month == now.month && day.day == now.day;
     final incomplete = isIncomplete(
@@ -133,7 +134,8 @@ class CalendarDayStatusHelper {
   }) {
     final isWarning = _isWarningStatus(status);
     final isJustified = status == CalendarDayStatus.justifiedAbsence;
-    final isFuture = isFutureDate(day) && !isHoliday; // Feriados futuros ficam normais
+    final isFuture =
+        isFutureDate(day) && !isHoliday; // Feriados futuros ficam normais
 
     Color accentColor() {
       if (isHoliday) return Colors.green;
@@ -197,7 +199,9 @@ class CalendarDayStatusHelper {
             '${day.day}',
             style: TextStyle(
               color: textColor,
-              fontWeight: (isWarning || isJustified) ? FontWeight.w700 : FontWeight.w500,
+              fontWeight: (isWarning || isJustified)
+                  ? FontWeight.w700
+                  : FontWeight.w500,
             ),
           ),
         ),

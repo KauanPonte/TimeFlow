@@ -75,7 +75,7 @@ class PontoTodayCubit extends Cubit<PontoTodayState> {
         final eventosFormatados = eventos.map((m) {
           final at = m['at'];
           final hora =
-              at is Timestamp ? DateFormat('HH:mm').format(at.toDate()) : '';
+              at is Timestamp ? DateFormat('HH:mm').format(ServerTimeService.timestampToBrazil(at)!) : '';
           return {
             'tipo': m['tipo'].toString(),
             'hora': hora,

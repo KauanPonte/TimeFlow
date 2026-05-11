@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_appdeponto/models/solicitation_model.dart';
+import 'package:flutter_application_appdeponto/services/server_time_service.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
 import 'day_card_helpers.dart';
@@ -44,7 +45,7 @@ class FilledDayCard extends StatelessWidget {
       );
 
   bool get _isToday {
-    final now = DateTime.now();
+    final now = ServerTimeService.nowBrazilUtc();
     final today =
         '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
     return diaId == today;

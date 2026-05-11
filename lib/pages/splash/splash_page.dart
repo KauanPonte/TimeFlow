@@ -27,6 +27,7 @@ import 'package:flutter_application_appdeponto/blocs/justificativa/justificativa
 import 'package:flutter_application_appdeponto/blocs/justificativa/justificativa_state.dart';
 import 'package:flutter_application_appdeponto/repositories/history_view_preference_repository.dart';
 import 'package:flutter_application_appdeponto/services/notification_service.dart';
+import 'package:flutter_application_appdeponto/services/server_time_service.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
@@ -289,7 +290,8 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
     ];
 
     profileBloc.add(const LoadProfileEvent());
-    pontoHistoryBloc.add(LoadHistoryEvent(month: DateTime.now()));
+    pontoHistoryBloc
+        .add(LoadHistoryEvent(month: ServerTimeService.nowBrazilUtc()));
     solicitationBloc.add(LoadSolicitationsEvent(isAdmin: isAdmin));
     atestadoBloc.add(LoadAtestadosEvent(isAdmin: isAdmin));
     justificativaBloc.add(LoadJustificativasEvent(isAdmin: isAdmin));
@@ -323,7 +325,7 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
     final state = cubit.state;
     if (state.loading || state.registros.isEmpty) return;
 
-    final now = DateTime.now();
+    final now = ServerTimeService.nowBrazilUtc();
     final hoje =
         '${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
 

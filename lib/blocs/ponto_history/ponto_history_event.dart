@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:flutter_application_appdeponto/services/server_time_service.dart';
 
 abstract class PontoHistoryEvent extends Equatable {
   const PontoHistoryEvent();
@@ -14,7 +15,11 @@ class LoadHistoryEvent extends PontoHistoryEvent {
   final DateTime month;
 
   LoadHistoryEvent({this.uid, DateTime? month})
-      : month = month ?? DateTime.now();
+      : month = month ??
+            (() {
+              final now = ServerTimeService.nowBrazilUtc();
+              return DateTime(now.year, now.month);
+            }());
 
   @override
   List<Object?> get props => [uid, month.year, month.month];

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter_application_appdeponto/services/server_time_service.dart';
 
 class MonthSelector extends StatelessWidget {
   final DateTime currentMonth;
@@ -16,7 +17,7 @@ class MonthSelector extends StatelessWidget {
   });
 
   bool get _canGoNext {
-    final now = DateTime.now();
+    final now = ServerTimeService.nowBrazilUtc();
     return currentMonth.year < now.year ||
         (currentMonth.year == now.year && currentMonth.month < now.month);
   }
