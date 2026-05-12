@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:flutter_application_appdeponto/widgets/time_picker.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
+import 'package:flutter_application_appdeponto/services/server_time_service.dart';
 
 class EventoDialog extends StatefulWidget {
   final String? initialTipo;
@@ -33,7 +34,7 @@ class _EventoDialogState extends State<EventoDialog> {
   void initState() {
     super.initState();
     _tipo = widget.initialTipo ?? 'entrada';
-    final dt = widget.initialHorario ?? DateTime.now();
+    final dt = widget.initialHorario ?? ServerTimeService.nowBrazilUtc();
     _date = widget.fixedDate ?? DateTime(dt.year, dt.month, dt.day);
     _time = TimeOfDay(hour: dt.hour, minute: dt.minute);
   }

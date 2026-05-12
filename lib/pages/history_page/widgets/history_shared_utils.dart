@@ -1,5 +1,6 @@
 import 'package:flutter_application_appdeponto/blocs/ponto_history/ponto_history_state.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter_application_appdeponto/services/server_time_service.dart';
 
 class HistorySharedUtils {
   const HistorySharedUtils._();
@@ -9,7 +10,7 @@ class HistorySharedUtils {
   }
 
   static DateTime today() {
-    return normalizeDay(DateTime.now());
+    return normalizeDay(ServerTimeService.nowBrazilUtc());
   }
 
   static DateTime defaultSelectedDayForMonth(DateTime month) {

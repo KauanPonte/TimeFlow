@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_application_appdeponto/models/solicitation_model.dart';
 import 'package:flutter_application_appdeponto/services/ponto_validator.dart';
 import 'package:flutter_application_appdeponto/services/ponto_service.dart';
+import 'package:flutter_application_appdeponto/services/server_time_service.dart';
 
 class SolicitationRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -69,7 +70,7 @@ class SolicitationRepository {
       diaId: diaId,
       items: items,
       status: SolicitationStatus.pending,
-      createdAt: DateTime.now(),
+      createdAt: ServerTimeService.nowUtc(),
       reason: reason,
     );
 

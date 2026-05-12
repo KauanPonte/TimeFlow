@@ -11,6 +11,7 @@ import 'package:flutter_application_appdeponto/blocs/solicitations/solicitation_
 import 'package:flutter_application_appdeponto/blocs/solicitations/solicitation_state.dart';
 import 'package:flutter_application_appdeponto/models/solicitation_model.dart';
 import 'package:flutter_application_appdeponto/services/ponto_service.dart';
+import 'package:flutter_application_appdeponto/services/server_time_service.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/blocs/atestado/atestado_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/atestado/atestado_event.dart';
@@ -71,7 +72,7 @@ class _HomePageState extends State<HomePage> {
     super.initState();
     employeeName = widget.employeeName;
     profileImageUrl = widget.profileImageUrl;
-    final now = DateTime.now();
+    final now = ServerTimeService.nowBrazilUtc();
 
     final initDate = widget.initialHistoryDate != null
         ? DateTime.tryParse(widget.initialHistoryDate!)
@@ -201,7 +202,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _goToNextMonth() {
-    final now = DateTime.now();
+    final now = ServerTimeService.nowBrazilUtc();
     final nextMonth = DateTime(_currentMonth.year, _currentMonth.month + 1);
     if (nextMonth.year > now.year ||
         (nextMonth.year == now.year && nextMonth.month > now.month)) {
@@ -240,7 +241,7 @@ class _HomePageState extends State<HomePage> {
     Duration total = Duration.zero;
 
     DateTime? tsToDate(dynamic ts) {
-      if (ts is Timestamp) return ts.toDate();
+      if (ts is Timestamp) return ServerTimeService.timestampToBrazil(ts);
       return null;
     }
 
@@ -273,7 +274,7 @@ class _HomePageState extends State<HomePage> {
     _solSub?.cancel();
     _scrollController.dispose();
     super.dispose();
-  } 
+  }
 
   void _goToDay(DateTime date) {
     final targetMonth = DateTime(date.year, date.month);
@@ -303,7 +304,7 @@ class _HomePageState extends State<HomePage> {
     final isAdmin = _isAdmin;
     final pontoState = context.watch<PontoTodayCubit>().state;
 
-    final now = DateTime.now();
+    final now = ServerTimeService.nowBrazilUtc();
     final statusLabel = _labelFromUltimoTipo(pontoState.ultimoTipo);
     final workedMinutes =
         _computeWorkedMinutes(pontoState.eventosHoje, now: now);

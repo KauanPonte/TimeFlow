@@ -29,6 +29,8 @@ import '../../history_page/widgets/history_view_mode_icon_button.dart';
 import '../../history_page/widgets/month_selector.dart';
 import '../../history_page/widgets/monthly_summary_card.dart';
 import '../../history_page/widgets/dialogs/day_edit_dialog.dart';
+import 'package:flutter_application_appdeponto/pages/solicitacoes_page/request_abono_page.dart';
+import 'package:flutter_application_appdeponto/pages/solicitacoes_page/upload_atestado_page.dart';
 
 class HomeHistorySection extends StatefulWidget {
   final DateTime currentMonth;
@@ -300,6 +302,13 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
     }
   }
 
+  bool _isWeekend(String diaId) {
+    final parts = diaId.split('-');
+    final date =
+        DateTime(int.parse(parts[0]), int.parse(parts[1]), int.parse(parts[2]));
+    return date.weekday == DateTime.saturday || date.weekday == DateTime.sunday;
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocListener<SolicitationBloc, SolicitationState>(
@@ -517,16 +526,17 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
                             diaId: diaId,
                           )
                       : null,
-                  onRequestSolicitation: (!widget.isAdmin)
-                      ? () => _showSolicitationDialog(
+                  onRequestSolicitation: null,
+                  onCancelSolicitation: (!widget.isAdmin)
+                      ? (solId) => _confirmCancelSolicitation(solId)
+                      : null,
+                  onOpenDayActions: !_isWeekend(diaId)
+                      ? () => _showDayActionsBottomSheet(
                             context,
                             diaId,
                             eventos,
                             daySolicitations,
                           )
-                      : null,
-                  onCancelSolicitation: (!widget.isAdmin)
-                      ? (solId) => _confirmCancelSolicitation(solId)
                       : null,
                 );
               }
@@ -612,6 +622,30 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
     }
   }
 
+  Future<void> _openRequestAbonoPage(
+    BuildContext context,
+    String diaId,
+  ) async {
+    final date = DateTime.parse(diaId);
+    final ehFeriado = await PontoService.isFeriado(date);
+    if (!context.mounted) return;
+
+    if (ehFeriado) {
+      CustomSnackbar.showError(
+        context,
+        'Registro negado. Não há trabalho neste dia.',
+      );
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => RequestAbonoPage(diaId: diaId),
+      ),
+    );
+  }
+
   Future<void> _showSolicitationDialog(
     BuildContext context,
     String diaId,
@@ -679,5 +713,111 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
         }
       }
     }
+  }
+
+  Future<void> _showDayActionsBottomSheet(
+    BuildContext context,
+    String diaId,
+    List<Map<String, dynamic>> eventos,
+    List<SolicitationModel> daySolicitations,
+  ) async {
+    showDialog(
+      context: context,
+      builder: (_) {
+        return Dialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Ações do Dia',
+                  style: AppTextStyles.h3,
+                ),
+                const SizedBox(height: 24),
+                _buildActionTile(
+                  icon: Icons.medical_services_outlined,
+                  title: 'Enviar atestado',
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const UploadAtestadoPage(),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 12),
+                _buildActionTile(
+                  icon: Icons.request_page_outlined,
+                  title: 'Solicitar abono',
+                  onTap: () async {
+                    Navigator.pop(context);
+                    await _openRequestAbonoPage(context, diaId);
+                  },
+                ),
+                const SizedBox(height: 12),
+                _buildActionTile(
+                  icon: Icons.edit_calendar_outlined,
+                  title: 'Editar batidas',
+                  onTap: () {
+                    Navigator.pop(context);
+                    if (widget.uid != null) {
+                      showBatchEditDayDialog(
+                        context: context,
+                        uid: widget.uid!,
+                        diaId: diaId,
+                        eventos: eventos,
+                      );
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildActionTile({
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.primary.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              color: AppColors.primary,
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Text(
+                title,
+                style: AppTextStyles.bodyMedium.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            const Icon(Icons.arrow_forward_ios_rounded, size: 18),
+          ],
+        ),
+      ),
+    );
   }
 }

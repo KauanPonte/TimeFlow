@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_appdeponto/models/solicitation_model.dart';
+import 'package:flutter_application_appdeponto/services/server_time_service.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
 import 'day_card_helpers.dart';
 import 'pending_solicitations_section.dart';
 import 'solicitation_button.dart';
 
-/// Day card completo para dias com eventos registrados.
-class FilledDayCard extends StatelessWidget {
+class FilledDayCard extends StatefulWidget {
   final String diaId;
   final List<Map<String, dynamic>> eventos;
   final bool isAdmin;
@@ -20,6 +20,7 @@ class FilledDayCard extends StatelessWidget {
   final VoidCallback? onRequestSolicitation;
   final void Function(String)? onCancelSolicitation;
   final String? holidayName;
+  final VoidCallback? onOpenDayActions;
 
   const FilledDayCard({
     super.key,
@@ -35,32 +36,40 @@ class FilledDayCard extends StatelessWidget {
     this.onRequestSolicitation,
     this.onCancelSolicitation,
     this.holidayName,
+    this.onOpenDayActions,
   });
 
+  @override
+  State<FilledDayCard> createState() => _FilledDayCardState();
+}
+
+class _FilledDayCardState extends State<FilledDayCard> {
+  bool _isExpanded = false;
+
   bool get _incomplete => isIncomplete(
-        eventos,
+        widget.eventos,
         isToday: _isToday,
         isFuture: false,
       );
 
   bool get _isToday {
-    final now = DateTime.now();
+    final now = ServerTimeService.nowBrazilUtc();
     final today =
         '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
-    return diaId == today;
+    return widget.diaId == today;
   }
 
   @override
   Widget build(BuildContext context) {
     final incomplete = _incomplete;
-    final hasPending = pendingSolicitations.isNotEmpty;
-    final count = pendingSolicitations.length;
-    final disabledStyle = disabled;
+    final hasPending = widget.pendingSolicitations.isNotEmpty;
+    final count = widget.pendingSolicitations.length;
+    final disabledStyle = widget.disabled;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color: disabledStyle ? AppColors.surface : AppColors.surface,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(14),
       ),
       child: Container(
@@ -93,6 +102,8 @@ class FilledDayCard extends StatelessWidget {
             child: Opacity(
               opacity: disabledStyle ? 0.85 : 1,
               child: ExpansionTile(
+                onExpansionChanged: (v) => setState(() => _isExpanded = v),
+                controlAffinity: ListTileControlAffinity.trailing,
                 tilePadding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                 childrenPadding:
@@ -125,7 +136,7 @@ class FilledDayCard extends StatelessWidget {
                   ),
                 ),
                 title: Text(
-                  formatDate(diaId),
+                  formatDate(widget.diaId),
                   style: AppTextStyles.bodyLarge.copyWith(
                     fontWeight: FontWeight.w600,
                     color: disabledStyle
@@ -133,24 +144,61 @@ class FilledDayCard extends StatelessWidget {
                         : AppColors.textPrimary,
                   ),
                 ),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (widget.onOpenDayActions != null)
+                      GestureDetector(
+                        onTap: widget.onOpenDayActions,
+                        child: Container(
+                          width: 36,
+                          height: 36,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(
+                            Icons.menu_book_rounded,
+                            color: AppColors.primary,
+                            size: 18,
+                          ),
+                        ),
+                      ),
+                    const SizedBox(width: 4),
+                    AnimatedRotation(
+                      turns: _isExpanded ? 0.5 : 0,
+                      duration: const Duration(milliseconds: 250),
+                      child: const Icon(
+                        Icons.expand_more,
+                        color: AppColors.textSecondary,
+                        size: 22,
+                      ),
+                    ),
+                  ],
+                ),
                 subtitle: _buildSubtitle(incomplete, hasPending, count),
                 children: [
                   const Divider(height: 1),
                   const SizedBox(height: 8),
-                  if (holidayName != null) buildHolidayBanner(holidayName!),
+                  if (widget.holidayName != null)
+                    buildHolidayBanner(widget.holidayName!),
                   ..._buildEventoRows(incomplete),
                   if (incomplete) _buildIncompleteWarning(),
-                  if (isAdmin && onBatchEdit != null) _buildBatchEditButton(),
-                  if (!isAdmin && onAddEvento != null) _buildAddButton(),
-                  if (hasPending) ...[
+                  if (widget.isAdmin &&
+                      widget.onBatchEdit != null &&
+                      widget.onOpenDayActions == null)
+                    _buildBatchEditButton(),
+                  if (!widget.isAdmin && widget.onAddEvento != null)
+                    _buildAddButton(),
+                  if (hasPending)
                     PendingSolicitationsSection(
-                      solicitations: pendingSolicitations,
-                      isAdmin: isAdmin,
-                      onCancel: onCancelSolicitation,
+                      solicitations: widget.pendingSolicitations,
+                      isAdmin: widget.isAdmin,
+                      onCancel: widget.onCancelSolicitation,
                     ),
-                  ],
-                  if (!isAdmin && onRequestSolicitation != null)
-                    SolicitationButton(onTap: onRequestSolicitation!),
+                  if (!widget.isAdmin && widget.onRequestSolicitation != null)
+                    SolicitationButton(onTap: widget.onRequestSolicitation!),
                 ],
               ),
             ),
@@ -159,8 +207,6 @@ class FilledDayCard extends StatelessWidget {
       ),
     );
   }
-
-  // Sub-builders
 
   Widget _buildSubtitle(bool incomplete, bool hasPending, int count) {
     return Wrap(
@@ -175,7 +221,7 @@ class FilledDayCard extends StatelessWidget {
                 size: 14, color: AppColors.textSecondary),
             const SizedBox(width: 4),
             Text(
-              computeWorked(eventos),
+              computeWorked(widget.eventos),
               style: AppTextStyles.bodySmall
                   .copyWith(color: AppColors.textSecondary),
             ),
@@ -188,7 +234,7 @@ class FilledDayCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(8),
           ),
           child: Text(
-            '${eventos.length} registro${eventos.length != 1 ? 's' : ''}',
+            '${widget.eventos.length} registro${widget.eventos.length != 1 ? 's' : ''}',
             style: AppTextStyles.bodySmall.copyWith(
               color: AppColors.primary,
               fontWeight: FontWeight.w600,
@@ -197,17 +243,10 @@ class FilledDayCard extends StatelessWidget {
           ),
         ),
         if (incomplete)
-          _badge(
-            Icons.warning_amber_rounded,
-            'Incompleto',
-            AppColors.warning,
-          ),
+          _badge(Icons.warning_amber_rounded, 'Incompleto', AppColors.warning),
         if (hasPending)
-          _badge(
-            null,
-            '$count pendencia${count != 1 ? 's' : ''}',
-            AppColors.warning,
-          ),
+          _badge(null, '$count pendencia${count != 1 ? 's' : ''}',
+              AppColors.warning),
       ],
     );
   }
@@ -241,7 +280,7 @@ class FilledDayCard extends StatelessWidget {
   }
 
   List<Widget> _buildEventoRows(bool incomplete) {
-    final orderedEventos = List<Map<String, dynamic>>.from(eventos)
+    final orderedEventos = List<Map<String, dynamic>>.from(widget.eventos)
       ..sort((a, b) {
         final atA = a['at'] as DateTime?;
         final atB = b['at'] as DateTime?;
@@ -256,11 +295,8 @@ class FilledDayCard extends StatelessWidget {
 
     for (var ev in orderedEventos) {
       final tipo = (ev['tipo'] ?? '').toString();
-
       if (tipo == 'entrada') {
-        if (currentCycle.isNotEmpty) {
-          cycles.add(currentCycle);
-        }
+        if (currentCycle.isNotEmpty) cycles.add(currentCycle);
         currentCycle = [ev];
       } else {
         currentCycle.add(ev);
@@ -270,9 +306,7 @@ class FilledDayCard extends StatelessWidget {
         }
       }
     }
-    if (currentCycle.isNotEmpty) {
-      cycles.add(currentCycle);
-    }
+    if (currentCycle.isNotEmpty) cycles.add(currentCycle);
 
     final groups = <_ModeGroup>[];
 
@@ -282,11 +316,8 @@ class FilledDayCard extends StatelessWidget {
 
       for (var ev in cycle) {
         final rawMode = (ev['workMode'] ?? '').toString();
-        if (rawMode == 'presencial') {
-          hasPresencial = true;
-        } else if (rawMode == 'remoto') {
-          hasRemoto = true;
-        }
+        if (rawMode == 'presencial') hasPresencial = true;
+        if (rawMode == 'remoto') hasRemoto = true;
       }
 
       final cycleMode =
@@ -302,29 +333,29 @@ class FilledDayCard extends StatelessWidget {
     }
 
     final widgets = <Widget>[];
-    final showHeaders = groups.isNotEmpty;
 
     for (final group in groups) {
-      if (showHeaders) {
-        widgets.add(_buildModeHeader(group.mode));
-      }
-      widgets.addAll([
+      widgets.add(_buildModeHeader(group.mode));
+      widgets.add(
         Container(
-            decoration: BoxDecoration(
-              border: Border(
-                left: BorderSide(
-                    color: incomplete
-                        ? AppColors.warning.withValues(alpha: 0.45)
-                        : AppColors.borderLight,
-                    width: 3),
+          decoration: BoxDecoration(
+            border: Border(
+              left: BorderSide(
+                color: incomplete
+                    ? AppColors.warning.withValues(alpha: 0.45)
+                    : AppColors.borderLight,
+                width: 3,
               ),
             ),
-            child: Padding(
-              padding: const EdgeInsets.only(left: 8, top: 8),
-              child:
-                  Column(children: group.events.map(_buildEventoRow).toList()),
-            ))
-      ]);
+          ),
+          child: Padding(
+            padding: const EdgeInsets.only(left: 8, top: 8),
+            child: Column(
+              children: group.events.map(_buildEventoRow).toList(),
+            ),
+          ),
+        ),
+      );
     }
 
     return widgets;
@@ -332,7 +363,6 @@ class FilledDayCard extends StatelessWidget {
 
   Widget _buildModeHeader(String workMode) {
     final color = _colorForWorkMode(workMode);
-
     return Padding(
       padding: const EdgeInsets.only(top: 8, bottom: 4),
       child: Row(
@@ -355,7 +385,6 @@ class FilledDayCard extends StatelessWidget {
   Color _colorForWorkMode(String workMode) {
     switch (workMode) {
       case 'presencial':
-        return AppColors.primary;
       case 'remoto':
         return AppColors.primary;
       default:
@@ -442,23 +471,21 @@ class FilledDayCard extends StatelessWidget {
               ],
             ),
           ),
-          if (isAdmin) ...[
-            if (onBatchEdit == null) ...[
-              IconButton(
-                onPressed: () => onEditEvento?.call(ev),
-                icon: const Icon(Icons.edit_outlined,
-                    size: 18, color: AppColors.primary),
-                tooltip: 'Editar',
-                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-              ),
-              IconButton(
-                onPressed: () => onDeleteEvento?.call(ev),
-                icon: const Icon(Icons.delete_outline,
-                    size: 18, color: AppColors.error),
-                tooltip: 'Remover',
-                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-              ),
-            ],
+          if (widget.isAdmin && widget.onBatchEdit == null) ...[
+            IconButton(
+              onPressed: () => widget.onEditEvento?.call(ev),
+              icon: const Icon(Icons.edit_outlined,
+                  size: 18, color: AppColors.primary),
+              tooltip: 'Editar',
+              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+            ),
+            IconButton(
+              onPressed: () => widget.onDeleteEvento?.call(ev),
+              icon: const Icon(Icons.delete_outline,
+                  size: 18, color: AppColors.error),
+              tooltip: 'Remover',
+              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+            ),
           ],
         ],
       ),
@@ -485,7 +512,7 @@ class FilledDayCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    motivoIncompleto(eventos),
+                    motivoIncompleto(widget.eventos),
                     style: AppTextStyles.bodySmall.copyWith(
                       color: AppColors.warning,
                       fontWeight: FontWeight.w500,
@@ -506,7 +533,7 @@ class FilledDayCard extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(top: 4),
       child: InkWell(
-        onTap: onBatchEdit,
+        onTap: widget.onBatchEdit,
         borderRadius: BorderRadius.circular(8),
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
@@ -539,7 +566,7 @@ class FilledDayCard extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(top: 4),
       child: InkWell(
-        onTap: onAddEvento,
+        onTap: widget.onAddEvento,
         borderRadius: BorderRadius.circular(8),
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
@@ -571,6 +598,5 @@ class FilledDayCard extends StatelessWidget {
 class _ModeGroup {
   final String mode;
   final List<Map<String, dynamic>> events;
-
   _ModeGroup({required this.mode, required this.events});
 }

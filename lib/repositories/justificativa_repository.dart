@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_application_appdeponto/models/justificativa_model.dart';
@@ -14,6 +15,10 @@ class JustificativaRepository {
   Future<void> createJustificativa({
     required String diaId,
     required String justificativa,
+    String? fileName,
+    Uint8List? fileBytes,
+    String? dataInicio,
+    String? dataFim,
   }) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) throw Exception('Não autenticado');
@@ -50,6 +55,10 @@ class JustificativaRepository {
       'resolvedBy': null,
       'reason': null,
       'seenByEmployee': false,
+      'fileName': fileName,
+      'fileBytes': fileBytes,
+      'dataInicio': dataInicio,
+      'dataFim': dataFim,
     });
   }
 
@@ -66,8 +75,7 @@ class JustificativaRepository {
 
   /// Retorna todas as justificativas pendentes (uso do admin).
   Future<List<JustificativaModel>> getPendingJustificativas() async {
-    final snap =
-        await _ref.where('status', isEqualTo: 'pending').get();
+    final snap = await _ref.where('status', isEqualTo: 'pending').get();
     final list = snap.docs.map((d) => JustificativaModel.fromDoc(d)).toList();
     list.sort((a, b) => a.createdAt.compareTo(b.createdAt));
     return list;
