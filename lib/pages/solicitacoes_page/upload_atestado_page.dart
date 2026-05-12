@@ -3,9 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter_application_appdeponto/blocs/auth/auth_bloc.dart';
+import 'package:flutter_application_appdeponto/blocs/auth/auth_state.dart';
 import 'package:flutter_application_appdeponto/blocs/atestado/atestado_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/atestado/atestado_event.dart';
 import 'package:flutter_application_appdeponto/blocs/atestado/atestado_state.dart';
+import 'package:flutter_application_appdeponto/models/atestado_model.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
 import 'package:flutter_application_appdeponto/widgets/custom_snackbar.dart';
@@ -18,6 +21,7 @@ class UploadAtestadoPage extends StatefulWidget {
 }
 
 class _UploadAtestadoPageState extends State<UploadAtestadoPage> {
+  bool _isAdmin = false;
   String? _fileName;
   Uint8List? _fileBytes;
   DateTime? _dataInicio;
@@ -46,6 +50,37 @@ class _UploadAtestadoPageState extends State<UploadAtestadoPage> {
       _fileName = null;
       _fileBytes = null;
     });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final admin = _resolveIsAdmin(context);
+      if (mounted) {
+        setState(() {
+          _isAdmin = admin;
+        });
+        if (_isAdmin) {
+          context.read<AtestadoBloc>().add(
+                const LoadAtestadosEvent(
+                  isAdmin: true,
+                  includeReviewed: true,
+                ),
+              );
+        }
+      }
+    });
+  }
+
+  bool _resolveIsAdmin(BuildContext context) {
+    final authState = context.read<AuthBloc>().state;
+    if (authState is AdminAuthenticated) return true;
+    if (authState is UserAuthenticated) {
+      final role = (authState.userData['role'] ?? '').toString();
+      return role.toUpperCase().contains('ADM');
+    }
+    return false;
   }
 
   Future<void> _pickDate({required bool isInicio}) async {
@@ -110,7 +145,16 @@ class _UploadAtestadoPageState extends State<UploadAtestadoPage> {
       listener: (context, state) {
         if (state is AtestadoActionSuccess) {
           CustomSnackbar.showSuccess(context, state.message);
-          Navigator.pop(context);
+          if (_isAdmin) {
+            context.read<AtestadoBloc>().add(
+                  const LoadAtestadosEvent(
+                    isAdmin: true,
+                    includeReviewed: true,
+                  ),
+                );
+          } else {
+            Navigator.pop(context);
+          }
         } else if (state is AtestadoError) {
           CustomSnackbar.showError(context, state.message);
         }
@@ -143,90 +187,262 @@ class _UploadAtestadoPageState extends State<UploadAtestadoPage> {
               ),
               const SizedBox(width: 12),
               Text(
-                'Novo Atestado',
-                style:
-                        AppTextStyles.h3.copyWith(color: AppColors.textPrimary),
+                _isAdmin ? 'Atestados' : 'Novo Atestado',
+                style: AppTextStyles.h3.copyWith(color: AppColors.textPrimary),
               ),
             ],
           ),
         ),
-        body: ListView(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-          children: [
-            // Período
-            const _SectionLabel(label: 'Duração do afastamento'),
-            const SizedBox(height: 12),
-            Row(
+        body: BlocBuilder<AtestadoBloc, AtestadoState>(
+          builder: (context, state) {
+            final pendingAtestados = <AtestadoModel>[];
+            if (_isAdmin) {
+              final atestados = switch (state) {
+                AtestadoLoaded(:final atestados) => atestados,
+                AtestadoActionSuccess(:final atestados) => atestados,
+                AtestadoError(:final atestados) => atestados,
+                _ => <AtestadoModel>[],
+              };
+              pendingAtestados.addAll(
+                atestados.where((a) => a.status == AtestadoStatus.pending),
+              );
+            }
+
+            return ListView(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
               children: [
-                Expanded(
-                  child: _DateField(
-                    label: 'Data início',
-                    value:
-                        _dataInicio != null ? _fmt.format(_dataInicio!) : null,
-                    onTap: () => _pickDate(isInicio: true),
+                if (_isAdmin && pendingAtestados.isNotEmpty) ...[
+                  Row(
+                    children: [
+                      Container(
+                        width: 4,
+                        height: 18,
+                        decoration: BoxDecoration(
+                          color: AppColors.primary,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      const Text('Atestados pendentes',
+                          style: AppTextStyles.h3),
+                    ],
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _DateField(
-                    label: 'Data fim',
-                    value: _dataFim != null ? _fmt.format(_dataFim!) : null,
-                    onTap: () => _pickDate(isInicio: false),
+                  const SizedBox(height: 16),
+                  ...pendingAtestados.map(
+                    (atestado) => _AdminAtestadoCard(atestado: atestado),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-
-            // PDF
-            const _SectionLabel(label: 'Comprovante digital (PDF)'),
-            const SizedBox(height: 12),
-            _FilePickerBox(
-              fileName: _fileName,
-              onPick: _pickPDF,
-              onClear: _clearFile,
-            ),
-
-            const SizedBox(height: 40),
-
-            // Botão Confirmar
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _canSubmit ? _submit : null,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  disabledBackgroundColor: AppColors.border,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  elevation: 0,
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                  const SizedBox(height: 24),
+                ],
+                const _SectionLabel(label: 'Duração do afastamento'),
+                const SizedBox(height: 12),
+                Row(
                   children: [
-                    const Icon(Icons.send_rounded, size: 18),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Confirmar Envio',
-                      style: AppTextStyles.bodyMedium.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
+                    Expanded(
+                      child: _DateField(
+                        label: 'Data início',
+                        value: _dataInicio != null
+                            ? _fmt.format(_dataInicio!)
+                            : null,
+                        onTap: () => _pickDate(isInicio: true),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _DateField(
+                        label: 'Data fim',
+                        value: _dataFim != null ? _fmt.format(_dataFim!) : null,
+                        onTap: () => _pickDate(isInicio: false),
                       ),
                     ),
                   ],
                 ),
+                const SizedBox(height: 24),
+                const _SectionLabel(label: 'Comprovante digital (PDF)'),
+                const SizedBox(height: 12),
+                _FilePickerBox(
+                  fileName: _fileName,
+                  onPick: _pickPDF,
+                  onClear: _clearFile,
+                ),
+                const SizedBox(height: 40),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _canSubmit ? _submit : null,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      disabledBackgroundColor: AppColors.border,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.send_rounded, size: 18),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Confirmar Envio',
+                          style: AppTextStyles.bodyMedium.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Center(
+                  child: Text(
+                    'O arquivo será revisado pela administração.',
+                    style: AppTextStyles.bodySmall
+                        .copyWith(color: AppColors.textSecondary),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _AdminAtestadoCard extends StatelessWidget {
+  final AtestadoModel atestado;
+
+  const _AdminAtestadoCard({required this.atestado});
+
+  void _showRejectDialog(BuildContext context) {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Recusar atestado'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(
+            hintText: 'Motivo (opcional)',
+            border: OutlineInputBorder(),
+          ),
+          maxLines: 3,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              context.read<AtestadoBloc>().add(
+                    RejectAtestadoEvent(
+                      atestado.id,
+                      reason: controller.text.trim().isEmpty
+                          ? null
+                          : controller.text.trim(),
+                    ),
+                  );
+            },
+            child:
+                const Text('Recusar', style: TextStyle(color: AppColors.error)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final fmt = DateFormat('dd/MM/yyyy');
+    final inicio = fmt.format(DateTime.parse(atestado.dataInicio));
+    final fim = fmt.format(DateTime.parse(atestado.dataFim));
+    final mesmodia = atestado.dataInicio == atestado.dataFim;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.borderLight),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              atestado.employeeName,
+              style: AppTextStyles.bodyMedium.copyWith(
+                fontWeight: FontWeight.bold,
               ),
             ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                const Icon(Icons.date_range_outlined,
+                    size: 16, color: AppColors.textSecondary),
+                const SizedBox(width: 6),
+                Text(
+                  mesmodia ? inicio : '$inicio – $fim',
+                  style: AppTextStyles.bodySmall,
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                const Icon(Icons.picture_as_pdf_outlined,
+                    size: 16, color: AppColors.textSecondary),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    atestado.fileName,
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: 16),
-            Center(
-              child: Text(
-                'O arquivo será revisado pela administração.',
-                style: AppTextStyles.bodySmall
-                    .copyWith(color: AppColors.textSecondary),
-              ),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => _showRejectDialog(context),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.error,
+                      side: const BorderSide(color: AppColors.error),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    child: const Text('Recusar'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () => context
+                        .read<AtestadoBloc>()
+                        .add(ApproveAtestadoEvent(atestado.id)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    child: const Text('Aprovar'),
+                  ),
+                ),
+              ],
             ),
           ],
         ),

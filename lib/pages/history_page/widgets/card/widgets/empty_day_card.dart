@@ -13,6 +13,7 @@ class EmptyDayCard extends StatelessWidget {
   final VoidCallback? onBatchEdit;
   final VoidCallback? onRequestSolicitation;
   final String? holidayName;
+  final VoidCallback? onOpenDayActions;
 
   /// Funcionário: abre dialog para enviar justificativa de falta.
   /// Admin: abre dialog para definir justificativa diretamente.
@@ -30,9 +31,11 @@ class EmptyDayCard extends StatelessWidget {
     this.onJustify,
     this.justificativa,
     this.holidayName,
+    this.onOpenDayActions,
   });
 
-  bool get _isAbsentDay => !disabled && !isWeekendOrHoliday(diaId) && holidayName == null;
+  bool get _isAbsentDay =>
+      !disabled && !isWeekendOrHoliday(diaId) && holidayName == null;
 
   @override
   Widget build(BuildContext context) {
@@ -111,18 +114,21 @@ class EmptyDayCard extends StatelessWidget {
             ),
 
           // Justificativa chip (funcionário e admin)
-          if (_isAbsentDay && justificativa != null)
-            _buildJustificativaChip(),
+          if (_isAbsentDay && justificativa != null) _buildJustificativaChip(),
 
           // Admin: botão adicionar justificativa quando não há nenhuma
-          if (_isAbsentDay && isAdmin && justificativa == null && onJustify != null)
+          if (_isAbsentDay &&
+              isAdmin &&
+              justificativa == null &&
+              onJustify != null)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
               child: InkWell(
                 onTap: onJustify,
                 borderRadius: BorderRadius.circular(8),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
                     color: AppColors.error.withValues(alpha: 0.06),
                     borderRadius: BorderRadius.circular(8),
@@ -155,6 +161,21 @@ class EmptyDayCard extends StatelessWidget {
 
   Widget? _buildTrailing() {
     if (disabled) return null;
+
+    if (onOpenDayActions != null) {
+      return IconButton(
+        constraints: const BoxConstraints(),
+        style: IconButton.styleFrom(
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          minimumSize: Size.zero,
+          padding: EdgeInsets.zero,
+        ),
+        padding: EdgeInsets.zero,
+        onPressed: onOpenDayActions,
+        icon: const Icon(Icons.menu_book_rounded, color: AppColors.primary),
+        tooltip: 'Ações do dia',
+      );
+    }
 
     if (isAdmin && onBatchEdit != null) {
       return IconButton(

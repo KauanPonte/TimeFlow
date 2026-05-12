@@ -54,5 +54,7 @@ class AppColors {
   static const Color warningLight20 = Color(0x33FF9800); // warning 20%
   static const Color warningLight30 = Color(0x4DFF9800); // warning 30%
   static const Color warningLight40 = Color(
-      0x66FF9800); // warning 40%`n`n  // Text secondary variants`n  static const Color textSecondary50 = Color(0x80757575); // textSecondary 50%
+      0x66FF9800);
+
+  static Color? get white => null; // warning 40%`n`n  // Text secondary variants`n  static const Color textSecondary50 = Color(0x80757575); // textSecondary 50%
 }
