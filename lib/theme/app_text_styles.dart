@@ -60,4 +60,10 @@ class AppTextStyles {
     fontSize: 16,
     letterSpacing: 0.5,
   );
+
+  static const TextStyle titleSmall = TextStyle(
+    fontSize: 14,
+    fontWeight: FontWeight.w700,
+    color: AppColors.textPrimary,
+  );
 }

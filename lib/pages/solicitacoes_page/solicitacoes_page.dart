@@ -10,6 +10,7 @@ import 'package:flutter_application_appdeponto/models/atestado_model.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
 import 'package:flutter_application_appdeponto/widgets/app_dialog_components.dart';
+import 'request_abono_page.dart';
 import 'upload_atestado_page.dart';
 
 class SolicitacoesPage extends StatefulWidget {
@@ -113,29 +114,45 @@ class _SolicitacoesPageState extends State<SolicitacoesPage> {
           return ListView(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
             children: [
-              // Botão enviar atestado
-              _ActionCard(
-                icon: Icons.cloud_upload_rounded,
-                title: 'Enviar Novo Atestado',
-                subtitle: 'Upload de arquivo PDF para abonos',
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const UploadAtestadoPage(),
-                    ),
-                  ).then((_) {
-                    if (context.mounted) {
-                      context.read<AtestadoBloc>().add(
-                            LoadAtestadosEvent(
-                              isAdmin: _isAdmin,
-                              includeReviewed: _isAdmin,
-                            ),
-                          );
-                    }
-                  });
-                },
-              ),
+              // Botão enviar atestado - só para usuários normais
+              if (!_isAdmin) ...[
+                _ActionCard(
+                  icon: Icons.cloud_upload_rounded,
+                  title: 'Enviar Novo Atestado',
+                  subtitle: 'Upload de arquivo PDF para abonos',
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const UploadAtestadoPage(),
+                      ),
+                    ).then((_) {
+                      if (context.mounted) {
+                        context.read<AtestadoBloc>().add(
+                              LoadAtestadosEvent(
+                                isAdmin: _isAdmin,
+                                includeReviewed: _isAdmin,
+                              ),
+                            );
+                      }
+                    });
+                  },
+                ),
+                const SizedBox(height: 12),
+                _ActionCard(
+                  icon: Icons.request_page_outlined,
+                  title: 'Solicitar Abono',
+                  subtitle: 'Escolha o motivo e envie justificativa',
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const RequestAbonoPage(),
+                      ),
+                    );
+                  },
+                ),
+              ],
 
               if (visibleAtestados.isNotEmpty) ...[
                 const SizedBox(height: 32),

@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_application_appdeponto/services/server_time_service.dart';
 
@@ -15,6 +16,10 @@ class JustificativaModel {
   final String? resolvedBy; // uid do admin
   final String? reason; // observação do admin ao recusar
   final bool seenByEmployee;
+  final String? fileName;
+  final Uint8List? fileBytes;
+  final String? dataInicio;
+  final String? dataFim;
 
   const JustificativaModel({
     required this.id,
@@ -28,6 +33,10 @@ class JustificativaModel {
     this.resolvedBy,
     this.reason,
     this.seenByEmployee = false,
+    this.fileName,
+    this.fileBytes,
+    this.dataInicio,
+    this.dataFim,
   });
 
   Map<String, dynamic> toMap() => {
@@ -42,6 +51,10 @@ class JustificativaModel {
         'resolvedBy': resolvedBy,
         'reason': reason,
         'seenByEmployee': seenByEmployee,
+        'fileName': fileName,
+        'fileBytes': fileBytes,
+        'dataInicio': dataInicio,
+        'dataFim': dataFim,
       };
 
   factory JustificativaModel.fromDoc(
@@ -62,6 +75,10 @@ class JustificativaModel {
       resolvedBy: data['resolvedBy'] as String?,
       reason: data['reason'] as String?,
       seenByEmployee: (data['seenByEmployee'] as bool?) ?? false,
+      fileName: data['fileName'] as String?,
+      fileBytes: data['fileBytes'] as Uint8List?,
+      dataInicio: data['dataInicio'] as String?,
+      dataFim: data['dataFim'] as String?,
     );
   }
 
@@ -77,6 +94,10 @@ class JustificativaModel {
     String? resolvedBy,
     String? reason,
     bool? seenByEmployee,
+    String? fileName,
+    Uint8List? fileBytes,
+    String? dataInicio,
+    String? dataFim,
   }) {
     return JustificativaModel(
       id: id ?? this.id,
@@ -90,6 +111,10 @@ class JustificativaModel {
       resolvedBy: resolvedBy ?? this.resolvedBy,
       reason: reason ?? this.reason,
       seenByEmployee: seenByEmployee ?? this.seenByEmployee,
+      fileName: fileName ?? this.fileName,
+      fileBytes: fileBytes ?? this.fileBytes,
+      dataInicio: dataInicio ?? this.dataInicio,
+      dataFim: dataFim ?? this.dataFim,
     );
   }
 }

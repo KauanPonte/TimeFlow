@@ -20,6 +20,7 @@ class DayCard extends StatelessWidget {
   final void Function(String solicitationId)? onCancelSolicitation;
   final Set<String> calendarBlockedDays;
   final String? holidayName;
+  final VoidCallback? onOpenDayActions;
 
   /// Admin: abre edição em lote passando diaId e eventos atuais.
   final void Function(String diaId, List<Map<String, dynamic>> eventos)?
@@ -40,6 +41,7 @@ class DayCard extends StatelessWidget {
     this.onBatchEdit,
     this.calendarBlockedDays = const {},
     this.holidayName,
+    this.onOpenDayActions,
   });
 
   @override
@@ -50,10 +52,10 @@ class DayCard extends StatelessWidget {
 
     if (isFuture) {
       return EmptyDayCard(
-          diaId: diaId,
+        diaId: diaId,
         disabled: disabled,
-          isAdmin: isAdmin,
-          holidayName: holidayName,
+        isAdmin: isAdmin,
+        holidayName: holidayName,
         onAddEvento: disabled ? null : onAddEvento,
         onBatchEdit: (!disabled && onBatchEdit != null)
             ? () => onBatchEdit!(diaId, [])
@@ -74,6 +76,7 @@ class DayCard extends StatelessWidget {
         onRequestSolicitation: disabled ? null : onRequestSolicitation,
         onJustify: disabled ? null : onJustify,
         justificativa: justificativa,
+        onOpenDayActions: onOpenDayActions,
       );
     }
     if (eventos.isEmpty && pendingSolicitations.isNotEmpty) {
@@ -100,6 +103,7 @@ class DayCard extends StatelessWidget {
           : null,
       onRequestSolicitation: disabled ? null : onRequestSolicitation,
       onCancelSolicitation: disabled ? null : onCancelSolicitation,
+      onOpenDayActions: onOpenDayActions,
     );
   }
 }

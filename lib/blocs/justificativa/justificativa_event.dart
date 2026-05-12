@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 abstract class JustificativaEvent {
   const JustificativaEvent();
 }
@@ -15,9 +17,17 @@ class SilentLoadJustificativasEvent extends JustificativaEvent {
 class SubmitJustificativaEvent extends JustificativaEvent {
   final String diaId;
   final String justificativa;
+  final String? fileName;
+  final Uint8List? fileBytes;
+  final String? dataInicio;
+  final String? dataFim;
   const SubmitJustificativaEvent({
     required this.diaId,
     required this.justificativa,
+    this.fileName,
+    this.fileBytes,
+    this.dataInicio,
+    this.dataFim,
   });
 }
 

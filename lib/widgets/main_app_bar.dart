@@ -2070,26 +2070,28 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
               ),
               const PopupMenuDivider(),
             ],
-            PopupMenuItem<String>(
-              value: 'solicitacoes',
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.assignment_turned_in_outlined,
-                    color: AppColors.primary,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    'Solicitações',
-                    style: AppTextStyles.bodyMedium.copyWith(
-                      color: AppColors.textPrimary,
+            if (isAdmin) ...[
+              PopupMenuItem<String>(
+                value: 'solicitacoes',
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.assignment_turned_in_outlined,
+                      color: AppColors.primary,
+                      size: 20,
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 12),
+                    Text(
+                      'Solicitações',
+                      style: AppTextStyles.bodyMedium.copyWith(
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const PopupMenuDivider(),
+              const PopupMenuDivider(),
+            ],
             PopupMenuItem<String>(
               value: 'logout',
               child: Row(children: [

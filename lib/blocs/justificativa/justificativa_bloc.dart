@@ -73,6 +73,10 @@ class JustificativaBloc extends Bloc<JustificativaEvent, JustificativaState> {
       await repository.createJustificativa(
         diaId: event.diaId,
         justificativa: event.justificativa,
+        fileName: event.fileName,
+        fileBytes: event.fileBytes,
+        dataInicio: event.dataInicio,
+        dataFim: event.dataFim,
       );
       final list = await repository.getMyJustificativas();
       _lastList = list;
