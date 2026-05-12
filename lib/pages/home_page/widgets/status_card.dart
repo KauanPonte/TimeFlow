@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:lottie/lottie.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
+import 'package:flutter_application_appdeponto/services/server_time_service.dart';
 
 class StatusCard extends StatefulWidget {
   final String statusLabel;
@@ -138,7 +139,7 @@ class _StatusCardState extends State<StatusCard>
 
   @override
   Widget build(BuildContext context) {
-    final now = DateTime.now();
+    final now = ServerTimeService.nowBrazilUtc();
 
     // Calcula o primeiro e último dia do mês conforme sua lógica
     final firstDayOfMonth = DateTime(now.year, now.month, 1);

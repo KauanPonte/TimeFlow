@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_application_appdeponto/services/server_time_service.dart';
 
 enum AtestadoStatus { pending, approved, rejected }
 
@@ -42,7 +43,8 @@ class AtestadoModel {
         'fileUrl': fileUrl,
         'status': status.name,
         'createdAt': Timestamp.fromDate(createdAt),
-        'resolvedAt': resolvedAt != null ? Timestamp.fromDate(resolvedAt!) : null,
+        'resolvedAt':
+            resolvedAt != null ? Timestamp.fromDate(resolvedAt!) : null,
         'resolvedBy': resolvedBy,
         'reason': reason,
         'seenByEmployee': seenByEmployee,
@@ -61,7 +63,8 @@ class AtestadoModel {
       status: AtestadoStatus.values.byName(
         (data['status'] ?? 'pending').toString(),
       ),
-      createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      createdAt: (data['createdAt'] as Timestamp?)?.toDate() ??
+          ServerTimeService.nowUtc(),
       resolvedAt: (data['resolvedAt'] as Timestamp?)?.toDate(),
       resolvedBy: data['resolvedBy'] as String?,
       reason: data['reason'] as String?,

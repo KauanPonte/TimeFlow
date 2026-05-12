@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_application_appdeponto/services/ponto_validator.dart';
 import 'package:flutter_application_appdeponto/services/ponto_service.dart';
+import 'package:flutter_application_appdeponto/services/server_time_service.dart';
 
 class PontoHistoryRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -46,7 +47,7 @@ class PontoHistoryRepository {
           return {
             'id': e.id,
             'tipo': (data['tipo'] ?? '').toString(),
-            'at': ts?.toDate(),
+            'at': ServerTimeService.timestampToBrazil(ts),
             'workMode': (data['workMode'] ?? '').toString(),
             'origin': (data['origin'] ?? 'registrado').toString(),
           };
@@ -144,7 +145,7 @@ class PontoHistoryRepository {
             return {
               'id': (m['id'] ?? '').toString(),
               'tipo': (m['tipo'] ?? '').toString(),
-              'at': ts?.toDate(),
+              'at': ServerTimeService.timestampToBrazil(ts),
               'workMode': (m['workMode'] ?? '').toString(),
               'origin': (m['origin'] ?? 'registrado').toString(),
             };
@@ -274,7 +275,7 @@ class PontoHistoryRepository {
       return {
         'id': e.id,
         'tipo': (data['tipo'] ?? '').toString(),
-        'at': evTs?.toDate(),
+        'at': ServerTimeService.timestampToBrazil(evTs),
       };
     }).toList();
 
@@ -328,7 +329,7 @@ class PontoHistoryRepository {
       return {
         'id': e.id,
         'tipo': (data['tipo'] ?? '').toString(),
-        'at': evTs?.toDate(),
+        'at': ServerTimeService.timestampToBrazil(evTs),
       };
     }).toList();
 
@@ -372,7 +373,7 @@ class PontoHistoryRepository {
       return {
         'id': e.id,
         'tipo': (data['tipo'] ?? '').toString(),
-        'at': evTs?.toDate(),
+        'at': ServerTimeService.timestampToBrazil(evTs),
       };
     }).toList();
 
@@ -424,7 +425,7 @@ class PontoHistoryRepository {
     // Calcula minutos trabalhados (só intervalos fechados)
     final workedMinutes = _computeWorkedMinutes(eventos);
     final diaFechado = lastTipo == 'saida';
-    final localNow = DateTime.now();
+    final localNow = ServerTimeService.nowBrazilUtc();
     final hojeId =
         '${localNow.year.toString().padLeft(4, '0')}-${localNow.month.toString().padLeft(2, '0')}-${localNow.day.toString().padLeft(2, '0')}';
     final ehHoje = diaId == hojeId;
@@ -489,7 +490,7 @@ class PontoHistoryRepository {
     for (final ev in eventos) {
       final tipo = (ev['tipo'] ?? '').toString();
       final ts = ev['at'];
-      final at = ts is Timestamp ? ts.toDate() : null;
+      final at = ts is Timestamp ? ServerTimeService.timestampToBrazil(ts) : null;
       if (at == null) continue;
 
       if (tipo == 'entrada' || tipo == 'retorno') {
@@ -534,7 +535,7 @@ class PontoHistoryRepository {
       return {
         'id': e.id,
         'tipo': (data['tipo'] ?? '').toString(),
-        'at': evTs?.toDate(),
+        'at': ServerTimeService.timestampToBrazil(evTs),
       };
     }).toList();
 

@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+import 'package:flutter_application_appdeponto/services/server_time_service.dart';
 
 class PdfService {
   static Future<void> generateUserHistoryPdf({
@@ -24,8 +25,8 @@ class PdfService {
     final ultimoDiaMes =
         DateTime(selectedDate.year, selectedDate.month + 1, 0).day;
 
-    final hojeApenasData =
-        DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+    final now = ServerTimeService.nowBrazilUtc();
+    final hojeApenasData = DateTime(now.year, now.month, now.day);
 
     final dataTable = [
       ['Data', 'Registros', 'Modalidade', 'Observações']

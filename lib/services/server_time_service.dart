@@ -12,13 +12,35 @@ class ServerTimeService {
   static Duration _offset = Duration.zero;
   static bool _synced = false;
   static const Duration _brazilOffset = Duration(hours: -3);
+  static DateTime? _lastKnownLocalTime;
+  static const Duration _maxTimeDriftThreshold = Duration(seconds: 10);
 
-  static DateTime _serverUtcNow() => DateTime.now().toUtc().add(_offset);
+  static DateTime _serverUtcNow() {
+    final now = DateTime.now().toUtc();
+    _detectAndHandleClockChange(now);
+    return now.add(_offset);
+  }
+
+  static void _detectAndHandleClockChange(DateTime currentLocalTime) {
+    if (_lastKnownLocalTime != null) {
+      final drift = currentLocalTime.difference(_lastKnownLocalTime!).abs();
+      // Se houve mudança de mais de 10 segundos no relógio local, re-sincroniza
+      if (drift > _maxTimeDriftThreshold) {
+        // Agenda re-sincronização assincronamente sem bloquear o fluxo atual
+        Future.microtask(() => sync().catchError((_) {}));
+      }
+    }
+    _lastKnownLocalTime = currentLocalTime;
+  }
 
   static DateTime _brazilServerNowUtc() => _serverUtcNow().add(_brazilOffset);
 
   /// Retorna o horário atual corrigido pelo offset do servidor, no timezone local do dispositivo.
-  static DateTime now() => DateTime.now().add(_offset);
+  static DateTime now() {
+    final currentLocal = DateTime.now();
+    _detectAndHandleClockChange(currentLocal.toUtc());
+    return currentLocal.add(_offset);
+  }
 
   /// Retorna o horário atual do servidor em UTC.
   static DateTime nowUtc() => _serverUtcNow();
@@ -57,6 +79,8 @@ class ServerTimeService {
 
       _offset = serverTs.toDate().difference(localMid);
       _synced = true;
+      // Reseta para evitar detectar a mudança durante a própria sincronização
+      _lastKnownLocalTime = localAfter.toUtc();
 
       // Limpa o doc temporário (fire-and-forget).
       ref.delete().catchError((_) {});
@@ -72,6 +96,12 @@ class ServerTimeService {
     final n = nowUtc();
     return Timestamp.fromDate(
         DateTime.utc(n.year, n.month, n.day, n.hour, n.minute));
+  }
+
+  /// Converte um Timestamp em UTC para um DateTime ajustado para o fuso do Brasil.
+  static DateTime? timestampToBrazil(Timestamp? ts) {
+    if (ts == null) return null;
+    return ts.toDate().toUtc().add(_brazilOffset);
   }
 
   /// Retorna o ID do dia de hoje (yyyy-MM-dd) usando horário padrão do Brasil (UTC-3).

@@ -345,7 +345,7 @@ class PontoService {
       final tipo = (m['tipo'] ?? '').toString();
       final at = m['at'];
       final hora =
-          at is Timestamp ? DateFormat('HH:mm').format(at.toDate()) : '';
+          at is Timestamp ? DateFormat('HH:mm').format(ServerTimeService.timestampToBrazil(at)!) : '';
       final workMode = (m['workMode'] ?? '').toString();
       final origin = (m['origin'] ?? 'registrado').toString();
       return {
@@ -372,7 +372,7 @@ class PontoService {
 
     String ftm(dynamic ts) {
       if (ts is Timestamp) {
-        return DateFormat('HH:mm').format(ts.toDate());
+        return DateFormat('HH:mm').format(ServerTimeService.timestampToBrazil(ts)!);
       }
       return '';
     }
@@ -664,7 +664,7 @@ class PontoService {
     int totalMinutes = 0;
 
     DateTime? tsToDate(dynamic ts) {
-      if (ts is Timestamp) return ts.toDate();
+      if (ts is Timestamp) return ServerTimeService.timestampToBrazil(ts);
       return null;
     }
 
