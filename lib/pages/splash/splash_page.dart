@@ -16,6 +16,7 @@ import 'package:flutter_application_appdeponto/blocs/ponto_history/ponto_history
 import 'package:flutter_application_appdeponto/blocs/ponto_history/ponto_history_event.dart';
 import 'package:flutter_application_appdeponto/blocs/ponto_history/ponto_history_state.dart';
 import 'package:flutter_application_appdeponto/blocs/ponto_today/ponto_today_cubit.dart';
+import 'package:flutter_application_appdeponto/blocs/ponto_today/ponto_today_state.dart';
 import 'package:flutter_application_appdeponto/blocs/solicitations/solicitation_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/solicitations/solicitation_event.dart';
 import 'package:flutter_application_appdeponto/blocs/solicitations/solicitation_state.dart';
@@ -319,17 +320,34 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
     _fireIncompleteRecordNotifications(pontoTodayCubit);
   }
 
-  /// Verifica registros incompletos no estado do cubit e dispara
-  /// notificações instantâneas para que o usuário saiba imediatamente.
+  /// Verifica registros incompletos e dispara notificações.
+  /// `registros` é carregado em background — aguarda sem bloquear a navegação.
   void _fireIncompleteRecordNotifications(PontoTodayCubit cubit) {
     final state = cubit.state;
-    if (state.loading || state.registros.isEmpty) return;
+    if (state.registros.isNotEmpty) {
+      _doFireIncompleteNotifications(state.registros);
+      return;
+    }
+    // Aguarda registros ser populado pelo background load (fire-and-forget)
+    StreamSubscription<PontoTodayState>? sub;
+    sub = cubit.stream.listen((s) {
+      if (s.registros.isNotEmpty) {
+        sub?.cancel();
+        _doFireIncompleteNotifications(s.registros);
+      }
+    });
+    Future.delayed(const Duration(seconds: 20), () => sub?.cancel());
+  }
+
+  void _doFireIncompleteNotifications(
+      Map<String, Map<String, String>> registros) {
+    if (registros.isEmpty) return;
 
     final now = ServerTimeService.nowBrazilUtc();
     final hoje =
         '${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
 
-    final incompletos = state.registros.entries.where((e) {
+    final incompletos = registros.entries.where((e) {
       if (e.key == hoje) return false;
       final m = e.value;
       if (m['entrada'] != null && m['saida'] == null) return true;

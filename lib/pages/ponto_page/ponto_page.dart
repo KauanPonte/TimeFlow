@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter_application_appdeponto/services/ponto_service.dart';
 import 'package:flutter_application_appdeponto/services/server_time_service.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../blocs/global_loading/global_loading_cubit.dart';
@@ -96,17 +95,9 @@ class _PontoPageState extends State<PontoPage> {
     setState(() => registering = true);
     final globalLoading = context.read<GlobalLoadingCubit>();
 
-    // ---  TRAVA DE FERIADO AQUI ---
-    globalLoading.show('Verificando calendário...');
-    bool ehFeriado = await PontoService.isFeriado(ServerTimeService.now());
-
-    if (!mounted) {
-      globalLoading.hide();
-      return;
-    }
-
-    if (ehFeriado) {
-      globalLoading.hide();
+    // Usa isFeriadoHoje do estado (carregado no setup do cubit, sem fetch extra).
+    // A validação server-side em registrarPonto() garante segurança adicional.
+    if (state.isFeriadoHoje) {
       setState(() => registering = false);
       CustomSnackbar.showError(
           context, "Hoje é feriado. Registros não são permitidos.");
@@ -292,8 +283,10 @@ class _PontoPageState extends State<PontoPage> {
         isAdmin: isAdmin,
         args: args,
       ),
-      // Só exibe spinner se for o primeiro carregamento (splash não terminou).
-      body: (pontoState.loading && pontoState.registros.isEmpty)
+      // Spinner apenas na primeira carga (sem cache local).
+      // Com streams, cargas subsequentes mostram dados do cache instantaneamente.
+      body: (pontoState.loading &&
+              !context.read<PontoTodayCubit>().hasLoadedOnce)
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
               onRefresh: () async {

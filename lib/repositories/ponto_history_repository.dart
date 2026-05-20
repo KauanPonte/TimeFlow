@@ -189,6 +189,79 @@ class PontoHistoryRepository {
     return result;
   }
 
+  /// Stream reativo do mês — emite do cache local imediatamente, depois da rede.
+  /// Qualquer write em qualquer doc do mês (de qualquer dispositivo) dispara nova emissão.
+  Stream<Map<String, List<Map<String, dynamic>>>> streamDaysByMonth({
+    required String uid,
+    required int year,
+    required int month,
+  }) {
+    final prefix =
+        '${year.toString().padLeft(4, '0')}-${month.toString().padLeft(2, '0')}';
+
+    return _firestore
+        .collection(_root)
+        .doc(uid)
+        .collection('dias')
+        .where(FieldPath.documentId, isGreaterThanOrEqualTo: '$prefix-01')
+        .where(FieldPath.documentId, isLessThanOrEqualTo: '$prefix-31')
+        .snapshots()
+        .asyncMap((querySnap) async {
+      final result = <String, List<Map<String, dynamic>>>{};
+
+      await Future.wait(querySnap.docs.map((diaDoc) async {
+        final diaId = diaDoc.id;
+        final data = diaDoc.data();
+        final cache = data['eventosCache'];
+
+        if (cache is List && cache.isNotEmpty) {
+          final rawCache = List<dynamic>.from(cache);
+          if (_isEventosCacheConsistent(data, rawCache)) {
+            final eventos = rawCache.map<Map<String, dynamic>>((e) {
+              final m = e as Map<String, dynamic>;
+              final ts = m['at'] as Timestamp?;
+              return {
+                'id': (m['id'] ?? '').toString(),
+                'tipo': (m['tipo'] ?? '').toString(),
+                'at': ServerTimeService.timestampToBrazil(ts),
+                'workMode': (m['workMode'] ?? '').toString(),
+                'origin': (m['origin'] ?? 'registrado').toString(),
+              };
+            }).toList();
+            if (eventos.isNotEmpty) result[diaId] = eventos;
+            return;
+          }
+        }
+
+        // Fallback para dados legados sem cache (paralelizado)
+        final eventosSnap = await _firestore
+            .collection(_root)
+            .doc(uid)
+            .collection('dias')
+            .doc(diaId)
+            .collection('eventos')
+            .orderBy('at', descending: false)
+            .get();
+
+        final eventos = eventosSnap.docs.map((e) {
+          final evData = e.data();
+          final ts = evData['at'] as Timestamp?;
+          return {
+            'id': e.id,
+            'tipo': (evData['tipo'] ?? '').toString(),
+            'at': ServerTimeService.timestampToBrazil(ts),
+            'workMode': (evData['workMode'] ?? '').toString(),
+            'origin': (evData['origin'] ?? 'registrado').toString(),
+          };
+        }).toList();
+
+        if (eventos.isNotEmpty) result[diaId] = eventos;
+      }));
+
+      return result;
+    });
+  }
+
   /// Tenta extrair eventos do `eventosCache` inline.
   /// Retorna lista tipada pronta para a UI.
   List<Map<String, dynamic>> _extractEventos(

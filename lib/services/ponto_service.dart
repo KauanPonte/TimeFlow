@@ -220,13 +220,16 @@ class PontoService {
           diaUpdate['createdAt'] = now;
         }
 
+        int oldBalance = 0;
+        if (balanceDiff != 0) {
+          final mesSnap = await tx.get(refMes);
+          oldBalance = (mesSnap.data()?['balanceMinutes'] as int?) ?? 0;
+        }
+
         tx.set(refEventos.doc(eventId), eventData);
         tx.set(refDia, diaUpdate, SetOptions(merge: true));
 
         if (balanceDiff != 0) {
-          final mesSnap = await tx.get(refMes);
-          final int oldBalance =
-              (mesSnap.data()?['balanceMinutes'] as int?) ?? 0;
           tx.set(
             refMes,
             {
@@ -264,7 +267,7 @@ class PontoService {
   }
 
   /// Retorna o workMode travado para o dia de hoje, se houver sessão aberta.
-  /// Retorna null se não houver lock (sem eventos ou último tipo é 'saida').
+  /// Deriva de eventosCache + lastTipo — 1 query em vez de 2.
   static Future<String?> getLockedWorkModeHoje() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return null;
@@ -275,38 +278,35 @@ class PontoService {
     final diaDoc = await _refDia(uid, diaId).get();
     if (!diaDoc.exists) return null;
 
-    final lastTipo = diaDoc.data()?['lastTipo']?.toString();
+    final data = diaDoc.data();
+    final lastTipo = data?['lastTipo']?.toString();
     if (lastTipo == null || lastTipo == 'saida') return null;
 
-    final eventosSnap = await _refEventos(uid, diaId)
-        .orderBy('at', descending: true)
-        .limit(1)
-        .get();
+    return _lockedWorkModeFromCache(data);
+  }
 
-    bool hasPresencial = false;
-    bool hasRemoto = false;
-
-    for (final doc in eventosSnap.docs) {
-      final data = doc.data();
-      final tipo = (data['tipo'] ?? '').toString();
-      final wm = (data['workMode'] ?? '').toString();
-
-      if (wm == 'presencial') {
-        hasPresencial = true;
-      } else if (wm == 'remoto') {
-        hasRemoto = true;
-      }
-
-      if (tipo == 'entrada') {
-        break;
-      }
+  /// Deriva workMode do último evento em eventosCache.
+  /// Retorna null se não houver cache ou workMode reconhecível.
+  static String? _lockedWorkModeFromCache(Map<String, dynamic>? data) {
+    final cache = data?['eventosCache'];
+    if (cache is List && cache.isNotEmpty) {
+      final last = cache.last as Map<String, dynamic>;
+      final wm = (last['workMode'] ?? '').toString();
+      if (wm == 'presencial' || wm == 'remoto') return wm;
     }
-
-    if (hasPresencial) return 'presencial';
-    if (hasRemoto) return 'remoto';
     return null;
   }
 
+  /// Stream do documento do dia atual — emite do cache local imediatamente,
+  /// depois da rede. Qualquer write (inclusive de outro dispositivo) dispara nova emissão.
+  static Stream<DocumentSnapshot<Map<String, dynamic>>> streamDiaHoje() {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return const Stream.empty();
+    return _refDia(user.uid, _hojeId()).snapshots();
+  }
+
+  /// Carrega eventos de hoje usando eventosCache do dia doc — 1 query (sem subcollection).
+  /// Fallback à subcollection apenas para dados legados sem cache.
   static Future<List<Map<String, dynamic>>> loadEventosHoje() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return [];
@@ -314,9 +314,26 @@ class PontoService {
     final uid = user.uid;
     final diaId = _hojeId();
 
+    final diaDoc = await _refDia(uid, diaId).get();
+    if (!diaDoc.exists) return [];
+
+    final data = diaDoc.data();
+    final cache = data?['eventosCache'];
+    if (cache is List && cache.isNotEmpty) {
+      return cache.map<Map<String, dynamic>>((e) {
+        final m = e as Map<String, dynamic>;
+        return {
+          'tipo': (m['tipo'] ?? '').toString(),
+          'at': m['at'],
+          'workMode': (m['workMode'] ?? '').toString(),
+          'origin': (m['origin'] ?? 'registrado').toString(),
+        };
+      }).toList();
+    }
+
+    // Fallback para dados sem cache (legado)
     final snap =
         await _refEventos(uid, diaId).orderBy('at', descending: false).get();
-
     return snap.docs.map((d) {
       final m = d.data();
       return {
@@ -357,6 +374,9 @@ class PontoService {
     }).toList();
   }
 
+  /// Carrega mapa de todos os dias com seus registros de ponto.
+  /// Usa eventosCache inline (1 query total) — fallback à subcollection para dados legados.
+  /// Usado para notificações de dias incompletos (background, não bloqueia UI).
   static Future<Map<String, Map<String, String>>> loadRegistros() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return {};
@@ -372,38 +392,47 @@ class PontoService {
 
     String ftm(dynamic ts) {
       if (ts is Timestamp) {
-        return DateFormat('HH:mm').format(ServerTimeService.timestampToBrazil(ts)!);
+        return DateFormat('HH:mm')
+            .format(ServerTimeService.timestampToBrazil(ts)!);
       }
       return '';
     }
 
     final result = <String, Map<String, String>>{};
 
-    for (final diaDoc in diasSnap.docs) {
+    await Future.wait(diasSnap.docs.map((diaDoc) async {
       final diaId = diaDoc.id;
-
-      final eventosSnap =
-          await _refEventos(uid, diaId).orderBy('at', descending: false).get();
-
+      final data = diaDoc.data();
+      final cache = data['eventosCache'];
       final map = <String, String>{};
 
-      for (final ev in eventosSnap.docs) {
-        final data = ev.data();
-        final tipo = (data['tipo'] ?? '').toString();
-        final at = data['at'];
-
-        if (tipo.isEmpty) continue;
-
-        final hora = ftm(at);
-        if (hora.isEmpty) continue;
-
-        map[tipo] = hora;
+      if (cache is List && cache.isNotEmpty) {
+        // Usa cache inline — sem query extra à subcollection
+        for (final e in cache) {
+          final m = e as Map<String, dynamic>;
+          final tipo = (m['tipo'] ?? '').toString();
+          if (tipo.isEmpty) continue;
+          final hora = ftm(m['at']);
+          if (hora.isEmpty) continue;
+          map[tipo] = hora;
+        }
+      } else {
+        // Fallback para dados legados sem eventosCache
+        final eventosSnap = await _refEventos(uid, diaId)
+            .orderBy('at', descending: false)
+            .get();
+        for (final ev in eventosSnap.docs) {
+          final eData = ev.data();
+          final tipo = (eData['tipo'] ?? '').toString();
+          if (tipo.isEmpty) continue;
+          final hora = ftm(eData['at']);
+          if (hora.isEmpty) continue;
+          map[tipo] = hora;
+        }
       }
 
-      if (map.isNotEmpty) {
-        result[diaId] = map;
-      }
-    }
+      if (map.isNotEmpty) result[diaId] = map;
+    }));
 
     return result;
   }
