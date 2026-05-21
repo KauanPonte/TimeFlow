@@ -4,7 +4,7 @@ import 'package:flutter_application_appdeponto/services/server_time_service.dart
 import 'package:table_calendar/table_calendar.dart';
 import '../card/widgets/day_card_helpers.dart';
 
-const _justifiedColor = AppColors.error;
+const _justifiedColor = AppColors.warning;
 
 enum CalendarDayStatus {
   none,

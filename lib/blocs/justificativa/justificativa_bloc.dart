@@ -22,6 +22,7 @@ class JustificativaBloc extends Bloc<JustificativaEvent, JustificativaState> {
     on<ApproveJustificativaEvent>(_onApprove);
     on<RejectJustificativaEvent>(_onReject);
     on<DismissReviewedJustificativaEvent>(_onDismissReviewed);
+    on<DeleteJustificativaEvent>(_onDelete);
     on<ResetJustificativasEvent>((_, emit) {
       _lastList = [];
       emit(const JustificativaInitial());
@@ -77,6 +78,8 @@ class JustificativaBloc extends Bloc<JustificativaEvent, JustificativaState> {
         fileBytes: event.fileBytes,
         dataInicio: event.dataInicio,
         dataFim: event.dataFim,
+        abonoMinutes: event.abonoMinutes,
+        isFullDayAbono: event.isFullDayAbono,
       );
       final list = await repository.getMyJustificativas();
       _lastList = list;
@@ -152,5 +155,28 @@ class JustificativaBloc extends Bloc<JustificativaEvent, JustificativaState> {
             : j)
         .toList();
     emit(JustificativaLoaded(justificativas: _lastList, isAdmin: _isAdmin));
+  }
+
+  Future<void> _onDelete(
+    DeleteJustificativaEvent event,
+    Emitter<JustificativaState> emit,
+  ) async {
+    globalLoading?.show('Removendo abono...');
+    try {
+      await repository.deleteJustificativa(event.justificativaId);
+      _lastList =
+          _lastList.where((j) => j.id != event.justificativaId).toList();
+      globalLoading?.hide();
+      emit(JustificativaActionSuccess(
+        message: 'Abono removido com sucesso.',
+        justificativas: _lastList,
+      ));
+    } catch (e) {
+      globalLoading?.hide();
+      emit(JustificativaError(
+        message: e.toString().replaceAll('Exception: ', ''),
+        justificativas: _lastList,
+      ));
+    }
   }
 }

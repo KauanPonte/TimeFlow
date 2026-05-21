@@ -19,6 +19,8 @@ class JustificativaRepository {
     Uint8List? fileBytes,
     String? dataInicio,
     String? dataFim,
+    int? abonoMinutes,
+    bool isFullDayAbono = false,
   }) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) throw Exception('Não autenticado');
@@ -59,6 +61,8 @@ class JustificativaRepository {
       'fileBytes': fileBytes,
       'dataInicio': dataInicio,
       'dataFim': dataFim,
+      'abonoMinutes': abonoMinutes,
+      'isFullDayAbono': isFullDayAbono,
     });
   }
 
@@ -91,8 +95,8 @@ class JustificativaRepository {
     return list;
   }
 
-  /// Admin aprova a justificativa e grava o texto no documento do dia
-  /// (`pontos/{uid}/dias/{diaId}.justificativa`).
+  /// Admin aprova a justificativa e grava o texto no documento do dia.
+  /// Credita horas conforme o tipo de abono usando a carga horária real do funcionário.
   Future<void> approveJustificativa(String justificativaId) async {
     final admin = FirebaseAuth.instance.currentUser;
     if (admin == null) throw Exception('Não autenticado');
@@ -100,7 +104,7 @@ class JustificativaRepository {
     final doc = await _ref.doc(justificativaId).get();
     final model = JustificativaModel.fromDoc(doc);
 
-    // Grava o texto no documento do dia (sem alterar saldo)
+    // Grava o texto no documento do dia
     await FirebaseFirestore.instance
         .collection(_pontosCollection)
         .doc(model.uid)
@@ -108,10 +112,88 @@ class JustificativaRepository {
         .doc(model.diaId)
         .set({'justificativa': model.justificativa}, SetOptions(merge: true));
 
+    // Busca carga horária real do funcionário
+    final userSnap = await FirebaseFirestore.instance
+        .collection('usuarios')
+        .doc(model.uid)
+        .get();
+    final workloadMinutes = (userSnap.data()?['workloadMinutes'] ??
+        userSnap.data()?['cargaHorariaMinutos'] as int?) ?? 8 * 60;
+
+    int? abonoToApply;
+
+    if (model.isFullDayAbono) {
+      // Ponto facultativo: abono = carga horária completa do funcionário
+      abonoToApply = workloadMinutes;
+    } else if (model.abonoMinutes != null && model.abonoMinutes! > 0) {
+      // Abono parcial (consulta/aula): duração da ausência salva no envio
+      abonoToApply = model.abonoMinutes;
+    }
+
+    if (abonoToApply != null && abonoToApply > 0) {
+      await _applyAbonoToDay(
+        uid: model.uid,
+        diaId: model.diaId,
+        abonoMinutes: abonoToApply,
+        targetMinutes: workloadMinutes,
+      );
+    }
+
     await _ref.doc(justificativaId).update({
       'status': 'approved',
       'resolvedAt': Timestamp.now(),
       'resolvedBy': admin.uid,
+    });
+  }
+
+  /// Grava `abonoMinutes` no dia e recalcula `deltaMinutes` e saldo mensal.
+  /// [targetMinutes] é a carga horária diária do funcionário.
+  Future<void> _applyAbonoToDay({
+    required String uid,
+    required String diaId,
+    required int abonoMinutes,
+    required int targetMinutes,
+  }) async {
+    final targetMinutesPerDay = targetMinutes;
+    final refDia = FirebaseFirestore.instance
+        .collection(_pontosCollection)
+        .doc(uid)
+        .collection('dias')
+        .doc(diaId);
+    final mesId = diaId.substring(0, 7);
+    final refMes = FirebaseFirestore.instance
+        .collection(_pontosCollection)
+        .doc(uid)
+        .collection('meses')
+        .doc(mesId);
+
+    await FirebaseFirestore.instance.runTransaction((tx) async {
+      final diaSnap = await tx.get(refDia);
+      final mesSnap = await tx.get(refMes);
+
+      final workedMinutes = (diaSnap.data()?['workedMinutes'] as int?) ?? 0;
+      final isClosed = (diaSnap.data()?['isClosed'] as bool?) ?? false;
+      final oldDelta = (diaSnap.data()?['deltaMinutes'] as int?) ?? 0;
+      final oldBalance = (mesSnap.data()?['balanceMinutes'] as int?) ?? 0;
+
+      // Só recalcula delta se o dia já foi fechado
+      final newDelta = isClosed
+          ? (workedMinutes + abonoMinutes - targetMinutesPerDay)
+          : oldDelta;
+      final diff = newDelta - oldDelta;
+      final newBalance = oldBalance + diff;
+
+      tx.set(refDia, {
+        'abonoMinutes': abonoMinutes,
+        if (isClosed) 'deltaMinutes': newDelta,
+      }, SetOptions(merge: true));
+
+      if (isClosed && diff != 0) {
+        tx.set(refMes, {
+          'balanceMinutes': newBalance,
+          'updatedAt': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+      }
     });
   }
 
@@ -191,5 +273,71 @@ class JustificativaRepository {
     try {
       await _ref.doc(justificativaId).update({'seenByEmployee': true});
     } catch (_) {}
+  }
+
+  /// Remove a justificativa e reverte o abono caso já tenha sido aprovado.
+  Future<void> deleteJustificativa(String justificativaId) async {
+    final doc = await _ref.doc(justificativaId).get();
+    if (!doc.exists) return;
+    final model = JustificativaModel.fromDoc(doc);
+
+    final refDia = FirebaseFirestore.instance
+        .collection(_pontosCollection)
+        .doc(model.uid)
+        .collection('dias')
+        .doc(model.diaId);
+
+    // Remove texto de justificativa do dia
+    await refDia.set({'justificativa': null}, SetOptions(merge: true));
+
+    // Se aprovado com abono creditado, reverte
+    if (model.status == JustificativaStatus.approved) {
+      final diaSnap = await refDia.get();
+      final appliedAbono = (diaSnap.data()?['abonoMinutes'] as int?) ?? 0;
+
+      if (appliedAbono > 0) {
+        final mesId = model.diaId.substring(0, 7);
+        final refMes = FirebaseFirestore.instance
+            .collection(_pontosCollection)
+            .doc(model.uid)
+            .collection('meses')
+            .doc(mesId);
+
+        final userSnap = await FirebaseFirestore.instance
+            .collection('usuarios')
+            .doc(model.uid)
+            .get();
+        final workloadMinutes =
+            (userSnap.data()?['workloadMinutes'] as int?) ??
+                (userSnap.data()?['cargaHorariaMinutos'] as int?) ??
+                8 * 60;
+
+        await FirebaseFirestore.instance.runTransaction((tx) async {
+          final dSnap = await tx.get(refDia);
+          final mSnap = await tx.get(refMes);
+
+          final workedMinutes = (dSnap.data()?['workedMinutes'] as int?) ?? 0;
+          final isClosed = (dSnap.data()?['isClosed'] as bool?) ?? false;
+          final oldDelta = (dSnap.data()?['deltaMinutes'] as int?) ?? 0;
+          final oldBalance = (mSnap.data()?['balanceMinutes'] as int?) ?? 0;
+
+          final newDelta = isClosed
+              ? (workedMinutes - workloadMinutes)
+              : oldDelta;
+          final diff = newDelta - oldDelta;
+
+          tx.set(refDia, {'abonoMinutes': null}, SetOptions(merge: true));
+
+          if (isClosed && diff != 0) {
+            tx.set(refMes, {
+              'balanceMinutes': oldBalance + diff,
+              'updatedAt': FieldValue.serverTimestamp(),
+            }, SetOptions(merge: true));
+          }
+        });
+      }
+    }
+
+    await _ref.doc(justificativaId).delete();
   }
 }
