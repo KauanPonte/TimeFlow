@@ -8,6 +8,7 @@ import '../../blocs/ponto_today/ponto_today_state.dart';
 import '../../widgets/bottom_nav.dart';
 import '../../widgets/custom_snackbar.dart';
 import '../../services/notification_service.dart';
+import '../../services/ponto_service.dart';
 import '../../services/ponto_validator.dart';
 import '../../services/location_service.dart';
 
@@ -31,6 +32,7 @@ class _PontoPageState extends State<PontoPage> {
   late DateTime _now;
   Timer? _clockTimer;
   String? _selectedWorkMode;
+  StreamSubscription<String>? _conflitoSub;
 
   /// Modo efetivo: usa o lock do cubit se existir, senão a seleção local.
   String? _effectiveWorkMode(PontoTodayState state) {
@@ -54,11 +56,18 @@ class _PontoPageState extends State<PontoPage> {
     if (!pontoTodayCubit.hasLoadedOnce) {
       pontoTodayCubit.load();
     }
+
+    // Avisos de conflito da verificação em background (registro simultâneo
+    // de outro dispositivo). O dado já foi autocorrigido — apenas informa.
+    _conflitoSub = PontoService.conflitosStream.listen((msg) {
+      if (mounted) CustomSnackbar.showSuccess(context, msg);
+    });
   }
 
   @override
   void dispose() {
     _clockTimer?.cancel();
+    _conflitoSub?.cancel();
     super.dispose();
   }
 

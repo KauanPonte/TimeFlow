@@ -78,7 +78,8 @@ class JustificativaBloc extends Bloc<JustificativaEvent, JustificativaState> {
         dataInicio: event.dataInicio,
         dataFim: event.dataFim,
       );
-      final list = await repository.getMyJustificativas();
+      // Re-busca do cache local — o .add() acima já o populou (instantâneo).
+      final list = await repository.getMyJustificativas(preferCache: true);
       _lastList = list;
       globalLoading?.hide();
       emit(JustificativaActionSuccess(
@@ -101,7 +102,7 @@ class JustificativaBloc extends Bloc<JustificativaEvent, JustificativaState> {
     globalLoading?.show('Aprovando justificativa...');
     try {
       await repository.approveJustificativa(event.justificativaId);
-      final list = await repository.getPendingJustificativas();
+      final list = await repository.getPendingJustificativas(preferCache: true);
       _lastList = list;
       globalLoading?.hide();
       emit(JustificativaActionSuccess(
@@ -125,7 +126,7 @@ class JustificativaBloc extends Bloc<JustificativaEvent, JustificativaState> {
     try {
       await repository.rejectJustificativa(event.justificativaId,
           reason: event.reason);
-      final list = await repository.getPendingJustificativas();
+      final list = await repository.getPendingJustificativas(preferCache: true);
       _lastList = list;
       globalLoading?.hide();
       emit(JustificativaActionSuccess(

@@ -43,7 +43,14 @@ class SplashPage extends StatefulWidget {
 
 class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
   final DateTime _splashStartedAt = DateTime.now();
-  static const Duration _minSplashDuration = Duration(milliseconds: 3600);
+
+  /// Piso da splash — alinhado à duração da animação de introdução (1400ms).
+  static const Duration _minSplashDuration = Duration(milliseconds: 1400);
+
+  /// Teto de espera por dados no preload. Os streams emitem do cache local
+  /// bem antes disso; ao estourar o teto, navega mesmo assim — os streams
+  /// continuam vivos e cada tela se atualiza sozinha quando o servidor responde.
+  static const Duration _preloadTimeout = Duration(milliseconds: 1200);
 
   bool _isNavigating = false;
   bool _isPreloading = false;
@@ -248,7 +255,7 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
           pontoHistoryBloc.stream,
           pontoHistoryBloc.state,
           (s) => s is PontoHistoryLoaded || s is PontoHistoryError,
-          const Duration(seconds: 30),
+          _preloadTimeout,
         ),
         0.18,
       ),
@@ -257,7 +264,7 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
           profileBloc.stream,
           profileBloc.state,
           (s) => s is ProfileLoaded || s is ProfileError,
-          const Duration(seconds: 30),
+          _preloadTimeout,
         ),
         0.12,
       ),
@@ -266,7 +273,7 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
           solicitationBloc.stream,
           solicitationBloc.state,
           (s) => s is SolicitationLoaded || s is SolicitationError,
-          const Duration(seconds: 30),
+          _preloadTimeout,
         ),
         0.12,
       ),
@@ -275,7 +282,7 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
           atestadoBloc.stream,
           atestadoBloc.state,
           (s) => s is AtestadoLoaded || s is AtestadoError,
-          const Duration(seconds: 30),
+          _preloadTimeout,
         ),
         0.10,
       ),
@@ -284,7 +291,7 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
           justificativaBloc.stream,
           justificativaBloc.state,
           (s) => s is JustificativaLoaded || s is JustificativaError,
-          const Duration(seconds: 30),
+          _preloadTimeout,
         ),
         0.12,
       ),
@@ -304,7 +311,7 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
             adminHomeBloc.stream,
             adminHomeBloc.state,
             (s) => s is AdminHomeLoaded || s is AdminHomeError,
-            const Duration(seconds: 30),
+            _preloadTimeout,
           ),
           0.10,
         ),

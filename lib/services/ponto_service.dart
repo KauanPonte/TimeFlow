@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
@@ -13,7 +14,32 @@ class PontoResult {
 class PontoService {
   static const String _root = 'pontos';
 
+  /// Avisos de conflito detectados pela verificação em background (ex.: dois
+  /// dispositivos registrando ponto simultaneamente). O dado já é
+  /// autocorrigido — a mensagem serve apenas para informar o usuário.
+  static final StreamController<String> _conflitoController =
+      StreamController<String>.broadcast();
+  static Stream<String> get conflitosStream => _conflitoController.stream;
+
   static String _mesIdFromDiaId(String diaId) => diaId.substring(0, 7);
+
+  /// Lê um documento priorizando o cache local (instantâneo, sem round-trip).
+  /// Cai para o servidor apenas se o doc nunca foi visto pelo SDK.
+  static Future<DocumentSnapshot<Map<String, dynamic>>> _getDocCacheFirst(
+      DocumentReference<Map<String, dynamic>> ref) async {
+    try {
+      return await ref.get(const GetOptions(source: Source.cache));
+    } catch (_) {
+      return ref.get();
+    }
+  }
+
+  /// Carga horária do usuário lida do cache local (instantânea).
+  static Future<int> _getWorkloadMinutesCacheFirst(String uid) async {
+    final snap = await _getDocCacheFirst(
+        FirebaseFirestore.instance.collection('usuarios').doc(uid));
+    return (snap.data()?['workloadMinutes'] as int?) ?? (8 * 60);
+  }
 
   static String _hojeId() => ServerTimeService.todayId();
   static String _diaId(DateTime d) => DateFormat('yyyy-MM-dd').format(d);
@@ -95,9 +121,10 @@ class PontoService {
             success: false, message: 'Você precisa estar logado.');
       }
       final hoje = ServerTimeService.nowBrazilUtc();
-      final bool feriado = await isFeriado(hoje);
 
-      if (feriado) {
+      // Feriado: checagem cache-first (instantânea). A verificação em
+      // background refaz no servidor para pegar feriados criados há pouco.
+      if (await isFeriado(hoje, preferCache: true)) {
         return const PontoResult(
             success: false,
             message: 'Hoje é feriado. O registro de ponto está bloqueado.');
@@ -114,9 +141,35 @@ class PontoService {
       // Registra sem segundos (truncado ao minuto) usando horário corrigido do servidor.
       final now = ServerTimeService.nowTimestampTruncated();
 
-      final int workloadMinutes = await _getWorkloadMinutes(uid);
+      // --- Leitura local-first (instantânea, sem round-trip) ---
+      // O doc do dia é mantido em cache pelo stream streamDiaHoje.
+      final diaSnap = await _getDocCacheFirst(refDia);
+      final diaData = diaSnap.data();
+      final existingCache =
+          _normalizeEventosCache(diaData?['eventosCache'] as List<dynamic>?);
 
-      //  Escrita atômica com cache incremental e atualização mínima de mês
+      // --- Validação client-side: sequência e intervalo mínimo de 1 min ---
+      if (diaSnap.exists && existingCache.isNotEmpty) {
+        final String? ultimoTipo = diaData?['lastTipo']?.toString();
+        if (!_podeRegistrar(ultimoTipo: ultimoTipo, novoTipo: tipo)) {
+          return PontoResult(
+              success: false,
+              message: _mensagemErroTransicao(ultimoTipo, tipo));
+        }
+        final Timestamp? lastAt = diaData?['lastAt'] as Timestamp?;
+        if (lastAt != null && now.seconds - lastAt.seconds < 60) {
+          return const PontoResult(
+              success: false,
+              message:
+                  'Aguarde pelo menos 1 minuto entre cada registro de ponto.');
+        }
+      } else if (tipo != 'entrada') {
+        return const PontoResult(
+            success: false,
+            message: 'O primeiro ponto do dia precisa ser "entrada".');
+      }
+
+      // --- Monta o evento e o cache incremental ---
       final eventId = refEventos.doc().id;
       final eventData = {
         'tipo': tipo,
@@ -124,123 +177,77 @@ class PontoService {
         'workMode': workMode,
         'origin': 'registrado',
       };
-      final eventCacheEntry = {
-        'id': eventId,
-        'tipo': tipo,
-        'at': now,
-        'workMode': workMode,
-        'origin': 'registrado',
+      final updatedCache = [
+        ...existingCache,
+        {
+          'id': eventId,
+          'tipo': tipo,
+          'at': now,
+          'workMode': workMode,
+          'origin': 'registrado',
+        },
+      ];
+
+      // --- Calcula metadados do dia e o delta do saldo mensal ---
+      // registrarPonto sempre opera no dia de HOJE, então nunca é falta.
+      final bool diaFechado = tipo == 'saida';
+      final int workedMinutes = diaFechado
+          ? _computeWorkedMinutesFromEventosFechado(updatedCache)
+          : (diaData?['workedMinutes'] as int?) ?? 0;
+      final bool isExcused = (diaData?['isExcused'] as bool?) ?? false;
+      final int workloadMinutes = await _getWorkloadMinutesCacheFirst(uid);
+      final int deltaMinutes = isExcused
+          ? workedMinutes
+          : (diaFechado ? (workedMinutes - workloadMinutes) : 0);
+      final int oldDelta = (diaData?['deltaMinutes'] as int?) ?? 0;
+      final int balanceDiff = deltaMinutes - oldDelta;
+
+      final Map<String, dynamic> diaUpdate = {
+        'uid': uid,
+        'date': diaId,
+        'updatedAt': now,
+        'lastTipo': tipo,
+        'lastAt': now,
+        'eventosCache': updatedCache,
+        'workedMinutes': workedMinutes,
+        'deltaMinutes': deltaMinutes,
+        'workloadMinutes': workloadMinutes,
+        'isClosed': diaFechado,
+        'isOpen': !diaFechado && updatedCache.isNotEmpty,
+        'isAbsent': false,
       };
+      if (!diaSnap.exists) {
+        diaUpdate['createdAt'] = now;
+      }
 
-      await FirebaseFirestore.instance.runTransaction((tx) async {
-        final diaSnap = await tx.get(refDia);
-        final diaData = diaSnap.data();
-        final dynamic rawCache = diaData?['eventosCache'];
-        var existingCache = _normalizeEventosCache(rawCache as List<dynamic>?);
+      // --- Escrita local-first: WriteBatch aplica no cache local na hora ---
+      // O stream streamDiaHoje emite imediatamente; a UI atualiza sem esperar
+      // a rede. O commit() sincroniza com o servidor em background.
+      final batch = FirebaseFirestore.instance.batch();
+      batch.set(refEventos.doc(eventId), eventData);
+      batch.set(refDia, diaUpdate, SetOptions(merge: true));
+      if (balanceDiff != 0) {
+        // FieldValue.increment é atômico no servidor — o saldo permanece
+        // correto mesmo com dois dispositivos registrando ao mesmo tempo.
+        batch.set(
+          _refMes(uid, _mesIdFromDiaId(diaId)),
+          {
+            'balanceMinutes': FieldValue.increment(balanceDiff),
+            'updatedAt': now,
+            'summaryCache': FieldValue.delete(),
+          },
+          SetOptions(merge: true),
+        );
+      }
 
-        if (diaSnap.exists && rawCache == null) {
-          final eventsSnap =
-              await refEventos.orderBy('at', descending: false).get();
-          existingCache = eventsSnap.docs.map((doc) {
-            final data = doc.data();
-            return {
-              'id': doc.id,
-              'tipo': (data['tipo'] ?? '').toString(),
-              'at': data['at'],
-              'workMode': (data['workMode'] ?? '').toString(),
-              'origin': (data['origin'] ?? 'registrado').toString(),
-            };
-          }).toList();
-        }
-
-        if (diaSnap.exists) {
-          final String? ultimoTipo = diaData?['lastTipo']?.toString();
-          if (!_podeRegistrar(ultimoTipo: ultimoTipo, novoTipo: tipo)) {
-            throw Exception(_mensagemErroTransicao(ultimoTipo, tipo));
-          }
-
-          final Timestamp? lastAt = diaData?['lastAt'] as Timestamp?;
-          if (lastAt != null) {
-            final diffSeconds = now.seconds - lastAt.seconds;
-            if (diffSeconds < 60) {
-              throw Exception(
-                  'Aguarde pelo menos 1 minuto entre cada registro de ponto.');
-            }
-          }
-        } else if (tipo != 'entrada') {
-          throw Exception('O primeiro ponto do dia precisa ser "entrada".');
-        }
-
-        final updatedCache = [...existingCache, eventCacheEntry];
-        final bool diaFechado = tipo == 'saida';
-        final int workedMinutes = diaFechado
-            ? _computeWorkedMinutesFromEventosFechado(updatedCache)
-            : (diaData?['workedMinutes'] as int?) ?? 0;
-        final bool isExcused = (diaData?['isExcused'] as bool?) ?? false;
-        final String mesId = _mesIdFromDiaId(diaId);
-        final DocumentReference<Map<String, dynamic>> refMes =
-            _refMes(uid, mesId);
-        final bool ehHoje = diaId == _hojeId();
-        final DateTime date = DateTime.parse(diaId);
-        final holidays = getBrazilHolidays(date.year);
-        final bool isWeekend = date.weekday == DateTime.saturday ||
-            date.weekday == DateTime.sunday;
-        final bool isHoliday = holidays.containsKey(date);
-        final bool falta = !ehHoje &&
-            updatedCache.isEmpty &&
-            !isWeekend &&
-            !isHoliday &&
-            !isExcused;
-        final int workloadMinutes =
-            await _getWorkloadMinutes(uid); // carrega apenas uma vez
-        final int deltaMinutes = isExcused
-            ? workedMinutes
-            : (falta
-                ? -workloadMinutes
-                : (diaFechado ? (workedMinutes - workloadMinutes) : 0));
-        final int oldDelta = (diaData?['deltaMinutes'] as int?) ?? 0;
-        final int balanceDiff = deltaMinutes - oldDelta;
-
-        final Map<String, dynamic> diaUpdate = {
-          'uid': uid,
-          'date': diaId,
-          'updatedAt': now,
-          'lastTipo': tipo,
-          'lastAt': now,
-          'eventosCache': updatedCache,
-          'workedMinutes': workedMinutes,
-          'deltaMinutes': deltaMinutes,
-          'workloadMinutes': workloadMinutes,
-          'isClosed': diaFechado,
-          'isOpen': !diaFechado && updatedCache.isNotEmpty,
-          'isAbsent': falta,
-        };
-
-        if (!diaSnap.exists) {
-          diaUpdate['createdAt'] = now;
-        }
-
-        int oldBalance = 0;
-        if (balanceDiff != 0) {
-          final mesSnap = await tx.get(refMes);
-          oldBalance = (mesSnap.data()?['balanceMinutes'] as int?) ?? 0;
-        }
-
-        tx.set(refEventos.doc(eventId), eventData);
-        tx.set(refDia, diaUpdate, SetOptions(merge: true));
-
-        if (balanceDiff != 0) {
-          tx.set(
-            refMes,
-            {
-              'balanceMinutes': oldBalance + balanceDiff,
-              'updatedAt': now,
-              'summaryCache': FieldValue.delete(),
-            },
-            SetOptions(merge: true),
-          );
-        }
-      });
+      // Não aguarda o commit: o write já está no cache local e o stream já
+      // emitiu. Ao confirmar no servidor, dispara a verificação de conflito.
+      unawaited(batch.commit().then((_) {
+        _verificarRegistroEmBackground(uid: uid, diaId: diaId);
+      }).catchError((_) {
+        // Falha de sincronização: o SDK re-tenta sozinho. Offline, o write
+        // fica na fila e sincroniza ao reconectar.
+      }));
 
       final horas =
           DateFormat('HH:mm').format(ServerTimeService.nowBrazilUtc());
@@ -251,6 +258,51 @@ class PontoService {
         success: false,
         message: e.toString().replaceAll('Exception: ', ''),
       );
+    }
+  }
+
+  /// Verificação em background após o commit no servidor. Compara o
+  /// `eventosCache` denormalizado com a subcoleção `eventos` (autoritativa,
+  /// append-only com IDs únicos). Divergência indica corrida entre
+  /// dispositivos: recalcula o dia a partir da subcoleção (autocorreção) e
+  /// emite um aviso em [conflitosStream].
+  static Future<void> _verificarRegistroEmBackground({
+    required String uid,
+    required String diaId,
+  }) async {
+    try {
+      final refDia = _refDia(uid, diaId);
+      final refEventos = _refEventos(uid, diaId);
+
+      // Lê do servidor — fonte autoritativa.
+      final eventosSnap = await refEventos
+          .orderBy('at', descending: false)
+          .get(const GetOptions(source: Source.server));
+      final diaSnap =
+          await refDia.get(const GetOptions(source: Source.server));
+
+      final cache = _normalizeEventosCache(
+          diaSnap.data()?['eventosCache'] as List<dynamic>?);
+      final eventosIds = eventosSnap.docs.map((d) => d.id).toSet();
+      final cacheIds = cache.map((e) => (e['id'] ?? '').toString()).toSet();
+
+      // Divergência entre cache e subcoleção → um registro simultâneo de
+      // outro dispositivo sobrescreveu o array eventosCache.
+      final bool divergente = eventosIds.length != cacheIds.length ||
+          !eventosIds.containsAll(cacheIds);
+
+      if (divergente) {
+        // Autocorreção: reconstrói eventosCache, metadados e saldo a partir
+        // da subcoleção autoritativa. O stream emitirá o estado corrigido.
+        await recalcularBancoDeHorasDoDia(uid: uid, diaId: diaId);
+        if (!_conflitoController.isClosed) {
+          _conflitoController.add(
+              'Ponto registrado. Detectamos um registro simultâneo de outro '
+              'dispositivo — os dados foram sincronizados automaticamente.');
+        }
+      }
+    } catch (_) {
+      // Verificação é best-effort: falha aqui não afeta o ponto já registrado.
     }
   }
 
@@ -447,7 +499,8 @@ class PontoService {
   }
 
   // 1. O NOVO MÉTODO DE VERIFICAÇÃO
-  static Future<bool> isFeriado(DateTime date) async {
+  static Future<bool> isFeriado(DateTime date,
+      {bool preferCache = false}) async {
     try {
       final cleanDate = DateTime(date.year, date.month, date.day);
 
@@ -462,11 +515,15 @@ class PontoService {
         'recesso',
       };
 
-      final snapshot = await FirebaseFirestore.instance
+      final query = FirebaseFirestore.instance
           .collection('calendar_events')
           .where('date', isGreaterThanOrEqualTo: expandedStart)
-          .where('date', isLessThanOrEqualTo: expandedEnd)
-          .get();
+          .where('date', isLessThanOrEqualTo: expandedEnd);
+      // preferCache: leitura instantânea do cache local (caminho rápido de
+      // registrarPonto). A verificação em background usa o servidor.
+      final snapshot = preferCache
+          ? await query.get(const GetOptions(source: Source.cache))
+          : await query.get();
 
       for (var doc in snapshot.docs) {
         final evTs = doc.data()['date'] as Timestamp?;

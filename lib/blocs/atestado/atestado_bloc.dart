@@ -81,7 +81,8 @@ class AtestadoBloc extends Bloc<AtestadoEvent, AtestadoState> {
         fileName: event.fileName,
         fileBytes: event.fileBytes,
       );
-      final list = await repository.getMyAtestados();
+      // Re-busca do cache local — o .add() acima já o populou (instantâneo).
+      final list = await repository.getMyAtestados(preferCache: true);
       _lastList = list;
       globalLoading?.hide();
       emit(AtestadoActionSuccess(
@@ -104,7 +105,7 @@ class AtestadoBloc extends Bloc<AtestadoEvent, AtestadoState> {
     globalLoading?.show('Aprovando atestado...');
     try {
       await repository.approveAtestado(event.atestadoId);
-      final list = await _loadCurrentAtestados();
+      final list = await _loadCurrentAtestados(preferCache: true);
       _lastList = list;
       globalLoading?.hide();
       emit(AtestadoActionSuccess(
@@ -139,7 +140,7 @@ class AtestadoBloc extends Bloc<AtestadoEvent, AtestadoState> {
     globalLoading?.show('Recusando atestado...');
     try {
       await repository.rejectAtestado(event.atestadoId, reason: event.reason);
-      final list = await _loadCurrentAtestados();
+      final list = await _loadCurrentAtestados(preferCache: true);
       _lastList = list;
       globalLoading?.hide();
       emit(AtestadoActionSuccess(
@@ -158,19 +159,23 @@ class AtestadoBloc extends Bloc<AtestadoEvent, AtestadoState> {
   Future<List<AtestadoModel>> _loadAtestados({
     required bool isAdmin,
     required bool includeReviewed,
+    bool preferCache = false,
   }) async {
     if (isAdmin) {
       return includeReviewed
-          ? repository.getAllAtestados()
-          : repository.getPendingAtestados();
+          ? repository.getAllAtestados(preferCache: preferCache)
+          : repository.getPendingAtestados(preferCache: preferCache);
     }
-    return repository.getMyAtestados();
+    return repository.getMyAtestados(preferCache: preferCache);
   }
 
-  Future<List<AtestadoModel>> _loadCurrentAtestados() {
+  Future<List<AtestadoModel>> _loadCurrentAtestados({
+    bool preferCache = false,
+  }) {
     return _loadAtestados(
       isAdmin: _isAdmin,
       includeReviewed: _includeReviewed,
+      preferCache: preferCache,
     );
   }
 }
