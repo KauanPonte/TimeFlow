@@ -20,6 +20,8 @@ class JustificativaModel {
   final Uint8List? fileBytes;
   final String? dataInicio;
   final String? dataFim;
+  final int? abonoMinutes;
+  final bool isFullDayAbono;
 
   const JustificativaModel({
     required this.id,
@@ -37,6 +39,8 @@ class JustificativaModel {
     this.fileBytes,
     this.dataInicio,
     this.dataFim,
+    this.abonoMinutes,
+    this.isFullDayAbono = false,
   });
 
   Map<String, dynamic> toMap() => {
@@ -55,6 +59,8 @@ class JustificativaModel {
         'fileBytes': fileBytes,
         'dataInicio': dataInicio,
         'dataFim': dataFim,
+        'abonoMinutes': abonoMinutes,
+        'isFullDayAbono': isFullDayAbono,
       };
 
   factory JustificativaModel.fromDoc(
@@ -79,6 +85,8 @@ class JustificativaModel {
       fileBytes: data['fileBytes'] as Uint8List?,
       dataInicio: data['dataInicio'] as String?,
       dataFim: data['dataFim'] as String?,
+      abonoMinutes: data['abonoMinutes'] as int?,
+      isFullDayAbono: (data['isFullDayAbono'] as bool?) ?? false,
     );
   }
 
@@ -98,6 +106,8 @@ class JustificativaModel {
     Uint8List? fileBytes,
     String? dataInicio,
     String? dataFim,
+    int? abonoMinutes,
+    bool? isFullDayAbono,
   }) {
     return JustificativaModel(
       id: id ?? this.id,
@@ -115,6 +125,8 @@ class JustificativaModel {
       fileBytes: fileBytes ?? this.fileBytes,
       dataInicio: dataInicio ?? this.dataInicio,
       dataFim: dataFim ?? this.dataFim,
+      abonoMinutes: abonoMinutes ?? this.abonoMinutes,
+      isFullDayAbono: isFullDayAbono ?? this.isFullDayAbono,
     );
   }
 }

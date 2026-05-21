@@ -454,10 +454,15 @@ class PontoHistoryRepository {
       final diaSnap = await tx.get(refDia);
       final mesSnap = await tx.get(refMes);
 
+      final abonoMinutes = (diaSnap.data()?['abonoMinutes'] as int?) ?? 0;
+      final adjustedDelta = falta
+          ? deltaMinutes
+          : (diaFechado ? (workedMinutes + abonoMinutes - targetMinutesPerDay) : 0);
+
       final oldDelta = (diaSnap.data()?['deltaMinutes'] as int?) ?? 0;
       final oldBalance = (mesSnap.data()?['balanceMinutes'] as int?) ?? 0;
 
-      final diff = deltaMinutes - oldDelta;
+      final diff = adjustedDelta - oldDelta;
       final newBalance = oldBalance + diff;
 
       tx.set(
@@ -467,7 +472,7 @@ class PontoHistoryRepository {
             'lastTipo': lastTipo,
             'lastAt': lastAt,
             'workedMinutes': workedMinutes,
-            'deltaMinutes': deltaMinutes,
+            'deltaMinutes': adjustedDelta,
             'isClosed': diaFechado,
             'eventosCache': eventosCache,
           },
@@ -478,6 +483,7 @@ class PontoHistoryRepository {
           {
             'balanceMinutes': newBalance,
             'updatedAt': FieldValue.serverTimestamp(),
+            'summaryCache': FieldValue.delete(),
           },
           SetOptions(merge: true));
     });
