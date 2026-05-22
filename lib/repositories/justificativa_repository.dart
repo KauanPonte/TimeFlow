@@ -3,6 +3,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_application_appdeponto/models/justificativa_model.dart';
 
+/// Opções de leitura: cache local (instantâneo) para re-buscas pós-escrita,
+/// servidor (padrão) para o carregamento inicial.
+GetOptions _getOpts(bool preferCache) => preferCache
+    ? const GetOptions(source: Source.cache)
+    : const GetOptions();
+
 class JustificativaRepository {
   static const String _collection = 'justificativas';
   static const String _pontosCollection = 'pontos';
@@ -67,19 +73,25 @@ class JustificativaRepository {
   }
 
   /// Retorna todas as justificativas do funcionário logado.
-  Future<List<JustificativaModel>> getMyJustificativas() async {
+  Future<List<JustificativaModel>> getMyJustificativas(
+      {bool preferCache = false}) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return [];
 
-    final snap = await _ref.where('uid', isEqualTo: user.uid).get();
+    final snap = await _ref
+        .where('uid', isEqualTo: user.uid)
+        .get(_getOpts(preferCache));
     final list = snap.docs.map((d) => JustificativaModel.fromDoc(d)).toList();
     list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return list;
   }
 
   /// Retorna todas as justificativas pendentes (uso do admin).
-  Future<List<JustificativaModel>> getPendingJustificativas() async {
-    final snap = await _ref.where('status', isEqualTo: 'pending').get();
+  Future<List<JustificativaModel>> getPendingJustificativas(
+      {bool preferCache = false}) async {
+    final snap = await _ref
+        .where('status', isEqualTo: 'pending')
+        .get(_getOpts(preferCache));
     final list = snap.docs.map((d) => JustificativaModel.fromDoc(d)).toList();
     list.sort((a, b) => a.createdAt.compareTo(b.createdAt));
     return list;

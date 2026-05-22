@@ -46,9 +46,10 @@ class SolicitationBloc extends Bloc<SolicitationEvent, SolicitationState> {
     _isAdmin = event.isAdmin;
     emit(const SolicitationLoading());
     try {
+      // Re-busca do cache local — o write acima já o populou (instantâneo).
       final list = _isAdmin
-          ? await repository.getAllPendingSolicitations()
-          : await repository.getMyPendingSolicitations();
+          ? await repository.getAllPendingSolicitations(preferCache: true)
+          : await repository.getMyPendingSolicitations(preferCache: true);
       _lastList = list;
 
       final reviewed = _isAdmin
@@ -107,9 +108,10 @@ class SolicitationBloc extends Bloc<SolicitationEvent, SolicitationState> {
         items: event.items,
         reason: event.reason,
       );
+      // Re-busca do cache local — o write acima já o populou (instantâneo).
       final list = _isAdmin
-          ? await repository.getAllPendingSolicitations()
-          : await repository.getMyPendingSolicitations();
+          ? await repository.getAllPendingSolicitations(preferCache: true)
+          : await repository.getMyPendingSolicitations(preferCache: true);
       _lastList = list;
       globalLoading?.hide();
       // Revisadas NÃO mudam ao criar nova solicitação — reutiliza _lastReviewed.
@@ -143,9 +145,10 @@ class SolicitationBloc extends Bloc<SolicitationEvent, SolicitationState> {
         items: event.items,
         reason: event.reason,
       );
+      // Re-busca do cache local — o write acima já o populou (instantâneo).
       final list = _isAdmin
-          ? await repository.getAllPendingSolicitations()
-          : await repository.getMyPendingSolicitations();
+          ? await repository.getAllPendingSolicitations(preferCache: true)
+          : await repository.getMyPendingSolicitations(preferCache: true);
       _lastList = list;
       globalLoading?.hide();
       emit(SolicitationActionSuccess(
@@ -173,9 +176,10 @@ class SolicitationBloc extends Bloc<SolicitationEvent, SolicitationState> {
     ));
     try {
       await repository.cancelSolicitation(event.solicitationId);
+      // Re-busca do cache local — o write acima já o populou (instantâneo).
       final list = _isAdmin
-          ? await repository.getAllPendingSolicitations()
-          : await repository.getMyPendingSolicitations();
+          ? await repository.getAllPendingSolicitations(preferCache: true)
+          : await repository.getMyPendingSolicitations(preferCache: true);
       _lastList = list;
       globalLoading?.hide();
       emit(SolicitationActionSuccess(
@@ -207,7 +211,8 @@ class SolicitationBloc extends Bloc<SolicitationEvent, SolicitationState> {
         itemStatuses: event.itemStatuses,
         reason: event.reason,
       );
-      final list = await repository.getAllPendingSolicitations();
+      // Re-busca do cache local — o write acima já o populou (instantâneo).
+      final list = await repository.getAllPendingSolicitations(preferCache: true);
       _lastList = list;
       globalLoading?.hide();
       emit(SolicitationActionSuccess(

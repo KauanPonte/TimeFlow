@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/global_loading/global_loading_cubit.dart';
 import 'package:flutter_application_appdeponto/blocs/ponto_data/ponto_data_changed_cubit.dart';
@@ -7,10 +8,20 @@ import 'package:flutter_application_appdeponto/services/server_time_service.dart
 import 'ponto_history_event.dart';
 import 'ponto_history_state.dart';
 
+/// Evento interno disparado pelo stream Firestore quando o mês atual atualiza.
+class _MonthStreamUpdatedEvent extends PontoHistoryEvent {
+  final Map<String, List<Map<String, dynamic>>> daysMap;
+  final DateTime month;
+  final String? uid;
+  const _MonthStreamUpdatedEvent(
+      {required this.daysMap, required this.month, this.uid});
+}
+
 class PontoHistoryBloc extends Bloc<PontoHistoryEvent, PontoHistoryState> {
   final PontoHistoryRepository repository;
   final GlobalLoadingCubit? globalLoading;
   StreamSubscription<DateTime>? _dataChangedSub;
+  StreamSubscription<Map<String, List<Map<String, dynamic>>>>? _monthStreamSub;
   String? _currentUid;
   DateTime _currentMonth = () {
     final now = ServerTimeService.nowBrazilUtc();
@@ -35,6 +46,7 @@ class PontoHistoryBloc extends Bloc<PontoHistoryEvent, PontoHistoryState> {
     PontoDataChangedCubit? dataChangedCubit,
   }) : super(const PontoHistoryInitial()) {
     on<LoadHistoryEvent>(_onLoad);
+    on<_MonthStreamUpdatedEvent>(_onMonthStreamUpdated);
     on<SilentReloadHistoryEvent>(_onSilentReload);
     on<AddEventoEvent>(_onAdd);
     on<UpdateEventoEvent>(_onUpdate);
@@ -42,10 +54,13 @@ class PontoHistoryBloc extends Bloc<PontoHistoryEvent, PontoHistoryState> {
     on<BatchUpdateDayEvent>(_onBatchUpdate);
     on<ResetHistoryEvent>((_, emit) => emit(const PontoHistoryInitial()));
 
-    // Auto-refresh silenciosamente quando dados de ponto mudarem.
+    // Fallback: PontoDataChangedCubit notifica quando admin edita ponto do mesmo processo.
+    // Com streams, o Firestore já sincroniza automaticamente — isso é redundância segura.
     if (dataChangedCubit != null) {
-      _dataChangedSub = dataChangedCubit.stream
-          .listen((_) => add(const SilentReloadHistoryEvent()));
+      _dataChangedSub = dataChangedCubit.stream.listen((_) {
+        // No-op: stream Firestore já emite a atualização automaticamente.
+        // Mantido para compatibilidade com flows de edição admin.
+      });
     }
   }
 
@@ -56,9 +71,7 @@ class PontoHistoryBloc extends Bloc<PontoHistoryEvent, PontoHistoryState> {
     _currentUid = event.uid;
     _currentMonth = event.month;
 
-    final requestedUid = _currentUid;
-    final requestedMonth = _currentMonth;
-    final key = _cacheKey(requestedMonth, requestedUid);
+    final key = _cacheKey(_currentMonth, _currentUid);
     final cached = _monthCache[key];
 
     // Exibe dados cacheados imediatamente — sem spinner ao trocar de mês.
@@ -69,48 +82,53 @@ class PontoHistoryBloc extends Bloc<PontoHistoryEvent, PontoHistoryState> {
       emit(const PontoHistoryLoading());
     }
 
-    try {
-      final daysMap = await repository.loadDaysByMonth(
-        uid: event.uid,
-        year: requestedMonth.year,
-        month: requestedMonth.month,
-      );
+    // Cancela stream do mês anterior e inicia stream do novo mês.
+    await _monthStreamSub?.cancel();
+    _monthStreamSub = null;
 
-      // Cacheia para uso rápido ao navegar entre meses.
-      _monthCache[key] = daysMap;
+    final uid = event.uid ?? FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
 
-      // Só atualiza a UI se este carregamento ainda for o mês/usuário atual.
-      if (requestedUid == _currentUid && requestedMonth == _currentMonth) {
-        _lastDaysMap = daysMap;
-        emit(PontoHistoryLoaded(daysMap: daysMap));
-      }
-    } catch (e) {
-      // Se não havia cache, exibe erro; caso contrário mantém dados cacheados.
-      if (cached == null) {
-        emit(PontoHistoryError(
-            message: e.toString().replaceAll('Exception: ', '')));
-      }
-    }
+    _monthStreamSub = repository
+        .streamDaysByMonth(
+          uid: uid,
+          year: event.month.year,
+          month: event.month.month,
+        )
+        .listen(
+          (daysMap) => add(_MonthStreamUpdatedEvent(
+            daysMap: daysMap,
+            month: event.month,
+            uid: event.uid,
+          )),
+          onError: (_) {
+            // Mantém estado atual em caso de erro de stream (ex: offline).
+          },
+        );
   }
 
-  /// Recarrega sem emitir PontoHistoryLoading — mantém os dados atuais visíveis.
+  void _onMonthStreamUpdated(
+    _MonthStreamUpdatedEvent event,
+    Emitter<PontoHistoryState> emit,
+  ) {
+    // Descarta eventos de meses/usuários que não são mais o atual.
+    if (event.month.year != _currentMonth.year ||
+        event.month.month != _currentMonth.month ||
+        event.uid != _currentUid) return;
+
+    final key = _cacheKey(event.month, event.uid);
+    _monthCache[key] = event.daysMap;
+    _lastDaysMap = event.daysMap;
+    emit(PontoHistoryLoaded(daysMap: event.daysMap));
+  }
+
+  /// No-op: stream Firestore cobre atualizações automáticas.
+  /// Mantido para compatibilidade com chamadas existentes.
   Future<void> _onSilentReload(
     SilentReloadHistoryEvent event,
     Emitter<PontoHistoryState> emit,
   ) async {
-    try {
-      // _currentUid pode ser null → o repositório usa FirebaseAuth.currentUser.
-      final daysMap = await repository.loadDaysByMonth(
-        uid: _currentUid,
-        year: _currentMonth.year,
-        month: _currentMonth.month,
-      );
-      _monthCache[_cacheKey(_currentMonth, _currentUid)] = daysMap;
-      _lastDaysMap = daysMap;
-      emit(PontoHistoryLoaded(daysMap: daysMap));
-    } catch (_) {
-      // Silencia erros — mantém o estado atual sem exibir spinner.
-    }
+    // Stream já emitirá nova versão se houver mudança no Firestore.
   }
 
   Future<void> _onAdd(
@@ -129,7 +147,8 @@ class PontoHistoryBloc extends Bloc<PontoHistoryEvent, PontoHistoryState> {
         tipo: event.tipo,
         horario: event.horario,
       );
-      // Otimização: Recarrega apenas o dia alterado
+      // Stream Firestore emitirá automaticamente com os dados atualizados.
+      // Atualização otimista: mantém UI responsiva sem esperar o stream.
       final newDayEvents =
           await repository.loadEventsForDay(event.uid, event.diaId);
       final updatedDaysMap =
@@ -174,7 +193,6 @@ class PontoHistoryBloc extends Bloc<PontoHistoryEvent, PontoHistoryState> {
         tipo: event.tipo,
         horario: event.horario,
       );
-      // Otimização: Recarrega apenas o dia alterado
       final newDayEvents =
           await repository.loadEventsForDay(event.uid, event.diaId);
       final updatedDaysMap =
@@ -217,7 +235,6 @@ class PontoHistoryBloc extends Bloc<PontoHistoryEvent, PontoHistoryState> {
         diaId: event.diaId,
         eventoId: event.eventoId,
       );
-      // Otimização: Recarrega apenas o dia alterado
       final newDayEvents =
           await repository.loadEventsForDay(event.uid, event.diaId);
       final updatedDaysMap =
@@ -262,7 +279,6 @@ class PontoHistoryBloc extends Bloc<PontoHistoryEvent, PontoHistoryState> {
         deletes: event.deletes,
         adds: event.adds,
       );
-      // Otimização: Recarrega apenas o dia alterado
       final newDayEvents =
           await repository.loadEventsForDay(event.uid, event.diaId);
       final updatedDaysMap =
@@ -290,15 +306,18 @@ class PontoHistoryBloc extends Bloc<PontoHistoryEvent, PontoHistoryState> {
     }
   }
 
-  /// Limpa o estado e o cache (chamado no logout).
+  /// Limpa o estado, cache e cancela stream (chamado no logout).
   void reset() {
     _monthCache.clear();
+    _monthStreamSub?.cancel();
+    _monthStreamSub = null;
     add(const ResetHistoryEvent());
   }
 
   @override
   Future<void> close() {
     _dataChangedSub?.cancel();
+    _monthStreamSub?.cancel();
     return super.close();
   }
 }

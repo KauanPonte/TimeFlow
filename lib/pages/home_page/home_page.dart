@@ -329,9 +329,10 @@ class _HomePageState extends State<HomePage> {
           'employeeRole': widget.employeeRole,
         },
       ),
-      // Só exibe o loading se for o primeiro carregamento (splash não conseguiu carregar).
-      // Se o splash já carregou, os dados do cubit já estão populados.
-      body: (pontoState.loading && pontoState.registros.isEmpty)
+      // Spinner apenas na primeira carga (sem cache local).
+      // Com streams, cargas subsequentes mostram dados do cache instantaneamente.
+      body: (pontoState.loading &&
+              !context.read<PontoTodayCubit>().hasLoadedOnce)
           ? const Center(
               child: CircularProgressIndicator(
                 valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),

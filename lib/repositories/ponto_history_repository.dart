@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_application_appdeponto/services/ponto_validator.dart';
@@ -63,25 +64,32 @@ class PontoHistoryRepository {
   }
 
   /// Carrega os eventos de um dia específico.
+  ///
+  /// Lê o doc do dia do cache local primeiro (instantâneo) — só é chamado
+  /// após um write, então o cache já reflete a alteração. Cai para o servidor
+  /// apenas se o doc não estiver em cache.
   Future<List<Map<String, dynamic>>> loadEventsForDay(
       String uid, String diaId) async {
-    final doc = await _firestore
+    final diaRef = _firestore
         .collection(_root)
         .doc(uid)
         .collection('dias')
-        .doc(diaId)
-        .get();
+        .doc(diaId);
+
+    DocumentSnapshot<Map<String, dynamic>> doc;
+    try {
+      doc = await diaRef.get(const GetOptions(source: Source.cache));
+    } catch (_) {
+      // Doc ausente do cache — busca no servidor como fallback.
+      doc = await diaRef.get();
+    }
 
     if (!doc.exists) return [];
 
     final cached = _extractEventos(doc);
     if (cached.isNotEmpty) return cached;
 
-    final eventosSnap = await _firestore
-        .collection(_root)
-        .doc(uid)
-        .collection('dias')
-        .doc(diaId)
+    final eventosSnap = await diaRef
         .collection('eventos')
         .orderBy('at', descending: false)
         .get();
@@ -189,6 +197,79 @@ class PontoHistoryRepository {
     return result;
   }
 
+  /// Stream reativo do mês — emite do cache local imediatamente, depois da rede.
+  /// Qualquer write em qualquer doc do mês (de qualquer dispositivo) dispara nova emissão.
+  Stream<Map<String, List<Map<String, dynamic>>>> streamDaysByMonth({
+    required String uid,
+    required int year,
+    required int month,
+  }) {
+    final prefix =
+        '${year.toString().padLeft(4, '0')}-${month.toString().padLeft(2, '0')}';
+
+    return _firestore
+        .collection(_root)
+        .doc(uid)
+        .collection('dias')
+        .where(FieldPath.documentId, isGreaterThanOrEqualTo: '$prefix-01')
+        .where(FieldPath.documentId, isLessThanOrEqualTo: '$prefix-31')
+        .snapshots()
+        .asyncMap((querySnap) async {
+      final result = <String, List<Map<String, dynamic>>>{};
+
+      await Future.wait(querySnap.docs.map((diaDoc) async {
+        final diaId = diaDoc.id;
+        final data = diaDoc.data();
+        final cache = data['eventosCache'];
+
+        if (cache is List && cache.isNotEmpty) {
+          final rawCache = List<dynamic>.from(cache);
+          if (_isEventosCacheConsistent(data, rawCache)) {
+            final eventos = rawCache.map<Map<String, dynamic>>((e) {
+              final m = e as Map<String, dynamic>;
+              final ts = m['at'] as Timestamp?;
+              return {
+                'id': (m['id'] ?? '').toString(),
+                'tipo': (m['tipo'] ?? '').toString(),
+                'at': ServerTimeService.timestampToBrazil(ts),
+                'workMode': (m['workMode'] ?? '').toString(),
+                'origin': (m['origin'] ?? 'registrado').toString(),
+              };
+            }).toList();
+            if (eventos.isNotEmpty) result[diaId] = eventos;
+            return;
+          }
+        }
+
+        // Fallback para dados legados sem cache (paralelizado)
+        final eventosSnap = await _firestore
+            .collection(_root)
+            .doc(uid)
+            .collection('dias')
+            .doc(diaId)
+            .collection('eventos')
+            .orderBy('at', descending: false)
+            .get();
+
+        final eventos = eventosSnap.docs.map((e) {
+          final evData = e.data();
+          final ts = evData['at'] as Timestamp?;
+          return {
+            'id': e.id,
+            'tipo': (evData['tipo'] ?? '').toString(),
+            'at': ServerTimeService.timestampToBrazil(ts),
+            'workMode': (evData['workMode'] ?? '').toString(),
+            'origin': (evData['origin'] ?? 'registrado').toString(),
+          };
+        }).toList();
+
+        if (eventos.isNotEmpty) result[diaId] = eventos;
+      }));
+
+      return result;
+    });
+  }
+
   /// Tenta extrair eventos do `eventosCache` inline.
   /// Retorna lista tipada pronta para a UI.
   List<Map<String, dynamic>> _extractEventos(
@@ -244,6 +325,163 @@ class PontoHistoryRepository {
     return true;
   }
 
+  //  Edição de ponto — local-first
+  //
+  //  Lê o estado do dia do cache local (instantâneo), valida no cliente e
+  //  persiste via WriteBatch. O cache local é atualizado na hora e o stream
+  //  streamDaysByMonth emite imediatamente; o commit sincroniza com o
+  //  servidor em background. Substitui o antigo runTransaction.
+
+  /// Estado do dia lido do cache local: `eventosCache` cru (`at` como
+  /// Timestamp), se o doc do dia existe, e o delta atual do dia.
+  Future<({List<Map<String, dynamic>> cache, bool dayExists, int oldDelta})>
+      _loadDayCache(String uid, String diaId) async {
+    final refDia =
+        _firestore.collection(_root).doc(uid).collection('dias').doc(diaId);
+
+    DocumentSnapshot<Map<String, dynamic>> diaSnap;
+    try {
+      diaSnap = await refDia.get(const GetOptions(source: Source.cache));
+    } catch (_) {
+      diaSnap = await refDia.get();
+    }
+
+    if (!diaSnap.exists) {
+      return (cache: <Map<String, dynamic>>[], dayExists: false, oldDelta: 0);
+    }
+
+    final data = diaSnap.data() ?? {};
+    final oldDelta = (data['deltaMinutes'] as int?) ?? 0;
+    final raw = data['eventosCache'];
+
+    if (raw is List && raw.isNotEmpty) {
+      return (cache: _rawCacheList(raw), dayExists: true, oldDelta: oldDelta);
+    }
+
+    // Dado legado sem eventosCache → busca a subcoleção no servidor (1x).
+    final eventosSnap = await refDia
+        .collection('eventos')
+        .orderBy('at', descending: false)
+        .get();
+    final cache = eventosSnap.docs.map((d) {
+      final ev = d.data();
+      return <String, dynamic>{
+        'id': d.id,
+        'tipo': (ev['tipo'] ?? '').toString(),
+        'at': ev['at'],
+        'workMode': (ev['workMode'] ?? '').toString(),
+        'origin': (ev['origin'] ?? 'registrado').toString(),
+      };
+    }).toList();
+    return (cache: cache, dayExists: true, oldDelta: oldDelta);
+  }
+
+  /// Normaliza o array `eventosCache` cru mantendo `at` como Timestamp.
+  List<Map<String, dynamic>> _rawCacheList(List<dynamic> raw) {
+    return raw.whereType<Map<String, dynamic>>().map((m) {
+      return <String, dynamic>{
+        'id': (m['id'] ?? '').toString(),
+        'tipo': (m['tipo'] ?? '').toString(),
+        'at': m['at'],
+        'workMode': (m['workMode'] ?? '').toString(),
+        'origin': (m['origin'] ?? 'registrado').toString(),
+      };
+    }).toList();
+  }
+
+  /// Converte o cache para o formato do PontoValidator
+  /// (`at` como DateTime no fuso de Brasília).
+  List<Map<String, dynamic>> _toValidatorInput(
+      List<Map<String, dynamic>> cache) {
+    return cache.map((m) {
+      final ts = m['at'];
+      return <String, dynamic>{
+        'id': m['id'],
+        'tipo': m['tipo'],
+        'at': ts is Timestamp ? ServerTimeService.timestampToBrazil(ts) : null,
+      };
+    }).toList();
+  }
+
+  /// Ordena o cache por horário (ascendente).
+  void _sortCache(List<Map<String, dynamic>> cache) {
+    cache.sort((a, b) {
+      final ta = a['at'];
+      final tb = b['at'];
+      if (ta is Timestamp && tb is Timestamp) return ta.compareTo(tb);
+      return 0;
+    });
+  }
+
+  /// Dispara o commit do batch sem aguardar — o cache local já foi atualizado.
+  void _commitLocalFirst(WriteBatch batch) {
+    unawaited(batch.commit().catchError((_) {
+      // Falha de sincronização: o SDK re-tenta sozinho. Offline, o write
+      // fica na fila e sincroniza ao reconectar.
+    }));
+  }
+
+  /// Adiciona ao [batch] a atualização do saldo do mês do [diaId].
+  void _writeMonthBalance(
+      WriteBatch batch, String uid, String diaId, int balanceDiff) {
+    final refMes = _firestore
+        .collection(_root)
+        .doc(uid)
+        .collection('meses')
+        .doc(diaId.substring(0, 7));
+    batch.set(
+      refMes,
+      {
+        // increment é atômico no servidor — seguro mesmo com edições simultâneas.
+        'balanceMinutes': FieldValue.increment(balanceDiff),
+        'updatedAt': FieldValue.serverTimestamp(),
+        'summaryCache': FieldValue.delete(),
+      },
+      SetOptions(merge: true),
+    );
+  }
+
+  /// Adiciona ao [batch] a escrita de metadados do dia (eventosCache,
+  /// lastTipo, workedMinutes, deltaMinutes, isClosed) e do saldo do mês, e
+  /// dispara o commit. [novoCache] deve estar ordenado e não-vazio.
+  void _finalizeDayEdit({
+    required WriteBatch batch,
+    required DocumentReference<Map<String, dynamic>> refDia,
+    required String uid,
+    required String diaId,
+    required List<Map<String, dynamic>> novoCache,
+    required bool dayExisted,
+    required int oldDelta,
+  }) {
+    const targetMinutesPerDay = 8 * 60;
+
+    final lastEvento = novoCache.last;
+    final lastTipo = (lastEvento['tipo'] ?? '').toString();
+    final lastAt = lastEvento['at'];
+    final diaFechado = lastTipo == 'saida';
+    final workedMinutes = _computeWorkedMinutes(novoCache);
+    final deltaMinutes =
+        diaFechado ? (workedMinutes - targetMinutesPerDay) : 0;
+    final balanceDiff = deltaMinutes - oldDelta;
+
+    final diaUpdate = <String, dynamic>{
+      'uid': uid,
+      'date': diaId,
+      'updatedAt': FieldValue.serverTimestamp(),
+      'lastTipo': lastTipo,
+      'lastAt': lastAt,
+      'workedMinutes': workedMinutes,
+      'deltaMinutes': deltaMinutes,
+      'isClosed': diaFechado,
+      'eventosCache': novoCache,
+    };
+    if (!dayExisted) diaUpdate['createdAt'] = FieldValue.serverTimestamp();
+
+    batch.set(refDia, diaUpdate, SetOptions(merge: true));
+    _writeMonthBalance(batch, uid, diaId, balanceDiff);
+    _commitLocalFirst(batch);
+  }
+
   /// Adiciona um evento de ponto para um usuário específico.
   Future<void> addEvento({
     required String uid,
@@ -251,59 +489,55 @@ class PontoHistoryRepository {
     required String tipo,
     required DateTime horario,
   }) async {
-    // Bloqueia adição em feriados/recessos (mesmo para admin)
+    // Bloqueia adição em feriados/recessos (mesmo para admin).
     final date = DateTime.tryParse(diaId);
-    if (date != null) {
-      final ehFeriado = await PontoService.isFeriado(date);
-      if (ehFeriado) {
-        throw Exception(
-            'Este dia é feriado/recesso. Não é permitido adicionar pontos.');
-      }
+    if (date != null && await PontoService.isFeriado(date, preferCache: true)) {
+      throw Exception(
+          'Este dia é feriado/recesso. Não é permitido adicionar pontos.');
     }
 
     final refDia =
         _firestore.collection(_root).doc(uid).collection('dias').doc(diaId);
-
     final refEventos = refDia.collection('eventos');
     final ts = Timestamp.fromDate(horario);
 
-    // Carrega eventos existentes para validar a sequência
-    final eventosSnap = await refEventos.orderBy('at', descending: false).get();
-    final eventosExistentes = eventosSnap.docs.map((e) {
-      final data = e.data();
-      final evTs = data['at'] as Timestamp?;
-      return {
-        'id': e.id,
-        'tipo': (data['tipo'] ?? '').toString(),
-        'at': ServerTimeService.timestampToBrazil(evTs),
-      };
-    }).toList();
+    final estado = await _loadDayCache(uid, diaId);
 
     final erro = PontoValidator.validarNovoEvento(
-      eventosExistentes: eventosExistentes,
+      eventosExistentes: _toValidatorInput(estado.cache),
       novoTipo: tipo,
       novoHorario: horario,
     );
     if (erro != null) throw Exception(erro);
 
-    final diaSnap = await refDia.get();
-    if (!diaSnap.exists) {
-      await refDia.set({
-        'uid': uid,
-        'date': diaId,
-        'createdAt': ts,
-        'updatedAt': ts,
-        'lastTipo': tipo,
-        'lastAt': ts,
-      });
-    }
+    final eventId = refEventos.doc().id;
+    final novoCache = [
+      ...estado.cache,
+      <String, dynamic>{
+        'id': eventId,
+        'tipo': tipo,
+        'at': ts,
+        'workMode': '',
+        'origin': 'ajustado',
+      },
+    ];
+    _sortCache(novoCache);
 
-    await refEventos.add({
+    final batch = _firestore.batch();
+    batch.set(refEventos.doc(eventId), {
       'tipo': tipo,
       'at': ts,
       'origin': 'ajustado',
     });
-    await _updateDayMeta(uid: uid, diaId: diaId);
+    _finalizeDayEdit(
+      batch: batch,
+      refDia: refDia,
+      uid: uid,
+      diaId: diaId,
+      novoCache: novoCache,
+      dayExisted: estado.dayExists,
+      oldDelta: estado.oldDelta,
+    );
   }
 
   /// Edita um evento existente.
@@ -314,42 +548,49 @@ class PontoHistoryRepository {
     required String tipo,
     required DateTime horario,
   }) async {
-    final refEventos = _firestore
-        .collection(_root)
-        .doc(uid)
-        .collection('dias')
-        .doc(diaId)
-        .collection('eventos');
+    final refDia =
+        _firestore.collection(_root).doc(uid).collection('dias').doc(diaId);
+    final refEventos = refDia.collection('eventos');
+    final ts = Timestamp.fromDate(horario);
 
-    // Carrega eventos existentes para validar a sequência após edição
-    final eventosSnap = await refEventos.orderBy('at', descending: false).get();
-    final eventosExistentes = eventosSnap.docs.map((e) {
-      final data = e.data();
-      final evTs = data['at'] as Timestamp?;
-      return {
-        'id': e.id,
-        'tipo': (data['tipo'] ?? '').toString(),
-        'at': ServerTimeService.timestampToBrazil(evTs),
-      };
-    }).toList();
+    final estado = await _loadDayCache(uid, diaId);
 
     final erro = PontoValidator.validarEdicaoEvento(
-      eventosExistentes: eventosExistentes,
+      eventosExistentes: _toValidatorInput(estado.cache),
       eventoId: eventoId,
       novoTipo: tipo,
       novoHorario: horario,
     );
     if (erro != null) throw Exception(erro);
 
-    final ts = Timestamp.fromDate(horario);
+    final novoCache = estado.cache.map((m) {
+      if (m['id'] == eventoId) {
+        return <String, dynamic>{
+          ...m,
+          'tipo': tipo,
+          'at': ts,
+          'origin': 'ajustado',
+        };
+      }
+      return m;
+    }).toList();
+    _sortCache(novoCache);
 
-    await refEventos.doc(eventoId).update({
+    final batch = _firestore.batch();
+    batch.update(refEventos.doc(eventoId), {
       'tipo': tipo,
       'at': ts,
       'origin': 'ajustado',
     });
-
-    await _updateDayMeta(uid: uid, diaId: diaId);
+    _finalizeDayEdit(
+      batch: batch,
+      refDia: refDia,
+      uid: uid,
+      diaId: diaId,
+      novoCache: novoCache,
+      dayExisted: true,
+      oldDelta: estado.oldDelta,
+    );
   }
 
   /// Remove um evento.
@@ -358,135 +599,40 @@ class PontoHistoryRepository {
     required String diaId,
     required String eventoId,
   }) async {
-    final refEventos = _firestore
-        .collection(_root)
-        .doc(uid)
-        .collection('dias')
-        .doc(diaId)
-        .collection('eventos');
+    final refDia =
+        _firestore.collection(_root).doc(uid).collection('dias').doc(diaId);
+    final refEventos = refDia.collection('eventos');
 
-    // Carrega eventos existentes para validar a sequência após remoção
-    final eventosSnap = await refEventos.orderBy('at', descending: false).get();
-    final eventosExistentes = eventosSnap.docs.map((e) {
-      final data = e.data();
-      final evTs = data['at'] as Timestamp?;
-      return {
-        'id': e.id,
-        'tipo': (data['tipo'] ?? '').toString(),
-        'at': ServerTimeService.timestampToBrazil(evTs),
-      };
-    }).toList();
+    final estado = await _loadDayCache(uid, diaId);
 
     final erro = PontoValidator.validarExclusaoEvento(
-      eventosExistentes: eventosExistentes,
+      eventosExistentes: _toValidatorInput(estado.cache),
       eventoId: eventoId,
     );
     if (erro != null) throw Exception(erro);
 
-    await refEventos.doc(eventoId).delete();
+    final novoCache =
+        estado.cache.where((m) => m['id'] != eventoId).toList();
 
-    // Verifica se ainda há eventos no dia
-    final remaining = await refEventos.get();
+    final batch = _firestore.batch();
+    batch.delete(refEventos.doc(eventoId));
 
-    if (remaining.docs.isEmpty) {
-      // Remove o documento do dia se não há mais eventos
-      await _firestore
-          .collection(_root)
-          .doc(uid)
-          .collection('dias')
-          .doc(diaId)
-          .delete();
+    if (novoCache.isEmpty) {
+      // Dia sem eventos → remove o doc do dia e desconta seu delta do mês.
+      batch.delete(refDia);
+      _writeMonthBalance(batch, uid, diaId, -estado.oldDelta);
+      _commitLocalFirst(batch);
     } else {
-      await _updateDayMeta(uid: uid, diaId: diaId);
+      _finalizeDayEdit(
+        batch: batch,
+        refDia: refDia,
+        uid: uid,
+        diaId: diaId,
+        novoCache: novoCache,
+        dayExisted: true,
+        oldDelta: estado.oldDelta,
+      );
     }
-  }
-
-  /// Atualiza metadados do dia (lastTipo, lastAt, etc.),
-  /// recalcula banco de horas, e **atualiza `eventosCache`**.
-  Future<void> _updateDayMeta({
-    required String uid,
-    required String diaId,
-  }) async {
-    final refDia =
-        _firestore.collection(_root).doc(uid).collection('dias').doc(diaId);
-
-    final refEventos = refDia.collection('eventos');
-    const targetMinutesPerDay = 8 * 60;
-
-    final eventosSnap = await refEventos.orderBy('at', descending: false).get();
-    final eventos = eventosSnap.docs.map((d) => d.data()).toList();
-
-    if (eventos.isEmpty) return;
-
-    final lastEvento = eventos.last;
-    final lastTipo = (lastEvento['tipo'] ?? '').toString();
-    final lastAt = lastEvento['at'] as Timestamp?;
-
-    // Calcula minutos trabalhados (só intervalos fechados)
-    final workedMinutes = _computeWorkedMinutes(eventos);
-    final diaFechado = lastTipo == 'saida';
-    final localNow = ServerTimeService.nowBrazilUtc();
-    final hojeId =
-        '${localNow.year.toString().padLeft(4, '0')}-${localNow.month.toString().padLeft(2, '0')}-${localNow.day.toString().padLeft(2, '0')}';
-    final ehHoje = diaId == hojeId;
-    final falta = !ehHoje && eventos.isEmpty;
-    final deltaMinutes = falta
-        ? -targetMinutesPerDay
-        : (diaFechado ? (workedMinutes - targetMinutesPerDay) : 0);
-
-    // Constrói array de cache para denormalização
-    final eventosCache = eventosSnap.docs.map((d) {
-      final data = d.data();
-      return {
-        'id': d.id,
-        'tipo': (data['tipo'] ?? '').toString(),
-        'at': data['at'],
-        'workMode': (data['workMode'] ?? '').toString(),
-        'origin': (data['origin'] ?? 'registrado').toString(),
-      };
-    }).toList();
-
-    final mesId = diaId.substring(0, 7);
-    final refMes =
-        _firestore.collection(_root).doc(uid).collection('meses').doc(mesId);
-
-    await _firestore.runTransaction((tx) async {
-      final diaSnap = await tx.get(refDia);
-      final mesSnap = await tx.get(refMes);
-
-      final abonoMinutes = (diaSnap.data()?['abonoMinutes'] as int?) ?? 0;
-      final adjustedDelta = falta
-          ? deltaMinutes
-          : (diaFechado ? (workedMinutes + abonoMinutes - targetMinutesPerDay) : 0);
-
-      final oldDelta = (diaSnap.data()?['deltaMinutes'] as int?) ?? 0;
-      final oldBalance = (mesSnap.data()?['balanceMinutes'] as int?) ?? 0;
-
-      final diff = adjustedDelta - oldDelta;
-      final newBalance = oldBalance + diff;
-
-      tx.set(
-          refDia,
-          {
-            'updatedAt': FieldValue.serverTimestamp(),
-            'lastTipo': lastTipo,
-            'lastAt': lastAt,
-            'workedMinutes': workedMinutes,
-            'deltaMinutes': adjustedDelta,
-            'isClosed': diaFechado,
-            'eventosCache': eventosCache,
-          },
-          SetOptions(merge: true));
-
-      tx.set(
-          refMes,
-          {
-            'balanceMinutes': newBalance,
-            'updatedAt': FieldValue.serverTimestamp(),
-            'summaryCache': FieldValue.delete(),
-          },
-          SetOptions(merge: true));
-    });
   }
 
   int _computeWorkedMinutes(List<Map<String, dynamic>> eventos) {
@@ -511,7 +657,7 @@ class PontoHistoryRepository {
     return total.inMinutes;
   }
 
-  /// Aplica edições, adições e exclusões em lote para um dia.
+  /// Aplica edições, adições e exclusões em lote para um dia (local-first).
   Future<void> batchUpdateDay({
     required String uid,
     required String diaId,
@@ -519,108 +665,111 @@ class PontoHistoryRepository {
     required List<String> deletes,
     required List<Map<String, dynamic>> adds,
   }) async {
-    // Bloqueia edição em feriados/recessos (mesmo para admin)
+    // Bloqueia edição em feriados/recessos (mesmo para admin).
     final date = DateTime.tryParse(diaId);
-    if (date != null) {
-      final ehFeriado = await PontoService.isFeriado(date);
-      if (ehFeriado) {
-        throw Exception(
-            'Este dia é feriado/recesso. Não é permitido editar pontos.');
-      }
+    if (date != null && await PontoService.isFeriado(date, preferCache: true)) {
+      throw Exception(
+          'Este dia é feriado/recesso. Não é permitido editar pontos.');
     }
 
     final refDia =
         _firestore.collection(_root).doc(uid).collection('dias').doc(diaId);
     final refEventos = refDia.collection('eventos');
 
-    // 1. Carrega eventos existentes para simular o estado final e validar.
-    final eventosSnap = await refEventos.orderBy('at', descending: false).get();
-    final eventosExistentes = eventosSnap.docs.map((e) {
-      final data = e.data();
-      final evTs = data['at'] as Timestamp?;
-      return {
-        'id': e.id,
-        'tipo': (data['tipo'] ?? '').toString(),
-        'at': ServerTimeService.timestampToBrazil(evTs),
-      };
-    }).toList();
+    final estado = await _loadDayCache(uid, diaId);
 
-    // 2. Simula o estado final para validação.
-    final estadoFinal = <Map<String, dynamic>>[];
-    final updateMap = <String, Map<String, dynamic>>{};
-    for (final u in updates) {
-      updateMap[u['id'] as String] = u;
-    }
+    final updateMap = <String, Map<String, dynamic>>{
+      for (final u in updates) u['id'] as String: u,
+    };
     final deleteSet = deletes.toSet();
 
-    for (final ev in eventosExistentes) {
-      final id = ev['id'] as String;
+    // estadoFinal: entrada do validador. novoCache: array a persistir.
+    final estadoFinal = <Map<String, dynamic>>[];
+    final novoCache = <Map<String, dynamic>>[];
+    final addedIds = <String>[];
+
+    for (final m in estado.cache) {
+      final id = m['id'] as String;
       if (deleteSet.contains(id)) continue;
       if (updateMap.containsKey(id)) {
-        estadoFinal.add({
-          'id': id,
-          'tipo': updateMap[id]!['tipo'],
-          'at': updateMap[id]!['horario'],
+        final u = updateMap[id]!;
+        final horario = u['horario'] as DateTime;
+        estadoFinal.add({'id': id, 'tipo': u['tipo'], 'at': horario});
+        novoCache.add(<String, dynamic>{
+          ...m,
+          'tipo': u['tipo'],
+          'at': Timestamp.fromDate(horario),
+          'origin': 'ajustado',
         });
       } else {
-        estadoFinal.add(ev);
+        final ts = m['at'];
+        estadoFinal.add({
+          'id': id,
+          'tipo': m['tipo'],
+          'at': ts is Timestamp
+              ? ServerTimeService.timestampToBrazil(ts)
+              : null,
+        });
+        novoCache.add(m);
       }
     }
     for (final a in adds) {
-      estadoFinal.add({
+      final horario = a['horario'] as DateTime;
+      final id = refEventos.doc().id;
+      addedIds.add(id);
+      estadoFinal.add({'tipo': a['tipo'], 'at': horario});
+      novoCache.add(<String, dynamic>{
+        'id': id,
         'tipo': a['tipo'],
-        'at': a['horario'],
+        'at': Timestamp.fromDate(horario),
+        'workMode': '',
+        'origin': 'ajustado',
       });
     }
 
-    // Validação da sequência final
+    // Validação da sequência final.
     if (estadoFinal.isNotEmpty) {
       final error = PontoValidator.validarSequenciaCompleta(estadoFinal);
       if (error != null) throw Exception(error);
     }
 
-    // 3. Executa todas as operações.
-    // Exclusões
+    _sortCache(novoCache);
+
+    // Monta o batch: exclusões, atualizações e adições na subcoleção.
+    final batch = _firestore.batch();
     for (final id in deletes) {
-      await refEventos.doc(id).delete();
+      batch.delete(refEventos.doc(id));
     }
-
-    // Atualizações
     for (final u in updates) {
-      final ts = Timestamp.fromDate(u['horario'] as DateTime);
-      await refEventos.doc(u['id'] as String).update({
+      batch.update(refEventos.doc(u['id'] as String), {
         'tipo': u['tipo'],
-        'at': ts,
+        'at': Timestamp.fromDate(u['horario'] as DateTime),
+        'origin': 'ajustado',
+      });
+    }
+    for (var i = 0; i < adds.length; i++) {
+      batch.set(refEventos.doc(addedIds[i]), {
+        'tipo': adds[i]['tipo'],
+        'at': Timestamp.fromDate(adds[i]['horario'] as DateTime),
         'origin': 'ajustado',
       });
     }
 
-    // Adições
-    for (final a in adds) {
-      final ts = Timestamp.fromDate(a['horario'] as DateTime);
-      await refEventos.add({
-        'tipo': a['tipo'] as String,
-        'at': ts,
-        'origin': 'ajustado',
-      });
-    }
-
-    // 4. Verifica se ainda há eventos no dia.
-    final remaining = await refEventos.get();
-    if (remaining.docs.isEmpty) {
-      await refDia.delete();
+    if (novoCache.isEmpty) {
+      // Dia sem eventos → remove o doc do dia e desconta seu delta do mês.
+      batch.delete(refDia);
+      _writeMonthBalance(batch, uid, diaId, -estado.oldDelta);
+      _commitLocalFirst(batch);
     } else {
-      // Cria o doc do dia se necessário (pode ser dia novo).
-      final diaSnap = await refDia.get();
-      if (!diaSnap.exists) {
-        await refDia.set({
-          'uid': uid,
-          'date': diaId,
-          'createdAt': FieldValue.serverTimestamp(),
-          'updatedAt': FieldValue.serverTimestamp(),
-        });
-      }
-      await _updateDayMeta(uid: uid, diaId: diaId);
+      _finalizeDayEdit(
+        batch: batch,
+        refDia: refDia,
+        uid: uid,
+        diaId: diaId,
+        novoCache: novoCache,
+        dayExisted: estado.dayExists,
+        oldDelta: estado.oldDelta,
+      );
     }
   }
 }

@@ -16,6 +16,7 @@ import 'package:flutter_application_appdeponto/blocs/ponto_history/ponto_history
 import 'package:flutter_application_appdeponto/blocs/ponto_history/ponto_history_event.dart';
 import 'package:flutter_application_appdeponto/blocs/ponto_history/ponto_history_state.dart';
 import 'package:flutter_application_appdeponto/blocs/ponto_today/ponto_today_cubit.dart';
+import 'package:flutter_application_appdeponto/blocs/ponto_today/ponto_today_state.dart';
 import 'package:flutter_application_appdeponto/blocs/solicitations/solicitation_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/solicitations/solicitation_event.dart';
 import 'package:flutter_application_appdeponto/blocs/solicitations/solicitation_state.dart';
@@ -42,7 +43,14 @@ class SplashPage extends StatefulWidget {
 
 class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
   final DateTime _splashStartedAt = DateTime.now();
-  static const Duration _minSplashDuration = Duration(milliseconds: 3600);
+
+  /// Piso da splash — alinhado à duração da animação de introdução (1400ms).
+  static const Duration _minSplashDuration = Duration(milliseconds: 1400);
+
+  /// Teto de espera por dados no preload. Os streams emitem do cache local
+  /// bem antes disso; ao estourar o teto, navega mesmo assim — os streams
+  /// continuam vivos e cada tela se atualiza sozinha quando o servidor responde.
+  static const Duration _preloadTimeout = Duration(milliseconds: 1200);
 
   bool _isNavigating = false;
   bool _isPreloading = false;
@@ -247,7 +255,7 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
           pontoHistoryBloc.stream,
           pontoHistoryBloc.state,
           (s) => s is PontoHistoryLoaded || s is PontoHistoryError,
-          const Duration(seconds: 30),
+          _preloadTimeout,
         ),
         0.18,
       ),
@@ -256,7 +264,7 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
           profileBloc.stream,
           profileBloc.state,
           (s) => s is ProfileLoaded || s is ProfileError,
-          const Duration(seconds: 30),
+          _preloadTimeout,
         ),
         0.12,
       ),
@@ -265,7 +273,7 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
           solicitationBloc.stream,
           solicitationBloc.state,
           (s) => s is SolicitationLoaded || s is SolicitationError,
-          const Duration(seconds: 30),
+          _preloadTimeout,
         ),
         0.12,
       ),
@@ -274,7 +282,7 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
           atestadoBloc.stream,
           atestadoBloc.state,
           (s) => s is AtestadoLoaded || s is AtestadoError,
-          const Duration(seconds: 30),
+          _preloadTimeout,
         ),
         0.10,
       ),
@@ -283,7 +291,7 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
           justificativaBloc.stream,
           justificativaBloc.state,
           (s) => s is JustificativaLoaded || s is JustificativaError,
-          const Duration(seconds: 30),
+          _preloadTimeout,
         ),
         0.12,
       ),
@@ -303,7 +311,7 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
             adminHomeBloc.stream,
             adminHomeBloc.state,
             (s) => s is AdminHomeLoaded || s is AdminHomeError,
-            const Duration(seconds: 30),
+            _preloadTimeout,
           ),
           0.10,
         ),
@@ -319,17 +327,34 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
     _fireIncompleteRecordNotifications(pontoTodayCubit);
   }
 
-  /// Verifica registros incompletos no estado do cubit e dispara
-  /// notificações instantâneas para que o usuário saiba imediatamente.
+  /// Verifica registros incompletos e dispara notificações.
+  /// `registros` é carregado em background — aguarda sem bloquear a navegação.
   void _fireIncompleteRecordNotifications(PontoTodayCubit cubit) {
     final state = cubit.state;
-    if (state.loading || state.registros.isEmpty) return;
+    if (state.registros.isNotEmpty) {
+      _doFireIncompleteNotifications(state.registros);
+      return;
+    }
+    // Aguarda registros ser populado pelo background load (fire-and-forget)
+    StreamSubscription<PontoTodayState>? sub;
+    sub = cubit.stream.listen((s) {
+      if (s.registros.isNotEmpty) {
+        sub?.cancel();
+        _doFireIncompleteNotifications(s.registros);
+      }
+    });
+    Future.delayed(const Duration(seconds: 20), () => sub?.cancel());
+  }
+
+  void _doFireIncompleteNotifications(
+      Map<String, Map<String, String>> registros) {
+    if (registros.isEmpty) return;
 
     final now = ServerTimeService.nowBrazilUtc();
     final hoje =
         '${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
 
-    final incompletos = state.registros.entries.where((e) {
+    final incompletos = registros.entries.where((e) {
       if (e.key == hoje) return false;
       final m = e.value;
       if (m['entrada'] != null && m['saida'] == null) return true;

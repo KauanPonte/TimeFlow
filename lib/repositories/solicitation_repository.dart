@@ -5,6 +5,12 @@ import 'package:flutter_application_appdeponto/services/ponto_validator.dart';
 import 'package:flutter_application_appdeponto/services/ponto_service.dart';
 import 'package:flutter_application_appdeponto/services/server_time_service.dart';
 
+/// Opções de leitura: cache local (instantâneo) para re-buscas pós-escrita,
+/// servidor (padrão) para o carregamento inicial.
+GetOptions _getOpts(bool preferCache) => preferCache
+    ? const GetOptions(source: Source.cache)
+    : const GetOptions();
+
 class SolicitationRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   static const String _collection = 'solicitations';
@@ -146,7 +152,8 @@ class SolicitationRepository {
 
   //  Funcionário: minhas solicitações pendentes
 
-  Future<List<SolicitationModel>> getMyPendingSolicitations() async {
+  Future<List<SolicitationModel>> getMyPendingSolicitations(
+      {bool preferCache = false}) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return [];
 
@@ -154,7 +161,7 @@ class SolicitationRepository {
         .collection(_collection)
         .where('uid', isEqualTo: user.uid)
         .where('status', isEqualTo: SolicitationStatus.pending.name)
-        .get();
+        .get(_getOpts(preferCache));
 
     final list = snap.docs.map((d) => SolicitationModel.fromDoc(d)).toList()
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
@@ -165,6 +172,7 @@ class SolicitationRepository {
   /// nos últimos [windowDays] dias. Usado para notificar o funcionário.
   Future<List<SolicitationModel>> getMyReviewedSolicitations({
     int windowDays = 7,
+    bool preferCache = false,
   }) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return [];
@@ -177,7 +185,7 @@ class SolicitationRepository {
         .where('status', whereIn: [
       SolicitationStatus.approved.name,
       SolicitationStatus.rejected.name,
-    ]).get();
+    ]).get(_getOpts(preferCache));
 
     return snap.docs
         .map((d) => SolicitationModel.fromDoc(d))
@@ -202,11 +210,12 @@ class SolicitationRepository {
 
   //  Admin: solicitações pendentes de todos
 
-  Future<List<SolicitationModel>> getAllPendingSolicitations() async {
+  Future<List<SolicitationModel>> getAllPendingSolicitations(
+      {bool preferCache = false}) async {
     final snap = await _firestore
         .collection(_collection)
         .where('status', isEqualTo: SolicitationStatus.pending.name)
-        .get();
+        .get(_getOpts(preferCache));
 
     final list = snap.docs.map((d) => SolicitationModel.fromDoc(d)).toList()
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
