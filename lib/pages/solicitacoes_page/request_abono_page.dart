@@ -7,7 +7,9 @@ import 'package:flutter_application_appdeponto/blocs/justificativa/justificativa
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
 import 'package:flutter_application_appdeponto/widgets/custom_snackbar.dart';
-import 'envio_declaracao_page.dart';
+import 'abono_consulta_page.dart';
+import 'abono_horario_page.dart';
+import 'abono_pdf_page.dart';
 
 class RequestAbonoPage extends StatefulWidget {
   final String? diaId;
@@ -29,6 +31,15 @@ class _RequestAbonoPageState extends State<RequestAbonoPage> {
     'Folga',
     'Outros',
   ];
+
+  // Motivos que creditam o dia inteiro (ponto facultativo) na aprovação
+  static const _fullDayReasons = {
+    'Falecimento de parente',
+    'Vestibular',
+    'Curso',
+    'Folga',
+    'Outros',
+  };
 
   String? _selectedReason;
   final TextEditingController _otherReasonController = TextEditingController();
@@ -63,6 +74,7 @@ class _RequestAbonoPageState extends State<RequestAbonoPage> {
           SubmitJustificativaEvent(
             diaId: DateFormat('yyyy-MM-dd').format(date),
             justificativa: reason,
+            isFullDayAbono: _fullDayReasons.contains(_selectedReason),
           ),
         );
   }
@@ -134,13 +146,36 @@ class _RequestAbonoPageState extends State<RequestAbonoPage> {
                         context,
                         MaterialPageRoute(
                           builder: (context) =>
-                              EnvioDeclaracaoPage(diaId: widget.diaId),
+                              AbonoConsultaPage(diaId: widget.diaId),
+                        ),
+                      );
+                    } else if (value == 'Doação de sangue') {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => AbonoPdfPage(
+                            diaId: widget.diaId,
+                            motivo: 'Doação de sangue',
+                            titulo: 'Doação de Sangue',
+                            icone: Icons.bloodtype_outlined,
+                            isFullDayAbono: true,
+                          ),
+                        ),
+                      );
+                    } else if (value == 'Aula') {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => AbonoHorarioPage(
+                            diaId: widget.diaId,
+                            motivo: 'Aula',
+                            titulo: 'Abono de Aula',
+                            icone: Icons.school_outlined,
+                          ),
                         ),
                       );
                     } else {
-                      setState(() {
-                        _selectedReason = value;
-                      });
+                      setState(() => _selectedReason = value);
                     }
                   },
                   title: Text(reason, style: AppTextStyles.bodyMedium),

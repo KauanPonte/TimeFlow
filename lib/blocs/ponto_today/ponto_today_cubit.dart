@@ -169,8 +169,12 @@ class PontoTodayCubit extends Cubit<PontoTodayState> {
     }).catchError((_) {});
   }
 
-  /// Recalcula o saldo acumulado total em background.
-  void _updateBalanceInBackground() {
+  /// Recalcula o saldo acumulado total em background e atualiza o estado.
+  void _updateBalanceInBackground() => recalculateBalance();
+
+  /// Recalcula o saldo acumulado em background e atualiza o estado.
+  /// Pode ser chamado externamente após edições de admin.
+  void recalculateBalance() {
     PontoService.calcularSaldoAcumuladoTotal().then((saldoMinutes) {
       if (!isClosed) {
         emit(state.copyWith(monthBalance: saldoMinutes.toDouble()));

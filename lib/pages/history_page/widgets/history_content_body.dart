@@ -217,6 +217,11 @@ class HistoryContentBody extends StatelessWidget {
                 onSaved: onAdminJustificativasReloaded,
               )
           : null,
+      onDeleteJustificativa: justificativa != null
+          ? () => context.read<JustificativaBloc>().add(
+                DeleteJustificativaEvent(justificativa.id),
+              )
+          : null,
       onRequestSolicitation: !isAdmin
           ? () => _showSolicitationDialog(context, diaId, eventos)
           : null,

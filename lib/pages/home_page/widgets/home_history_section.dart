@@ -5,6 +5,7 @@ import 'package:flutter_application_appdeponto/services/ponto_service.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/ponto_history/ponto_history_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/ponto_history/ponto_history_state.dart';
+import 'package:flutter_application_appdeponto/blocs/ponto_today/ponto_today_cubit.dart';
 import 'package:flutter_application_appdeponto/blocs/justificativa/justificativa_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/justificativa/justificativa_event.dart';
 import 'package:flutter_application_appdeponto/blocs/justificativa/justificativa_state.dart';
@@ -372,6 +373,7 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
                       uid, widget.currentMonth);
                   _loadMesResumo();
                 }
+                context.read<PontoTodayCubit>().recalculateBalance();
                 CustomSnackbar.showSuccess(context, state.message);
                 widget.onActionSuccess();
               } else if (state is PontoHistoryActionError) {
@@ -529,6 +531,12 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
                   onRequestSolicitation: null,
                   onCancelSolicitation: (!widget.isAdmin)
                       ? (solId) => _confirmCancelSolicitation(solId)
+                      : null,
+                  onDeleteJustificativa: justificativasMap[diaId] != null
+                      ? () => context.read<JustificativaBloc>().add(
+                            DeleteJustificativaEvent(
+                                justificativasMap[diaId]!.id),
+                          )
                       : null,
                   onOpenDayActions: !_isWeekend(diaId)
                       ? () => _showDayActionsBottomSheet(
@@ -767,12 +775,19 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
                   title: 'Editar batidas',
                   onTap: () {
                     Navigator.pop(context);
-                    if (widget.uid != null) {
+                    if (widget.isAdmin && widget.uid != null) {
                       showBatchEditDayDialog(
                         context: context,
                         uid: widget.uid!,
                         diaId: diaId,
                         eventos: eventos,
+                      );
+                    } else {
+                      _showSolicitationDialog(
+                        context,
+                        diaId,
+                        eventos,
+                        daySolicitations,
                       );
                     }
                   },
