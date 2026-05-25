@@ -37,19 +37,48 @@ class _TimePickerDialogState extends State<_TimePickerDialog> {
   late int _hour;
   late int _minute;
   bool _selectingHour = true;
+  bool _editingHour = false;
+  bool _editingMinute = false;
+  late final TextEditingController _hourController;
+  late final TextEditingController _minuteController;
+  late final FocusNode _hourFocus;
+  late final FocusNode _minuteFocus;
 
   @override
   void initState() {
     super.initState();
     _hour = widget.initialTime.hour;
     _minute = widget.initialTime.minute;
+    _hourController = TextEditingController(text: _hStr);
+    _minuteController = TextEditingController(text: _mStr);
+    _hourFocus = FocusNode();
+    _minuteFocus = FocusNode();
+  }
+
+  @override
+  void dispose() {
+    _hourController.dispose();
+    _minuteController.dispose();
+    _hourFocus.dispose();
+    _minuteFocus.dispose();
+    super.dispose();
   }
 
   String get _hStr => _hour.toString().padLeft(2, '0');
   String get _mStr => _minute.toString().padLeft(2, '0');
 
+  void _syncControllers() {
+    if (!_editingHour && _hourController.text != _hStr) {
+      _hourController.text = _hStr;
+    }
+    if (!_editingMinute && _minuteController.text != _mStr) {
+      _minuteController.text = _mStr;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    _syncControllers();
     return Dialog(
       backgroundColor: Colors.transparent,
       elevation: 0,
@@ -120,7 +149,13 @@ class _TimePickerDialogState extends State<_TimePickerDialog> {
                 text: _hStr,
                 label: 'HORA',
                 active: _selectingHour,
-                onTap: () => setState(() => _selectingHour = true),
+                controller: _hourController,
+                focusNode: _hourFocus,
+                editing: _editingHour,
+                maxValue: 23,
+                onTap: _startHourEditing,
+                onChanged: _updateHourFromInput,
+                onSubmitted: _finishHourEditing,
               ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 6),
@@ -138,13 +173,80 @@ class _TimePickerDialogState extends State<_TimePickerDialog> {
                 text: _mStr,
                 label: 'MIN',
                 active: !_selectingHour,
-                onTap: () => setState(() => _selectingHour = false),
+                controller: _minuteController,
+                focusNode: _minuteFocus,
+                editing: _editingMinute,
+                maxValue: 59,
+                onTap: _startMinuteEditing,
+                onChanged: _updateMinuteFromInput,
+                onSubmitted: _finishMinuteEditing,
               ),
             ],
           ),
         ],
       ),
     );
+  }
+
+  void _startHourEditing() {
+    setState(() {
+      _selectingHour = true;
+      _editingHour = true;
+      _editingMinute = false;
+      _hourController.text = _hStr;
+      _hourController.selection = TextSelection(
+        baseOffset: 0,
+        extentOffset: _hourController.text.length,
+      );
+    });
+    _hourFocus.requestFocus();
+  }
+
+  void _startMinuteEditing() {
+    setState(() {
+      _selectingHour = false;
+      _editingMinute = true;
+      _editingHour = false;
+      _minuteController.text = _mStr;
+      _minuteController.selection = TextSelection(
+        baseOffset: 0,
+        extentOffset: _minuteController.text.length,
+      );
+    });
+    _minuteFocus.requestFocus();
+  }
+
+  void _updateHourFromInput(String value) {
+    final parsed = int.tryParse(value);
+    if (parsed == null) return;
+    setState(() => _hour = parsed.clamp(0, 23));
+  }
+
+  void _updateMinuteFromInput(String value) {
+    final parsed = int.tryParse(value);
+    if (parsed == null) return;
+    setState(() => _minute = parsed.clamp(0, 59));
+  }
+
+  void _finishHourEditing() {
+    final parsed = int.tryParse(_hourController.text);
+    setState(() {
+      if (parsed != null) _hour = parsed.clamp(0, 23);
+      _editingHour = false;
+      _hourController.text = _hStr;
+      _selectingHour = false;
+    });
+    _hourFocus.unfocus();
+  }
+
+  void _finishMinuteEditing() {
+    final parsed = int.tryParse(_minuteController.text);
+    setState(() {
+      if (parsed != null) _minute = parsed.clamp(0, 59);
+      _editingMinute = false;
+      _minuteController.text = _mStr;
+    });
+    _minuteFocus.unfocus();
   }
 
   // Clock
@@ -242,13 +344,25 @@ class _HeaderUnit extends StatelessWidget {
   final String text;
   final String label;
   final bool active;
+  final TextEditingController controller;
+  final FocusNode focusNode;
+  final bool editing;
+  final int maxValue;
   final VoidCallback onTap;
+  final ValueChanged<String> onChanged;
+  final VoidCallback onSubmitted;
 
   const _HeaderUnit({
     required this.text,
     required this.label,
     required this.active,
+    required this.controller,
+    required this.focusNode,
+    required this.editing,
+    required this.maxValue,
     required this.onTap,
+    required this.onChanged,
+    required this.onSubmitted,
   });
 
   @override
@@ -267,16 +381,48 @@ class _HeaderUnit extends StatelessWidget {
                   : Colors.transparent,
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Text(
-              text,
-              style: TextStyle(
-                fontSize: 46,
-                fontWeight: FontWeight.w300,
-                color: active
-                    ? Colors.white
-                    : Colors.white.withValues(alpha: 0.45),
-                height: 1,
-              ),
+            child: SizedBox(
+              width: 64,
+              child: editing
+                  ? TextField(
+                      controller: controller,
+                      focusNode: focusNode,
+                      autofocus: true,
+                      textAlign: TextAlign.center,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        LengthLimitingTextInputFormatter(2),
+                      ],
+                      style: const TextStyle(
+                        fontSize: 46,
+                        fontWeight: FontWeight.w300,
+                        color: Colors.white,
+                        height: 1,
+                      ),
+                      decoration: const InputDecoration(
+                        isDense: true,
+                        border: InputBorder.none,
+                        counterText: '',
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                      cursorColor: Colors.white,
+                      onChanged: onChanged,
+                      onSubmitted: (_) => onSubmitted(),
+                      onEditingComplete: onSubmitted,
+                    )
+                  : Text(
+                      text,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 46,
+                        fontWeight: FontWeight.w300,
+                        color: active
+                            ? Colors.white
+                            : Colors.white.withValues(alpha: 0.45),
+                        height: 1,
+                      ),
+                    ),
             ),
           ),
           const SizedBox(height: 4),

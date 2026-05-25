@@ -39,9 +39,25 @@ class _CreateUserViewState extends State<CreateUserView> {
   final _confirmPasswordController = TextEditingController();
   final TextEditingController _cargaHorariaController = TextEditingController();
   final _roleController = TextEditingController();
+  final _project1Controller = TextEditingController();
+  final _project2Controller = TextEditingController();
 
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  String _contractType = '';
+  String _projectType = '';
+  String _selectedBolsistaHour = '4';
+  final List<String> _selectedWorkDays = [];
+
+  static const List<Map<String, String>> _weekDayOptions = [
+    {'label': 'D', 'value': 'Dom'},
+    {'label': 'S', 'value': 'Seg'},
+    {'label': 'T', 'value': 'Ter'},
+    {'label': 'Q', 'value': 'Qua'},
+    {'label': 'Q', 'value': 'Qui'},
+    {'label': 'S', 'value': 'Sex'},
+    {'label': 'S', 'value': 'Sab'},
+  ];
 
   @override
   void dispose() {
@@ -51,7 +67,69 @@ class _CreateUserViewState extends State<CreateUserView> {
     _confirmPasswordController.dispose();
     _cargaHorariaController.dispose();
     _roleController.dispose();
+    _project1Controller.dispose();
+    _project2Controller.dispose();
     super.dispose();
+  }
+
+  void _setContractType(String type) {
+    setState(() {
+      _contractType = type;
+      if (type == 'CLT') {
+        _selectedBolsistaHour = '8';
+        _cargaHorariaController.text = '8';
+        _selectedWorkDays.clear();
+        _projectType = '';
+        _project1Controller.clear();
+        _project2Controller.clear();
+      } else {
+        _selectedBolsistaHour = '4';
+        _cargaHorariaController.text = '4';
+      }
+    });
+    context.read<CreateUserBloc>().add(
+          ValidateFieldEvent(fieldName: 'contractType', value: type),
+        );
+    if (_contractType == 'Bolsista') {
+      _validateSelectedWorkDays();
+    }
+  }
+
+  void _setBolsistaHour(String hours) {
+    setState(() {
+      _selectedBolsistaHour = hours;
+      _cargaHorariaController.text = hours;
+    });
+  }
+
+  void _toggleWorkDay(String day) {
+    setState(() {
+      if (_selectedWorkDays.contains(day)) {
+        _selectedWorkDays.remove(day);
+      } else {
+        _selectedWorkDays.add(day);
+      }
+    });
+    _validateSelectedWorkDays();
+  }
+
+  void _validateSelectedWorkDays() {
+    final value = _selectedWorkDays.join(',');
+    context.read<CreateUserBloc>().add(
+          ValidateFieldEvent(fieldName: 'workDays', value: value),
+        );
+  }
+
+  String _getSelectedSchedule() {
+    if (_selectedWorkDays.isEmpty) return '';
+
+    final orderedDays = _weekDayOptions
+        .where((option) => _selectedWorkDays.contains(option['value']))
+        .map((option) => option['value']!)
+        .toList();
+
+    if (orderedDays.isEmpty) return '';
+    return 'A cada ${orderedDays.join(', ')}';
   }
 
   void _submitForm() {
@@ -63,6 +141,11 @@ class _CreateUserViewState extends State<CreateUserView> {
             confirmPassword: _confirmPasswordController.text,
             cargaHoraria: _cargaHorariaController.text,
             role: _roleController.text,
+            contractType: _contractType,
+            workDays: List.unmodifiable(_selectedWorkDays),
+            projectType: _projectType,
+            project1: _project1Controller.text,
+            project2: _project2Controller.text,
           ),
         );
   }
@@ -251,11 +334,15 @@ class _CreateUserViewState extends State<CreateUserView> {
                     prefixIcon: Icons.access_time_outlined,
                     errorText: formState?.cargaHorariaError,
                     isValid: formState?.cargaHorariaValid ?? false,
-                    onChanged: (value) {
-                       context.read<CreateUserBloc>().add(
-                         ValidateFieldEvent(fieldName: 'cargaHoraria', value: value),
-                       );
-                     },
+                    readOnly: _contractType.isNotEmpty,
+                    onChanged: _contractType.isEmpty
+                        ? (value) {
+                            context.read<CreateUserBloc>().add(
+                                  ValidateFieldEvent(
+                                      fieldName: 'cargaHoraria', value: value),
+                                );
+                          }
+                        : null,
                   ),
                   const SizedBox(height: 8),
 
@@ -270,7 +357,6 @@ class _CreateUserViewState extends State<CreateUserView> {
                     ),
                   ),
                   const SizedBox(height: 16),
-
 
                   CustomTextField(
                     controller: _roleController,
@@ -296,6 +382,236 @@ class _CreateUserViewState extends State<CreateUserView> {
                       ),
                     ),
                   ),
+                  const SizedBox(height: 24),
+
+                  Text(
+                    'Tipo de Contrato',
+                    style: AppTextStyles.bodyMedium.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          style: OutlinedButton.styleFrom(
+                            backgroundColor: _contractType == 'CLT'
+                                ? const Color(0xFF3F51B5)
+                                : const Color(0xFF7C8CFF),
+                            foregroundColor: Colors.white,
+                            side: BorderSide.none,
+                          ),
+                          onPressed: () => _setContractType('CLT'),
+                          child: Text(
+                            'CLT',
+                            style: AppTextStyles.bodyMedium.copyWith(
+                              color: Colors.white,
+                              fontWeight: _contractType == 'CLT'
+                                  ? FontWeight.w700
+                                  : FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: OutlinedButton(
+                          style: OutlinedButton.styleFrom(
+                            backgroundColor: _contractType == 'Bolsista'
+                                ? const Color(0xFF3F51B5)
+                                : const Color(0xFF7C8CFF),
+                            foregroundColor: Colors.white,
+                            side: BorderSide.none,
+                          ),
+                          onPressed: () => _setContractType('Bolsista'),
+                          child: Text(
+                            'Bolsista',
+                            style: AppTextStyles.bodyMedium.copyWith(
+                              color: Colors.white,
+                              fontWeight: _contractType == 'Bolsista'
+                                  ? FontWeight.w700
+                                  : FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (formState?.contractTypeError != null) ...[
+                    const SizedBox(height: 8),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 4),
+                      child: Text(
+                        formState!.contractTypeError!,
+                        style: AppTextStyles.bodySmall.copyWith(
+                          color: AppColors.error,
+                        ),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 16),
+
+                  if (_contractType == 'Bolsista') ...[
+                    Text(
+                      'Carga horária bolsista',
+                      style: AppTextStyles.bodyMedium.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: ['4', '6', '8'].map((hour) {
+                        final selected = _selectedBolsistaHour == hour;
+                        return Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                            child: OutlinedButton(
+                              style: OutlinedButton.styleFrom(
+                                backgroundColor: selected
+                                    ? const Color(0xFF3F51B5)
+                                    : const Color(0xFF7C8CFF),
+                                foregroundColor: Colors.white,
+                                side: BorderSide.none,
+                              ),
+                              onPressed: () => _setBolsistaHour(hour),
+                              child: Text(
+                                '$hour hrs',
+                                style: AppTextStyles.bodyMedium.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: selected
+                                      ? FontWeight.w700
+                                      : FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 24),
+                    Text(
+                      'Dias de trabalho',
+                      style: AppTextStyles.bodyMedium.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: _weekDayOptions.map((option) {
+                        final selected =
+                            _selectedWorkDays.contains(option['value']);
+                        return ChoiceChip(
+                          label: Text(
+                            option['label']!,
+                            style: AppTextStyles.bodySmall.copyWith(
+                              fontWeight:
+                                  selected ? FontWeight.w700 : FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                          ),
+                          selected: selected,
+                          onSelected: (_) => _toggleWorkDay(option['value']!),
+                          selectedColor: const Color(0xFF3F51B5),
+                          backgroundColor: const Color(0xFF7C8CFF),
+                        );
+                      }).toList(),
+                    ),
+                    if (_getSelectedSchedule().isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      Padding(
+                        padding: const EdgeInsets.only(left: 4),
+                        child: Text(
+                          _getSelectedSchedule(),
+                          style: AppTextStyles.bodySmall.copyWith(
+                            color: AppColors.textSecondary,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                      ),
+                    ],
+                    if (formState?.workDaysError != null) ...[
+                      const SizedBox(height: 8),
+                      Padding(
+                        padding: const EdgeInsets.only(left: 4),
+                        child: Text(
+                          formState!.workDaysError!,
+                          style: AppTextStyles.bodySmall.copyWith(
+                            color: AppColors.error,
+                          ),
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 24),
+                    Text(
+                      'Projetos',
+                      style: AppTextStyles.bodyMedium.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: ['LAPADA', 'IRACEMA'].map((type) {
+                        final selected = _projectType == type;
+                        return Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                            child: OutlinedButton(
+                              style: OutlinedButton.styleFrom(
+                                backgroundColor: selected
+                                    ? const Color(0xFF3F51B5)
+                                    : const Color(0xFF7C8CFF),
+                                foregroundColor: Colors.white,
+                                side: BorderSide.none,
+                              ),
+                              onPressed: () {
+                                setState(() => _projectType = type);
+                              },
+                              child: Text(
+                                type,
+                                style: AppTextStyles.bodyMedium.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: selected
+                                      ? FontWeight.w700
+                                      : FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 16),
+                    CustomTextField(
+                      controller: _project1Controller,
+                      labelText: 'Projeto 1',
+                      prefixIcon: Icons.work_outline,
+                    ),
+                    const SizedBox(height: 16),
+                    CustomTextField(
+                      controller: _project2Controller,
+                      labelText: 'Projeto 2',
+                      prefixIcon: Icons.work_outline,
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+
+                  /*Padding(
+                    padding: const EdgeInsets.only(left: 16),
+                    child: Text(
+                      'Ex: Funcionário, Gerente, Administrador',
+                      style: AppTextStyles.bodySmall.copyWith(
+                        color: AppColors.textSecondary,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ),*/
                   const SizedBox(height: 32),
 
                   // Action Buttons

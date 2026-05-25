@@ -9,6 +9,7 @@ import 'package:flutter_application_appdeponto/blocs/justificativa/justificativa
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
 import 'package:flutter_application_appdeponto/widgets/custom_snackbar.dart';
+import 'package:flutter_application_appdeponto/widgets/time_picker.dart';
 
 class EnvioDeclaracaoPage extends StatefulWidget {
   final String? diaId;
@@ -59,23 +60,7 @@ class _EnvioDeclaracaoPageState extends State<EnvioDeclaracaoPage> {
     final initial = isInicio
         ? (_horaInicio ?? TimeOfDay.now())
         : (_horaFim ?? _horaInicio ?? TimeOfDay.now());
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: initial,
-      builder: (context, child) {
-        return Theme(
-          data: ThemeData.light().copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: AppColors.primary,
-              onPrimary: Colors.white,
-              surface: Colors.white,
-              onSurface: AppColors.textPrimary,
-            ),
-          ),
-          child: child!,
-        );
-      },
-    );
+    final picked = await showTimePicker24h(context, initial);
 
     if (picked != null) {
       setState(() {
@@ -109,7 +94,7 @@ class _EnvioDeclaracaoPageState extends State<EnvioDeclaracaoPage> {
         : DateTime.now();
     if (date == null) return;
 
-    final justificativa = 'Consulta médica - Declaração anexada';
+    const justificativa = 'Consulta médica - Declaração anexada';
 
     context.read<JustificativaBloc>().add(
           SubmitJustificativaEvent(

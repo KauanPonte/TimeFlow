@@ -1,6 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_application_appdeponto/services/ponto_service.dart';
 import 'package:flutter_application_appdeponto/services/server_time_service.dart';
+import 'package:flutter_application_appdeponto/services/analytics_service.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../blocs/global_loading/global_loading_cubit.dart';
 import '../../blocs/ponto_today/ponto_today_cubit.dart';
@@ -149,6 +152,11 @@ class _PontoPageState extends State<PontoPage> {
               return;
           }
           NotificationService.showInstantNotification(title: title, body: body);
+          unawaited(AnalyticsService.logPointEntry(
+            userId: FirebaseAuth.instance.currentUser?.uid ?? 'unknown',
+            type: status,
+            workMode: workMode,
+          ));
         } else if (pontoResult.message.isNotEmpty) {
           CustomSnackbar.showError(context, pontoResult.message);
         }

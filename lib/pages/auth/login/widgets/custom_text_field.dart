@@ -16,6 +16,7 @@ class CustomTextField extends StatelessWidget {
   final TextInputAction? textInputAction;
   final Function(String)? onFieldSubmitted;
   final List<TextInputFormatter>? inputFormatters;
+  final bool readOnly;
 
   const CustomTextField({
     super.key,
@@ -32,6 +33,7 @@ class CustomTextField extends StatelessWidget {
     this.textInputAction,
     this.onFieldSubmitted,
     this.inputFormatters,
+    this.readOnly = false,
   });
 
   @override
@@ -54,6 +56,7 @@ class CustomTextField extends StatelessWidget {
       obscureText: obscureText,
       keyboardType: keyboardType,
       textInputAction: textInputAction,
+      readOnly: readOnly,
       onSubmitted: onFieldSubmitted,
       onChanged: onChanged,
       inputFormatters: inputFormatters,

@@ -1,16 +1,17 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_application_appdeponto/blocs/user_management/user_management_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/user_management/user_management_event.dart';
 import 'package:flutter_application_appdeponto/blocs/user_management/user_management_state.dart';
+import 'package:flutter_application_appdeponto/pages/admin/relatorios/user_report_page.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
-import 'package:flutter_application_appdeponto/pages/history_page/history_page.dart';
+import 'package:flutter_application_appdeponto/services/analytics_service.dart';
 import '../user_card.dart';
 import '../empty_users_state.dart';
 import '../error_loading_state.dart';
-import '../dialogs/edit_user_dialog.dart';
-import '../dialogs/delete_user_dialog.dart';
 
 class RegisteredUsersTab extends StatefulWidget {
   const RegisteredUsersTab({super.key});
@@ -25,8 +26,6 @@ class _RegisteredUsersTabState extends State<RegisteredUsersTab>
   List<Map<String, dynamic>>? _cachedUsers;
   String _cachedSearchQuery = '';
   String? _currentUid;
-  TabController? _tabController;
-  String _selectedGroupFilter = 'all';
 
   @override
   bool get wantKeepAlive => true;
@@ -35,7 +34,7 @@ class _RegisteredUsersTabState extends State<RegisteredUsersTab>
   void initState() {
     super.initState();
     _loadCurrentUid();
-    // Carrega os usuários apenas se ainda não foram carregados
+    // Carrega os usuarios apenas se ainda nao foram carregados
     final currentState = context.read<UserManagementBloc>().state;
     if (currentState is! UsersLoaded) {
       context.read<UserManagementBloc>().add(const LoadUsersEvent());
@@ -43,28 +42,10 @@ class _RegisteredUsersTabState extends State<RegisteredUsersTab>
       _cachedUsers = currentState.users;
       _cachedSearchQuery = currentState.searchQuery;
     }
-    // Escuta mudanças de aba para recarregar dados quando necessário
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _tabController = DefaultTabController.of(context);
-      _tabController?.addListener(_onTabChanged);
-    });
-  }
-
-  void _onTabChanged() {
-    if (!mounted) return;
-    // Verifica sempre que o index é 0, inclusive durante arrastos parciais
-    if (_tabController?.index == 0) {
-      final currentState = context.read<UserManagementBloc>().state;
-      if (currentState is! UsersLoaded &&
-          currentState is! UserManagementLoading) {
-        context.read<UserManagementBloc>().add(const LoadUsersEvent());
-      }
-    }
   }
 
   @override
   void dispose() {
-    _tabController?.removeListener(_onTabChanged);
     _searchController.dispose();
     super.dispose();
   }
@@ -73,12 +54,14 @@ class _RegisteredUsersTabState extends State<RegisteredUsersTab>
     final prefs = await SharedPreferences.getInstance();
     final currentUid = prefs.getString('userUid');
     if (!mounted) return;
-    setState(() => _currentUid = currentUid);
+    setState(() {
+      _currentUid = currentUid;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    super.build(context); // Necessário para AutomaticKeepAliveClientMixin
+    super.build(context); // Necessario para AutomaticKeepAliveClientMixin
     return BlocBuilder<UserManagementBloc, UserManagementState>(
       builder: (context, state) {
         // Atualiza cache quando recebe UsersLoaded
@@ -102,7 +85,7 @@ class _RegisteredUsersTabState extends State<RegisteredUsersTab>
           );
         }
 
-        // Usa cache se o estado não for UsersLoaded mas tivermos dados
+        // Usa cache se o estado nao for UsersLoaded mas tivermos dados
         final users = state is UsersLoaded ? state.users : _cachedUsers;
         final searchQuery =
             state is UsersLoaded ? state.searchQuery : _cachedSearchQuery;
@@ -164,27 +147,6 @@ class _RegisteredUsersTabState extends State<RegisteredUsersTab>
               ),
             ),
 
-            // Group Filter Chips
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                physics: const BouncingScrollPhysics(),
-                child: Row(
-                  children: [
-                    _buildFilterChip('all', 'Todos'),
-                    const SizedBox(width: 8),
-                    _buildFilterChip('presencial', 'Presencial'),
-                    const SizedBox(width: 8),
-                    _buildFilterChip('remoto', 'Remoto'),
-                    const SizedBox(width: 8),
-                    _buildFilterChip('not_punched', 'Não bateram'),
-                  ],
-                ),
-              ),
-            ),
-
             // User List
             Expanded(
               child: usersNonNull.isEmpty
@@ -233,25 +195,10 @@ class _RegisteredUsersTabState extends State<RegisteredUsersTab>
                               return UserCard(
                                 user: user,
                                 isCurrentUser: user['id'] == _currentUid,
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => HistoryPage(
-                                        targetUid: user['id'],
-                                        targetName: user['name'],
-                                        targetProfileImage:
-                                            user['profileImage'] ??
-                                                user['profileImageURL'],
-                                      ),
-                                    ),
-                                  );
-                                },
-                                onEdit: () => _showEditUserDialog(user),
-                                onDelete: () => _showDeleteUserDialog(
-                                  user['id'],
-                                  user['name'],
-                                ),
+                                onTap: () => _openUserReport(user),
+                                onEdit: () {},
+                                onDelete: () {},
+                                showActions: false,
                               );
                             },
                           ),
@@ -259,31 +206,6 @@ class _RegisteredUsersTabState extends State<RegisteredUsersTab>
             ),
           ],
         );
-      },
-    );
-  }
-
-  Widget _buildFilterChip(String value, String label) {
-    return ChoiceChip(
-      label: Text(label),
-      selected: _selectedGroupFilter == value,
-      selectedColor: AppColors.primary,
-      backgroundColor: AppColors.surface,
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      visualDensity: VisualDensity.compact,
-      labelStyle: TextStyle(
-        fontSize: 12,
-        color: _selectedGroupFilter == value
-            ? AppColors.surface
-            : AppColors.textSecondary,
-        fontWeight: FontWeight.w600,
-      ),
-      checkmarkColor: AppColors.surface,
-      onSelected: (selected) {
-        if (!selected) return;
-        setState(() {
-          _selectedGroupFilter = value;
-        });
       },
     );
   }
@@ -304,59 +226,20 @@ class _RegisteredUsersTabState extends State<RegisteredUsersTab>
                 role.contains(query);
           }).toList();
 
-    if (_selectedGroupFilter == 'all') return searchFiltered;
-
-    return searchFiltered.where((user) {
-      final workMode = user['todayWorkMode']?.toString().toLowerCase() ?? '';
-      final didPunch = user['didPunchToday'] == true;
-
-      if (_selectedGroupFilter == 'presencial') {
-        return didPunch && workMode == 'presencial';
-      }
-      if (_selectedGroupFilter == 'remoto') {
-        return didPunch && workMode == 'remoto';
-      }
-      if (_selectedGroupFilter == 'not_punched') {
-        return !didPunch;
-      }
-      return true;
-    }).toList();
+    return searchFiltered;
   }
 
-  Future<void> _showEditUserDialog(Map<String, dynamic> user) async {
-    final bloc = context.read<UserManagementBloc>();
-    await showDialog(
-      context: context,
-      builder: (_) => EditUserDialog(
-        userName: user['name'] as String,
-        currentRole: user['role'] as String,
-        currentWorkloadMinutes: user['workloadMinutes'] as int?,
-        onSave: (newRole, workloadMinutes) {
-          bloc.add(UpdateUserProfileEvent(
-            userId: user['id'] as String,
-            userName: user['name'] as String,
-            newRole: newRole,
-            workloadMinutes: workloadMinutes,
-          ));
-        },
-      ),
-    );
-  }
+  Future<void> _openUserReport(Map<String, dynamic> user) async {
+    final userId = user['id']?.toString() ?? '';
 
-  Future<void> _showDeleteUserDialog(String userId, String userName) async {
-    final bloc = context.read<UserManagementBloc>();
-    await showDialog(
-      context: context,
-      builder: (_) => DeleteUserDialog(
-        userName: userName,
-        onConfirm: () {
-          bloc.add(
-            DeleteUserEvent(
-              userId: userId,
-              userName: userName,
-            ),
-          );
-        },
+    unawaited(AnalyticsService.logAdminOpenUserReport(
+      userId: userId,
+      adminUid: _currentUid,
+    ));
+
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => UserReportPage(user: user),
       ),
     );
   }

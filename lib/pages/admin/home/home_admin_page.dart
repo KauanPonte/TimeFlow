@@ -22,8 +22,8 @@ import 'package:flutter_application_appdeponto/widgets/main_app_bar.dart';
 import 'widgets/admin_welcome_card.dart';
 import 'widgets/admin_stat_card.dart';
 import 'widgets/admin_menu_item.dart';
-import '../users_management/users_management_page.dart';
-import '../create_user/create_user_page.dart';
+import '../cadastros/cadastros_page.dart';
+import '../controle_ponto/controle_ponto_page.dart';
 
 class HomeAdminPage extends StatelessWidget {
   final String employeeName;
@@ -252,13 +252,31 @@ class _HomeAdminViewState extends State<HomeAdminView> {
 
                   // Menu Items
                   AdminMenuItem(
+                    icon: Icons.schedule,
+                    title: 'Gestão de Ponto',
+                    onTap: () async {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ControlePontoPage(),
+                        ),
+                      );
+                      if (context.mounted) {
+                        context
+                            .read<AdminHomeBloc>()
+                            .add(const RefreshAdminStatsEvent());
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  AdminMenuItem(
                     icon: Icons.person_add,
-                    title: 'Cadastrar Usuário',
+                    title: 'Cadastros',
                     onTap: () async {
                       final result = await Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const CreateUserPage(),
+                          builder: (context) => const CadastrosPage(),
                         ),
                       );
                       if (result == true && context.mounted) {
@@ -270,21 +288,10 @@ class _HomeAdminViewState extends State<HomeAdminView> {
                   ),
                   const SizedBox(height: 8),
                   AdminMenuItem(
-                    icon: Icons.group,
-                    title: 'Gerenciar Usuários',
-                    onTap: () async {
-                      await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const UsersManagementPage(),
-                        ),
-                      );
-                      // Recarrega stats quando voltar
-                      if (context.mounted) {
-                        context
-                            .read<AdminHomeBloc>()
-                            .add(const RefreshAdminStatsEvent());
-                      }
+                    icon: Icons.assessment,
+                    title: 'Relatórios',
+                    onTap: () {
+                      Navigator.pushNamed(context, '/admin/users');
                     },
                   ),
                 ],

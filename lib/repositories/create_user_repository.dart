@@ -31,6 +31,11 @@ class CreateUserRepository {
     required String password,
     required String cargaHoraria,
     required String role,
+    required String contractType,
+    required List<String> workDays,
+    required String projectType,
+    required String project1,
+    required String project2,
   }) async {
     FirebaseApp? secondaryApp;
 
@@ -63,6 +68,11 @@ class CreateUserRepository {
         'name': name.trim(),
         'workloadMinutes': workloadMinutes,
         'role': role.trim(),
+        'contractType': contractType,
+        'workDays': workDays,
+        'projectType': projectType,
+        'project1': project1.trim(),
+        'project2': project2.trim(),
         'status': 'active',
         'profileImage': '',
         'createdAt': FieldValue.serverTimestamp(),

@@ -11,6 +11,7 @@ class HistoryAppBar extends StatelessWidget implements PreferredSizeWidget {
   final Uint8List? profileBytes;
   final HistoryViewPreference viewPreference;
   final ValueChanged<HistoryViewPreference> onViewChanged;
+  final PreferredSizeWidget? bottom;
 
   const HistoryAppBar({
     super.key,
@@ -19,10 +20,14 @@ class HistoryAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.profileBytes,
     required this.viewPreference,
     required this.onViewChanged,
+    this.bottom,
   });
 
   @override
-  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
+  Size get preferredSize {
+    final bottomHeight = bottom?.preferredSize.height ?? 0.0;
+    return Size.fromHeight(kToolbarHeight + bottomHeight);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -78,6 +83,7 @@ class HistoryAppBar extends StatelessWidget implements PreferredSizeWidget {
           ),
         ],
       ),
+      bottom: bottom,
       actions: [
         HistoryViewModeIconButton(
           icon: Icons.view_agenda_outlined,
