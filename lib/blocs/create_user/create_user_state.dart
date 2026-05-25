@@ -20,6 +20,8 @@ class CreateUserFormState extends CreateUserState {
   final String? confirmPasswordError;
   final String? cargaHorariaError;
   final String? roleError;
+  final String? contractTypeError;
+  final String? workDaysError;
 
   final bool nameValid;
   final bool emailValid;
@@ -27,6 +29,8 @@ class CreateUserFormState extends CreateUserState {
   final bool confirmPasswordValid;
   final bool cargaHorariaValid;
   final bool roleValid;
+  final bool contractTypeValid;
+  final bool workDaysValid;
 
   const CreateUserFormState({
     this.nameError,
@@ -35,12 +39,16 @@ class CreateUserFormState extends CreateUserState {
     this.confirmPasswordError,
     this.cargaHorariaError,
     this.roleError,
+    this.contractTypeError,
+    this.workDaysError,
     this.nameValid = false,
     this.emailValid = false,
     this.passwordValid = false,
     this.confirmPasswordValid = false,
     this.cargaHorariaValid = false,
     this.roleValid = false,
+    this.contractTypeValid = false,
+    this.workDaysValid = true,
   });
 
   bool get isFormValid =>
@@ -49,7 +57,9 @@ class CreateUserFormState extends CreateUserState {
       passwordValid &&
       confirmPasswordValid &&
       cargaHorariaValid &&
-      roleValid;
+      roleValid &&
+      contractTypeValid &&
+      workDaysValid;
 
   @override
   List<Object?> get props => [
@@ -59,12 +69,16 @@ class CreateUserFormState extends CreateUserState {
         confirmPasswordError,
         cargaHorariaError,
         roleError,
+        contractTypeError,
+        workDaysError,
         nameValid,
         emailValid,
         passwordValid,
         confirmPasswordValid,
         cargaHorariaValid,
         roleValid,
+        contractTypeValid,
+        workDaysValid,
       ];
 
   CreateUserFormState copyWith({
@@ -74,39 +88,51 @@ class CreateUserFormState extends CreateUserState {
     String? confirmPasswordError,
     String? cargaHorariaError,
     String? roleError,
+    String? contractTypeError,
+    String? workDaysError,
     bool? nameValid,
     bool? emailValid,
     bool? passwordValid,
     bool? confirmPasswordValid,
     bool? cargaHorariaValid,
     bool? roleValid,
+    bool? contractTypeValid,
+    bool? workDaysValid,
     bool clearNameError = false,
     bool clearEmailError = false,
     bool clearPasswordError = false,
     bool clearConfirmPasswordError = false,
     bool clearCargaHorariaError = false,
     bool clearRoleError = false,
+    bool clearContractTypeError = false,
+    bool clearWorkDaysError = false,
   }) {
     return CreateUserFormState(
-    nameError: clearNameError ? null : (nameError ?? this.nameError),
-    nameValid: nameValid ?? this.nameValid,
-    emailError: clearEmailError ? null : (emailError ?? this.emailError),
-    emailValid: emailValid ?? this.emailValid,
-    passwordError:
-        clearPasswordError ? null : (passwordError ?? this.passwordError),
-    passwordValid: passwordValid ?? this.passwordValid,
-    confirmPasswordError: clearConfirmPasswordError
-        ? null
-        : (confirmPasswordError ?? this.confirmPasswordError),
-    confirmPasswordValid:
-        confirmPasswordValid ?? this.confirmPasswordValid,
-    cargaHorariaError: clearCargaHorariaError
-        ? null
-        : (cargaHorariaError ?? this.cargaHorariaError),
-    cargaHorariaValid: cargaHorariaValid ?? this.cargaHorariaValid,
-    roleError: clearRoleError ? null : (roleError ?? this.roleError),
-    roleValid: roleValid ?? this.roleValid,
-  );
+      nameError: clearNameError ? null : (nameError ?? this.nameError),
+      nameValid: nameValid ?? this.nameValid,
+      emailError: clearEmailError ? null : (emailError ?? this.emailError),
+      emailValid: emailValid ?? this.emailValid,
+      passwordError:
+          clearPasswordError ? null : (passwordError ?? this.passwordError),
+      passwordValid: passwordValid ?? this.passwordValid,
+      confirmPasswordError: clearConfirmPasswordError
+          ? null
+          : (confirmPasswordError ?? this.confirmPasswordError),
+      confirmPasswordValid: confirmPasswordValid ?? this.confirmPasswordValid,
+      cargaHorariaError: clearCargaHorariaError
+          ? null
+          : (cargaHorariaError ?? this.cargaHorariaError),
+      cargaHorariaValid: cargaHorariaValid ?? this.cargaHorariaValid,
+      roleError: clearRoleError ? null : (roleError ?? this.roleError),
+      roleValid: roleValid ?? this.roleValid,
+      contractTypeError: clearContractTypeError
+          ? null
+          : (contractTypeError ?? this.contractTypeError),
+      contractTypeValid: contractTypeValid ?? this.contractTypeValid,
+      workDaysError:
+          clearWorkDaysError ? null : (workDaysError ?? this.workDaysError),
+      workDaysValid: workDaysValid ?? this.workDaysValid,
+    );
   }
 }
 

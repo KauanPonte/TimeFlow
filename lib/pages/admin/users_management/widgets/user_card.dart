@@ -11,6 +11,7 @@ class UserCard extends StatelessWidget {
   final VoidCallback onEdit;
   final VoidCallback onDelete;
   final VoidCallback? onTap;
+  final bool showActions;
 
   const UserCard({
     super.key,
@@ -19,6 +20,7 @@ class UserCard extends StatelessWidget {
     required this.onEdit,
     required this.onDelete,
     this.onTap,
+    this.showActions = true,
   });
 
   bool _isAdmin(String role) {
@@ -247,70 +249,71 @@ class UserCard extends StatelessWidget {
                     ),
 
                     // Actions Menu
-                    PopupMenuButton<String>(
-                      icon: const Icon(
-                        Icons.more_vert,
-                        size: 20,
-                        color: AppColors.textSecondary,
-                      ),
-                      constraints: const BoxConstraints(),
-                      style: IconButton.styleFrom(
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        minimumSize: Size.zero,
+                    if (showActions)
+                      PopupMenuButton<String>(
+                        icon: const Icon(
+                          Icons.more_vert,
+                          size: 20,
+                          color: AppColors.textSecondary,
+                        ),
+                        constraints: const BoxConstraints(),
+                        style: IconButton.styleFrom(
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          minimumSize: Size.zero,
+                          padding: EdgeInsets.zero,
+                        ),
                         padding: EdgeInsets.zero,
-                      ),
-                      padding: EdgeInsets.zero,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      itemBuilder: (context) {
-                        final items = <PopupMenuEntry<String>>[
-                          PopupMenuItem(
-                            child: const Row(
-                              children: [
-                                Icon(
-                                  Icons.manage_accounts_rounded,
-                                  size: 16,
-                                  color: AppColors.primary,
-                                ),
-                                SizedBox(width: 12),
-                                Text('Editar'),
-                              ],
-                            ),
-                            onTap: () {
-                              Future.delayed(Duration.zero, onEdit);
-                            },
-                          ),
-                        ];
-
-                        if (!isCurrentUser) {
-                          items.add(const PopupMenuDivider());
-                          items.add(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        itemBuilder: (context) {
+                          final items = <PopupMenuEntry<String>>[
                             PopupMenuItem(
                               child: const Row(
                                 children: [
                                   Icon(
-                                    Icons.delete,
+                                    Icons.manage_accounts_rounded,
                                     size: 16,
-                                    color: AppColors.error,
+                                    color: AppColors.primary,
                                   ),
                                   SizedBox(width: 12),
-                                  Text(
-                                    'Excluir',
-                                    style: TextStyle(color: AppColors.error),
-                                  ),
+                                  Text('Editar'),
                                 ],
                               ),
                               onTap: () {
-                                Future.delayed(Duration.zero, onDelete);
+                                Future.delayed(Duration.zero, onEdit);
                               },
                             ),
-                          );
-                        }
+                          ];
 
-                        return items;
-                      },
-                    ),
+                          if (!isCurrentUser) {
+                            items.add(const PopupMenuDivider());
+                            items.add(
+                              PopupMenuItem(
+                                child: const Row(
+                                  children: [
+                                    Icon(
+                                      Icons.delete,
+                                      size: 16,
+                                      color: AppColors.error,
+                                    ),
+                                    SizedBox(width: 12),
+                                    Text(
+                                      'Excluir',
+                                      style: TextStyle(color: AppColors.error),
+                                    ),
+                                  ],
+                                ),
+                                onTap: () {
+                                  Future.delayed(Duration.zero, onDelete);
+                                },
+                              ),
+                            );
+                          }
+
+                          return items;
+                        },
+                      ),
                   ],
                 ),
               ),

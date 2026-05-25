@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'dart:async';
 import 'package:flutter_application_appdeponto/blocs/auth/auth_event.dart';
 import 'package:flutter_application_appdeponto/models/auth_field.dart';
 import 'package:flutter_application_appdeponto/blocs/auth/auth_state.dart';
@@ -6,6 +7,7 @@ import 'package:flutter_application_appdeponto/repositories/auth_repository.dart
 import 'package:flutter_application_appdeponto/services/notification_service.dart';
 import 'package:flutter_application_appdeponto/services/excused_days_cache_service.dart';
 import 'package:flutter_application_appdeponto/pages/home_page/pages/calendar_service.dart';
+import 'package:flutter_application_appdeponto/services/analytics_service.dart';
 
 /// BLoC responsible for managing all authentication logic
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
@@ -73,6 +75,14 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       final uid = (userData['uid'] ?? '').toString();
       await NotificationService.scheduleAllReminders(uid: uid);
 
+      // Log analytics event
+      unawaited(AnalyticsService.logUserLogin(method: 'email', userId: uid));
+      unawaited(AnalyticsService.setUserId(uid));
+      final role = (userData['role'] ?? '').toString();
+      if (role.isNotEmpty) {
+        unawaited(AnalyticsService.setUserProperty('role', role));
+      }
+
       _fieldsState = const AuthFieldsState();
       emit(UserAuthenticated(userData: userData));
     } catch (e) {
@@ -125,6 +135,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         name: event.name,
         profileImage: event.profileImage,
       );
+
+      // Log analytics event
+      unawaited(AnalyticsService.logUserSignUp(method: 'email'));
 
       // Don't save session — user must wait for admin approval
       _fieldsState = const AuthFieldsState();
@@ -332,6 +345,10 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     LogoutRequested event,
     Emitter<AuthState> emit,
   ) async {
+    // Log analytics event
+    unawaited(AnalyticsService.logUserLogout());
+    unawaited(AnalyticsService.clearUserId());
+
     // 1. Firebase SignOut e SharedPreferences clear
     await _authRepository.logout();
 
@@ -372,13 +389,20 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     // Autentica imediatamente com dados locais (SharedPreferences).
     // Isso garante que o app funcione sem internet da mesma forma que
     // quando a internet cai durante o uso.
+    final uid = (userData['uid'] ?? '').toString();
+    final role = (userData['role'] ?? '').toString();
+    if (uid.isNotEmpty) {
+      unawaited(AnalyticsService.setUserId(uid));
+    }
+    if (role.isNotEmpty) {
+      unawaited(AnalyticsService.setUserProperty('role', role));
+    }
     emit(UserAuthenticated(userData: userData));
 
     // Validação remota em background — não bloqueia a inicialização.
     try {
       final userExists = await _authRepository.validateEmail(email);
       if (userExists) {
-        final uid = (userData['uid'] ?? '').toString();
         await NotificationService.scheduleAllReminders(uid: uid);
         // Sessão remota confirmada — nada a alterar.
       } else {

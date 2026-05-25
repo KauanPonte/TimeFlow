@@ -43,6 +43,12 @@ class CreateUserBloc extends Bloc<CreateUserEvent, CreateUserState> {
       case 'role':
         emit(_validateRole(currentState, event.value));
         break;
+      case 'contractType':
+        emit(_validateContractType(currentState, event.value));
+        break;
+      case 'workDays':
+        emit(_validateWorkDays(currentState, event.value));
+        break;
     }
   }
 
@@ -107,6 +113,10 @@ class CreateUserBloc extends Bloc<CreateUserEvent, CreateUserState> {
       );
     }
 
+    // Valida tipo de contrato e dias, se necessário
+    formState = _validateContractType(formState, event.contractType);
+    formState = _validateWorkDays(formState, event.workDays.join(','));
+
     // Se algum campo for inválido, emite o estado com erros
     if (!formState.isFormValid) {
       emit(formState);
@@ -124,6 +134,11 @@ class CreateUserBloc extends Bloc<CreateUserEvent, CreateUserState> {
         password: event.password,
         cargaHoraria: event.cargaHoraria,
         role: event.role,
+        contractType: event.contractType,
+        workDays: event.workDays,
+        projectType: event.projectType,
+        project1: event.project1,
+        project2: event.project2,
       );
 
       globalLoading?.hide();
@@ -205,20 +220,21 @@ class CreateUserBloc extends Bloc<CreateUserEvent, CreateUserState> {
   }
 
   CreateUserFormState _validateCargaHoraria(
-    CreateUserFormState state, String value,) {
+    CreateUserFormState state,
+    String value,
+  ) {
     final regex = RegExp(r'^\d{1,2}(:\d{1,2})?$');
-    if(value.trim().isEmpty){
+    if (value.trim().isEmpty) {
       return state.copyWith(
         cargaHorariaError: 'Por favor, informe a carga horária',
         cargaHorariaValid: false,
       );
-    }else if(!regex.hasMatch(value.trim())){
-    return state.copyWith(
-      cargaHorariaError: 'Formato inválido.',
-      cargaHorariaValid: false,
-     );
-    }
-    else{
+    } else if (!regex.hasMatch(value.trim())) {
+      return state.copyWith(
+        cargaHorariaError: 'Formato inválido.',
+        cargaHorariaValid: false,
+      );
+    } else {
       return state.copyWith(
         clearCargaHorariaError: true,
         cargaHorariaValid: true,
@@ -238,5 +254,33 @@ class CreateUserBloc extends Bloc<CreateUserEvent, CreateUserState> {
         roleValid: true,
       );
     }
+  }
+
+  CreateUserFormState _validateContractType(
+      CreateUserFormState state, String value) {
+    if (value.isEmpty) {
+      return state.copyWith(
+        contractTypeError: 'Por favor, selecione o tipo de contrato',
+        contractTypeValid: false,
+      );
+    }
+    return state.copyWith(
+      clearContractTypeError: true,
+      contractTypeValid: true,
+    );
+  }
+
+  CreateUserFormState _validateWorkDays(
+      CreateUserFormState state, String value) {
+    if (state.contractTypeValid && value.trim().isEmpty) {
+      return state.copyWith(
+        workDaysError: 'Selecione ao menos um dia para bolsista',
+        workDaysValid: false,
+      );
+    }
+    return state.copyWith(
+      clearWorkDaysError: true,
+      workDaysValid: true,
+    );
   }
 }

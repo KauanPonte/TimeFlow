@@ -16,6 +16,7 @@ import 'package:flutter_application_appdeponto/services/excused_days_cache_servi
 import 'package:flutter_application_appdeponto/services/monthly_summary_cache_service.dart';
 import 'package:flutter_application_appdeponto/services/server_time_service.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
+import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
 import 'package:flutter_application_appdeponto/widgets/custom_snackbar.dart';
 import 'package:flutter_application_appdeponto/services/ponto_service.dart';
 
@@ -32,6 +33,7 @@ class HistoryPage extends StatelessWidget {
   final String? targetName;
   final String? targetProfileImage;
   final DateTime? initialDate;
+  final bool showMonthlyTab;
 
   const HistoryPage({
     super.key,
@@ -39,6 +41,7 @@ class HistoryPage extends StatelessWidget {
     this.targetName,
     this.targetProfileImage,
     this.initialDate,
+    this.showMonthlyTab = false,
   });
 
   @override
@@ -57,6 +60,7 @@ class HistoryPage extends StatelessWidget {
         targetName: targetName,
         targetProfileImage: targetProfileImage,
         initialDate: initialDate,
+        showMonthlyTab: showMonthlyTab,
       ),
     );
   }
@@ -67,12 +71,14 @@ class _HistoryView extends StatefulWidget {
   final String? targetName;
   final String? targetProfileImage;
   final DateTime? initialDate;
+  final bool showMonthlyTab;
 
   const _HistoryView({
     this.targetUid,
     this.targetName,
     this.targetProfileImage,
     this.initialDate,
+    this.showMonthlyTab = false,
   });
 
   @override
@@ -383,80 +389,88 @@ class _HistoryViewState extends State<_HistoryView> {
     }
   }
 
+  String _formatDuration(Duration duration) {
+    final hours = duration.inHours.abs();
+    final minutes = duration.inMinutes.abs() % 60;
+    final sign = duration.isNegative ? '-' : '';
+    return '$sign${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}';
+  }
+
+  Widget _buildSummaryRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: AppTextStyles.bodyMedium
+                .copyWith(color: AppColors.textSecondary),
+          ),
+          Text(
+            value,
+            style:
+                AppTextStyles.bodyMedium.copyWith(color: AppColors.textPrimary),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMetricTile({
+    required String label,
+    required String value,
+    Color? valueColor,
+  }) {
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: AppTextStyles.bodySmall.copyWith(
+              color: AppColors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: AppTextStyles.bodyLarge.copyWith(
+              color: valueColor ?? AppColors.textPrimary,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final title = isAdmin ? (widget.targetName ?? 'Usuário') : 'Meu Histórico';
     final subTitle = isAdmin ? 'Histórico de Pontos' : null;
 
-    return Scaffold(
-      backgroundColor: AppColors.bgLight,
-      appBar: HistoryAppBar(
-        title: title,
-        subTitle: subTitle,
-        profileBytes: _profileBytesCache,
-        viewPreference: _viewPreference,
-        onViewChanged: _setPreferredView,
-      ),
-      floatingActionButton: BlocBuilder<PontoHistoryBloc, PontoHistoryState>(
-        builder: (context, state) {
-          if (state is PontoHistoryLoaded) {
-            return FloatingActionButton(
-              onPressed: () => PdfPreviewModal.show(
-                context: context,
-                currentMonth: _currentMonth,
-                punchRecords: state.daysMap,
-                mesResumoFuture: _mesResumoFuture,
-                allCalendarEvents: _allCalendarEvents,
-                excusedDayIds: _excusedDayIds,
-                userName: widget.targetName ?? 'Usuário',
-              ),
-              backgroundColor: AppColors.primary,
-              child: const Icon(Icons.picture_as_pdf, color: Colors.white),
-            );
+    final historyBody = BlocConsumer<PontoHistoryBloc, PontoHistoryState>(
+      listener: (context, state) {
+        if (state is PontoHistoryActionSuccess) {
+          final uid =
+              widget.targetUid ?? FirebaseAuth.instance.currentUser?.uid;
+          if (uid != null) {
+            _monthlySummaryCache.invalidateMonth(uid, _currentMonth);
+            _loadMesResumo();
           }
-          return const SizedBox.shrink();
-        },
-      ),
-      body: BlocConsumer<PontoHistoryBloc, PontoHistoryState>(
-        listener: (context, state) {
-          if (state is PontoHistoryActionSuccess) {
-            final uid =
-                widget.targetUid ?? FirebaseAuth.instance.currentUser?.uid;
-            if (uid != null) {
-              _monthlySummaryCache.invalidateMonth(uid, _currentMonth);
-              _loadMesResumo();
-            }
-            CustomSnackbar.showSuccess(context, state.message);
-          } else if (state is PontoHistoryActionError) {
-            CustomSnackbar.showError(context, state.message);
-          } else if (state is PontoHistoryError) {
-            CustomSnackbar.showError(context, state.message);
-          }
-        },
-        builder: (context, state) {
-          final combinedLoading =
-              state is PontoHistoryLoading || !_isCurrentResumoReady();
+          CustomSnackbar.showSuccess(context, state.message);
+        } else if (state is PontoHistoryActionError) {
+          CustomSnackbar.showError(context, state.message);
+        } else if (state is PontoHistoryError) {
+          CustomSnackbar.showError(context, state.message);
+        }
+      },
+      builder: (context, state) {
+        final combinedLoading =
+            state is PontoHistoryLoading || !_isCurrentResumoReady();
 
-          if (combinedLoading) {
-            return Column(
-              children: [
-                MonthSelector(
-                  currentMonth: _currentMonth,
-                  onPrevious: _goToPreviousMonth,
-                  onNext: _goToNextMonth,
-                ),
-                const Expanded(
-                  child: Center(
-                    child: CircularProgressIndicator(
-                      valueColor:
-                          AlwaysStoppedAnimation<Color>(AppColors.primary),
-                    ),
-                  ),
-                ),
-              ],
-            );
-          }
-
+        if (combinedLoading) {
           return Column(
             children: [
               MonthSelector(
@@ -464,30 +478,259 @@ class _HistoryViewState extends State<_HistoryView> {
                 onPrevious: _goToPreviousMonth,
                 onNext: _goToNextMonth,
               ),
-              MonthlySummaryCard(
-                mesResumoFuture: _mesResumoFuture,
-              ),
-              Expanded(
-                child: HistoryContentBody(
-                  state: state,
-                  currentMonth: _currentMonth,
-                  selectedCalendarDay: _selectedCalendarDay,
-                  viewPreference: _viewPreference,
-                  isAdmin: isAdmin,
-                  targetUid: widget.targetUid,
-                  allCalendarEvents: _allCalendarEvents,
-                  adminJustificativas: _adminJustificativas,
-                  excusedDayIds: _excusedDayIds,
-                  justificativaRepository: _justificativaRepository,
-                  onDaySelected: (day) =>
-                      setState(() => _selectedCalendarDay = day),
-                  onRefresh: _refreshHistory,
-                  onAdminJustificativasReloaded: _loadAdminJustificativas,
+              const Expanded(
+                child: Center(
+                  child: CircularProgressIndicator(
+                    valueColor:
+                        AlwaysStoppedAnimation<Color>(AppColors.primary),
+                  ),
                 ),
               ),
             ],
           );
-        },
+        }
+
+        return Column(
+          children: [
+            MonthSelector(
+              currentMonth: _currentMonth,
+              onPrevious: _goToPreviousMonth,
+              onNext: _goToNextMonth,
+            ),
+            MonthlySummaryCard(
+              mesResumoFuture: _mesResumoFuture,
+            ),
+            Expanded(
+              child: HistoryContentBody(
+                state: state,
+                currentMonth: _currentMonth,
+                selectedCalendarDay: _selectedCalendarDay,
+                viewPreference: _viewPreference,
+                isAdmin: isAdmin,
+                targetUid: widget.targetUid,
+                allCalendarEvents: _allCalendarEvents,
+                adminJustificativas: _adminJustificativas,
+                excusedDayIds: _excusedDayIds,
+                justificativaRepository: _justificativaRepository,
+                onDaySelected: (day) =>
+                    setState(() => _selectedCalendarDay = day),
+                onRefresh: _refreshHistory,
+                onAdminJustificativasReloaded: _loadAdminJustificativas,
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    final monthlyTab = SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          MonthSelector(
+            currentMonth: _currentMonth,
+            onPrevious: _goToPreviousMonth,
+            onNext: _goToNextMonth,
+          ),
+          const SizedBox(height: 20),
+          if (widget.targetName != null)
+            Container(
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: const [
+                  BoxShadow(
+                    color: AppColors.shadow,
+                    blurRadius: 12,
+                    offset: Offset(0, 6),
+                  ),
+                ],
+              ),
+              padding: const EdgeInsets.all(20),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 30,
+                    backgroundColor: AppColors.primaryLight10,
+                    backgroundImage: _profileBytesCache != null
+                        ? MemoryImage(_profileBytesCache!)
+                        : null,
+                    child: _profileBytesCache == null
+                        ? Text(
+                            widget.targetName![0].toUpperCase(),
+                            style: AppTextStyles.h3.copyWith(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          )
+                        : null,
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.targetName!,
+                          style: AppTextStyles.bodyLarge.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Espelho Mensal',
+                          style: AppTextStyles.bodyMedium.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          if (widget.targetName != null) const SizedBox(height: 20),
+          Container(
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: const [
+                BoxShadow(
+                  color: AppColors.shadow,
+                  blurRadius: 12,
+                  offset: Offset(0, 6),
+                ),
+              ],
+            ),
+            padding: const EdgeInsets.all(20),
+            child: FutureBuilder<MesResumo>(
+              future: _mesResumoFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState != ConnectionState.done) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                final resumo = snapshot.data;
+                if (resumo == null) {
+                  return Text(
+                    'Não foi possível carregar o espelho mensal.',
+                    style: AppTextStyles.bodyLarge.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  );
+                }
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        _buildMetricTile(
+                          label: 'Trabalhado',
+                          value: _formatDuration(
+                              Duration(minutes: resumo.workedMinutes)),
+                        ),
+                        _buildMetricTile(
+                          label: 'Esperado',
+                          value: _formatDuration(
+                              Duration(minutes: resumo.expectedMinutes)),
+                        ),
+                        _buildMetricTile(
+                          label: 'Saldo',
+                          value: _formatDuration(
+                            Duration(minutes: resumo.monthBalance.round()),
+                          ),
+                          valueColor: resumo.monthBalance >= 0
+                              ? AppColors.success
+                              : AppColors.error,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 22),
+                    const Divider(height: 1),
+                    const SizedBox(height: 18),
+                    _buildSummaryRow(
+                      'Horas trabalhadas',
+                      _formatDuration(Duration(minutes: resumo.workedMinutes)),
+                    ),
+                    _buildSummaryRow(
+                      'Horas esperadas',
+                      _formatDuration(
+                          Duration(minutes: resumo.expectedMinutes)),
+                    ),
+                    _buildSummaryRow(
+                      'Dias úteis',
+                      resumo.businessDaysTotal.toString(),
+                    ),
+                    _buildSummaryRow(
+                      'Saldo do mês',
+                      _formatDuration(
+                          Duration(minutes: resumo.monthBalance.round())),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+
+    return DefaultTabController(
+      length: widget.showMonthlyTab ? 2 : 1,
+      child: Scaffold(
+        backgroundColor: AppColors.bgLight,
+        appBar: HistoryAppBar(
+          title: title,
+          subTitle: subTitle,
+          profileBytes: _profileBytesCache,
+          viewPreference: _viewPreference,
+          onViewChanged: _setPreferredView,
+          bottom: widget.showMonthlyTab
+              ? PreferredSize(
+                  preferredSize: const Size.fromHeight(48),
+                  child: Material(
+                    color: AppColors.surface,
+                    child: const TabBar(
+                      indicatorColor: AppColors.primary,
+                      labelColor: AppColors.primary,
+                      unselectedLabelColor: AppColors.textSecondary,
+                      tabs: [
+                        Tab(text: 'Espelho de Ponto'),
+                        Tab(text: 'Espelho Mensal'),
+                      ],
+                    ),
+                  ),
+                )
+              : null,
+        ),
+        floatingActionButton: BlocBuilder<PontoHistoryBloc, PontoHistoryState>(
+          builder: (context, state) {
+            if (state is PontoHistoryLoaded) {
+              return FloatingActionButton(
+                onPressed: () => PdfPreviewModal.show(
+                  context: context,
+                  currentMonth: _currentMonth,
+                  punchRecords: state.daysMap,
+                  mesResumoFuture: _mesResumoFuture,
+                  allCalendarEvents: _allCalendarEvents,
+                  excusedDayIds: _excusedDayIds,
+                  userName: widget.targetName ?? 'Usuário',
+                ),
+                backgroundColor: AppColors.primary,
+                child: const Icon(Icons.picture_as_pdf, color: Colors.white),
+              );
+            }
+            return const SizedBox.shrink();
+          },
+        ),
+        body: widget.showMonthlyTab
+            ? TabBarView(
+                physics: const NeverScrollableScrollPhysics(),
+                children: [historyBody, monthlyTab],
+              )
+            : historyBody,
       ),
     );
   }

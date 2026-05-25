@@ -43,7 +43,11 @@ class CreateUserSubmitEvent extends CreateUserEvent {
   final String confirmPassword;
   final String cargaHoraria;
   final String role;
-
+  final String contractType;
+  final List<String> workDays;
+  final String projectType;
+  final String project1;
+  final String project2;
 
   const CreateUserSubmitEvent({
     required this.name,
@@ -52,11 +56,27 @@ class CreateUserSubmitEvent extends CreateUserEvent {
     required this.confirmPassword,
     required this.cargaHoraria,
     required this.role,
-    
+    required this.contractType,
+    required this.workDays,
+    required this.projectType,
+    required this.project1,
+    required this.project2,
   });
 
   @override
-  List<Object?> get props => [name, email, password, confirmPassword, role];
+  List<Object?> get props => [
+        name,
+        email,
+        password,
+        confirmPassword,
+        cargaHoraria,
+        role,
+        contractType,
+        workDays,
+        projectType,
+        project1,
+        project2,
+      ];
 }
 
 /// Reseta o formulário

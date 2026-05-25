@@ -7,7 +7,6 @@ import 'package:flutter_application_appdeponto/blocs/global_loading/global_loadi
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
 import 'widgets/tabs/registered_users_tab.dart';
-import 'widgets/tabs/pending_requests_tab.dart';
 
 class UsersManagementPage extends StatelessWidget {
   const UsersManagementPage({super.key});
@@ -39,90 +38,40 @@ class UsersManagementPage extends StatelessWidget {
             }
           }
         },
-        child: DefaultTabController(
-          length: 2,
-          child: Scaffold(
-            backgroundColor: AppColors.bgLight,
-            appBar: AppBar(
-              backgroundColor: AppColors.surface,
-              elevation: 0,
-              scrolledUnderElevation: 0,
-              leading: IconButton(
-                icon:
-                    const Icon(Icons.arrow_back, color: AppColors.textPrimary),
-                onPressed: () => Navigator.pop(context),
-              ),
-              title: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryLight10,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(
-                      Icons.group,
-                      color: AppColors.primary,
-                      size: 20,
-                    ),
+        child: Scaffold(
+          backgroundColor: AppColors.bgLight,
+          appBar: AppBar(
+            backgroundColor: AppColors.surface,
+            elevation: 0,
+            scrolledUnderElevation: 0,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
+              onPressed: () => Navigator.pop(context),
+            ),
+            title: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryLight10,
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  const SizedBox(width: 12),
-                  Text(
-                    'Gerenciar Usuários',
-                    style:
-                        AppTextStyles.h3.copyWith(color: AppColors.textPrimary),
-                  ),
-                ],
-              ),
-              bottom: PreferredSize(
-                preferredSize: const Size.fromHeight(48),
-                child: Container(
-                  decoration: const BoxDecoration(
-                    border: Border(
-                      bottom: BorderSide(
-                        color: AppColors.borderLight,
-                        width: 1,
-                      ),
-                    ),
-                  ),
-                  child: const TabBar(
-                    labelColor: AppColors.primary,
-                    unselectedLabelColor: AppColors.textSecondary,
-                    indicatorColor: AppColors.primary,
-                    indicatorWeight: 3,
-                    tabs: [
-                      Tab(
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.people, size: 18),
-                            SizedBox(width: 8),
-                            Text('Cadastrados'),
-                          ],
-                        ),
-                      ),
-                      Tab(
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.schedule, size: 18),
-                            SizedBox(width: 8),
-                            Text('Pendentes'),
-                          ],
-                        ),
-                      ),
-                    ],
+                  child: const Icon(
+                    Icons.bar_chart_outlined,
+                    color: AppColors.primary,
+                    size: 20,
                   ),
                 ),
-              ),
-            ),
-            body: const TabBarView(
-              children: [
-                RegisteredUsersTab(),
-                PendingRequestsTab(),
+                const SizedBox(width: 12),
+                Text(
+                  'Relatórios',
+                  style:
+                      AppTextStyles.h3.copyWith(color: AppColors.textPrimary),
+                ),
               ],
             ),
           ),
+          body: const RegisteredUsersTab(),
         ),
       ),
     );

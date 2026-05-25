@@ -1,3 +1,4 @@
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
@@ -55,6 +56,7 @@ void main() async {
     DeviceOrientation.portraitUp,
   ]);
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await FirebaseAnalytics.instance.setAnalyticsCollectionEnabled(true);
 
   // Verifica transporte de rede de forma instantânea antes de qualquer
   // operação Firestore. Se offline, desabilita a rede do SDK para impedir
@@ -242,6 +244,9 @@ class TimeFlow extends StatelessWidget {
             },
           ),
         ),
+        navigatorObservers: [
+          FirebaseAnalyticsObserver(analytics: FirebaseAnalytics.instance),
+        ],
         initialRoute: "/",
         onGenerateRoute: (settings) {
           if (settings.name == "/home") {
