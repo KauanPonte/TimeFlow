@@ -21,6 +21,8 @@ class SubmitJustificativaEvent extends JustificativaEvent {
   final Uint8List? fileBytes;
   final String? dataInicio;
   final String? dataFim;
+  final int? abonoMinutes;
+  final bool isFullDayAbono;
   const SubmitJustificativaEvent({
     required this.diaId,
     required this.justificativa,
@@ -28,6 +30,8 @@ class SubmitJustificativaEvent extends JustificativaEvent {
     this.fileBytes,
     this.dataInicio,
     this.dataFim,
+    this.abonoMinutes,
+    this.isFullDayAbono = false,
   });
 }
 
@@ -45,6 +49,11 @@ class RejectJustificativaEvent extends JustificativaEvent {
 class DismissReviewedJustificativaEvent extends JustificativaEvent {
   final String justificativaId;
   const DismissReviewedJustificativaEvent(this.justificativaId);
+}
+
+class DeleteJustificativaEvent extends JustificativaEvent {
+  final String justificativaId;
+  const DeleteJustificativaEvent(this.justificativaId);
 }
 
 class ResetJustificativasEvent extends JustificativaEvent {

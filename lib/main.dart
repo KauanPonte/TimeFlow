@@ -58,6 +58,15 @@ void main() async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await FirebaseAnalytics.instance.setAnalyticsCollectionEnabled(true);
 
+  // Persistência local explícita + cache ilimitado. Garante que os streams
+  // sempre emitam do disco primeiro (sem spinner na reabertura) e que meses
+  // antigos não sejam despejados do cache. Deve ser definido antes de
+  // qualquer operação Firestore (inclusive disableNetwork abaixo).
+  FirebaseFirestore.instance.settings = const Settings(
+    persistenceEnabled: true,
+    cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
+  );
+
   // Verifica transporte de rede de forma instantânea antes de qualquer
   // operação Firestore. Se offline, desabilita a rede do SDK para impedir
   // tentativas de reconexão (WriteStream) e os erros de DNS associados.

@@ -15,6 +15,7 @@ class DayCard extends StatelessWidget {
   final VoidCallback? onAddEvento;
   final VoidCallback? onRequestSolicitation;
   final VoidCallback? onJustify;
+  final VoidCallback? onDeleteJustificativa;
   final JustificativaModel? justificativa;
   final List<SolicitationModel> pendingSolicitations;
   final void Function(String solicitationId)? onCancelSolicitation;
@@ -35,6 +36,7 @@ class DayCard extends StatelessWidget {
     this.onAddEvento,
     this.onRequestSolicitation,
     this.onJustify,
+    this.onDeleteJustificativa,
     this.justificativa,
     this.pendingSolicitations = const [],
     this.onCancelSolicitation,
@@ -75,6 +77,7 @@ class DayCard extends StatelessWidget {
             : null,
         onRequestSolicitation: disabled ? null : onRequestSolicitation,
         onJustify: disabled ? null : onJustify,
+        onDeleteJustificativa: disabled ? null : onDeleteJustificativa,
         justificativa: justificativa,
         onOpenDayActions: onOpenDayActions,
       );

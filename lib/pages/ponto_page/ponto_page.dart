@@ -11,6 +11,7 @@ import '../../blocs/ponto_today/ponto_today_state.dart';
 import '../../widgets/bottom_nav.dart';
 import '../../widgets/custom_snackbar.dart';
 import '../../services/notification_service.dart';
+import '../../services/ponto_service.dart';
 import '../../services/ponto_validator.dart';
 import '../../services/location_service.dart';
 
@@ -34,6 +35,7 @@ class _PontoPageState extends State<PontoPage> {
   late DateTime _now;
   Timer? _clockTimer;
   String? _selectedWorkMode;
+  StreamSubscription<String>? _conflitoSub;
 
   /// Modo efetivo: usa o lock do cubit se existir, senão a seleção local.
   String? _effectiveWorkMode(PontoTodayState state) {
@@ -57,11 +59,18 @@ class _PontoPageState extends State<PontoPage> {
     if (!pontoTodayCubit.hasLoadedOnce) {
       pontoTodayCubit.load();
     }
+
+    // Avisos de conflito da verificação em background (registro simultâneo
+    // de outro dispositivo). O dado já foi autocorrigido — apenas informa.
+    _conflitoSub = PontoService.conflitosStream.listen((msg) {
+      if (mounted) CustomSnackbar.showSuccess(context, msg);
+    });
   }
 
   @override
   void dispose() {
     _clockTimer?.cancel();
+    _conflitoSub?.cancel();
     super.dispose();
   }
 
@@ -98,17 +107,9 @@ class _PontoPageState extends State<PontoPage> {
     setState(() => registering = true);
     final globalLoading = context.read<GlobalLoadingCubit>();
 
-    // ---  TRAVA DE FERIADO AQUI ---
-    globalLoading.show('Verificando calendário...');
-    bool ehFeriado = await PontoService.isFeriado(ServerTimeService.now());
-
-    if (!mounted) {
-      globalLoading.hide();
-      return;
-    }
-
-    if (ehFeriado) {
-      globalLoading.hide();
+    // Usa isFeriadoHoje do estado (carregado no setup do cubit, sem fetch extra).
+    // A validação server-side em registrarPonto() garante segurança adicional.
+    if (state.isFeriadoHoje) {
       setState(() => registering = false);
       CustomSnackbar.showError(
           context, "Hoje é feriado. Registros não são permitidos.");
@@ -299,8 +300,10 @@ class _PontoPageState extends State<PontoPage> {
         isAdmin: isAdmin,
         args: args,
       ),
-      // Só exibe spinner se for o primeiro carregamento (splash não terminou).
-      body: (pontoState.loading && pontoState.registros.isEmpty)
+      // Spinner apenas na primeira carga (sem cache local).
+      // Com streams, cargas subsequentes mostram dados do cache instantaneamente.
+      body: (pontoState.loading &&
+              !context.read<PontoTodayCubit>().hasLoadedOnce)
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
               onRefresh: () async {

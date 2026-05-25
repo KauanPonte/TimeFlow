@@ -56,7 +56,8 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     final previousData = state is ProfileLoaded ? state as ProfileLoaded : null;
 
     try {
-      globalLoading?.show('Enviando foto...');
+      // Upload de imagem é sabidamente longo — overlay na hora, sem atraso.
+      globalLoading?.showImmediate('Enviando foto...');
       if (previousData != null) {
         emit(ProfileImageUploading(previousData: previousData));
       }

@@ -1590,6 +1590,73 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                       style: AppTextStyles.bodyMedium,
                     ),
                   ),
+                  // Horários de ausência (abono de consulta)
+                  if (just.dataInicio != null) ...[
+                    const SizedBox(height: 10),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryLight10,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Período de ausência',
+                            style: AppTextStyles.bodySmall.copyWith(
+                              color: AppColors.textSecondary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              const Icon(Icons.login_rounded,
+                                  size: 14, color: AppColors.primary),
+                              const SizedBox(width: 6),
+                              Text('Saída: ${just.dataInicio}',
+                                  style: AppTextStyles.bodySmall.copyWith(
+                                      color: AppColors.textPrimary)),
+                              const SizedBox(width: 16),
+                              const Icon(Icons.logout_rounded,
+                                  size: 14, color: AppColors.primary),
+                              const SizedBox(width: 6),
+                              Text(
+                                just.dataFim != null
+                                    ? 'Retorno: ${just.dataFim}'
+                                    : 'Retorno: não informado',
+                                style: AppTextStyles.bodySmall.copyWith(
+                                  color: just.dataFim != null
+                                      ? AppColors.textPrimary
+                                      : AppColors.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                          if (just.abonoMinutes != null &&
+                              just.abonoMinutes! > 0) ...[
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                const Icon(Icons.timer_outlined,
+                                    size: 14, color: AppColors.primary),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'Abono: ${just.abonoMinutes! ~/ 60}h ${just.abonoMinutes! % 60}min',
+                                  style: AppTextStyles.bodySmall.copyWith(
+                                    color: AppColors.primary,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 12),
 
                   // Campo de motivo (recusa)

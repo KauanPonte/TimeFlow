@@ -18,6 +18,7 @@ class EmptyDayCard extends StatelessWidget {
   /// Funcionário: abre dialog para enviar justificativa de falta.
   /// Admin: abre dialog para definir justificativa diretamente.
   final VoidCallback? onJustify;
+  final VoidCallback? onDeleteJustificativa;
   final JustificativaModel? justificativa;
 
   const EmptyDayCard({
@@ -29,6 +30,7 @@ class EmptyDayCard extends StatelessWidget {
     this.onBatchEdit,
     this.onRequestSolicitation,
     this.onJustify,
+    this.onDeleteJustificativa,
     this.justificativa,
     this.holidayName,
     this.onOpenDayActions,
@@ -37,18 +39,32 @@ class EmptyDayCard extends StatelessWidget {
   bool get _isAbsentDay =>
       !disabled && !isWeekendOrHoliday(diaId) && holidayName == null;
 
+  bool get _isFullDayAbonoApproved {
+    if (justificativa == null) return false;
+    if (justificativa!.status != JustificativaStatus.approved) return false;
+    // Campo explícito (registros novos)
+    if (justificativa!.isFullDayAbono) return true;
+    // Fallback para registros antigos: abono sem horário específico = dia inteiro
+    return justificativa!.dataInicio == null &&
+        justificativa!.dataFim == null &&
+        justificativa!.abonoMinutes == null;
+  }
+
+  Color get _absentColor =>
+      _isFullDayAbonoApproved ? AppColors.warning : AppColors.error;
+
   @override
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
         color: (_isAbsentDay && justificativa != null)
-            ? AppColors.error.withValues(alpha: 0.04)
+            ? _absentColor.withValues(alpha: 0.04)
             : AppColors.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: (_isAbsentDay && justificativa != null)
-              ? AppColors.error.withValues(alpha: 0.3)
+              ? _absentColor.withValues(alpha: 0.3)
               : disabled
                   ? AppColors.borderLight.withValues(alpha: 0.7)
                   : AppColors.borderLight,
@@ -83,7 +99,7 @@ class EmptyDayCard extends StatelessWidget {
               formatDate(diaId),
               style: AppTextStyles.bodyMedium.copyWith(
                 color: (_isAbsentDay && justificativa != null)
-                    ? AppColors.error
+                    ? _absentColor
                     : AppColors.textSecondary,
                 fontWeight: (_isAbsentDay && justificativa != null)
                     ? FontWeight.w600
@@ -94,11 +110,13 @@ class EmptyDayCard extends StatelessWidget {
                 ? null
                 : Text(
                     (_isAbsentDay && justificativa != null)
-                        ? 'Falta justificada'
+                        ? _isFullDayAbonoApproved
+                            ? 'Abono justificado'
+                            : 'Falta justificada'
                         : 'Sem registros',
                     style: AppTextStyles.bodySmall.copyWith(
                       color: (_isAbsentDay && justificativa != null)
-                          ? AppColors.error.withValues(alpha: 0.7)
+                          ? _absentColor.withValues(alpha: 0.7)
                           : AppColors.textSecondary.withValues(alpha: 0.6),
                       fontSize: 11,
                     ),
@@ -114,7 +132,8 @@ class EmptyDayCard extends StatelessWidget {
             ),
 
           // Justificativa chip (funcionário e admin)
-          if (_isAbsentDay && justificativa != null) _buildJustificativaChip(),
+          if (_isAbsentDay && justificativa != null)
+            _buildJustificativaChip(context),
 
           // Admin: botão adicionar justificativa quando não há nenhuma
           if (_isAbsentDay &&
@@ -223,7 +242,7 @@ class EmptyDayCard extends StatelessWidget {
     return null;
   }
 
-  Widget _buildJustificativaChip() {
+  Widget _buildJustificativaChip(BuildContext context) {
     final status = justificativa!.status;
     Color chipColor;
     IconData chipIcon;
@@ -231,9 +250,9 @@ class EmptyDayCard extends StatelessWidget {
 
     switch (status) {
       case JustificativaStatus.approved:
-        chipColor = AppColors.success;
+        chipColor = _isFullDayAbonoApproved ? AppColors.warning : AppColors.success;
         chipIcon = Icons.check_circle_outline;
-        chipLabel = 'Justificativa aprovada';
+        chipLabel = _isFullDayAbonoApproved ? 'Abono justificado' : 'Justificativa aprovada';
         break;
       case JustificativaStatus.pending:
         chipColor = AppColors.warning;
@@ -245,6 +264,33 @@ class EmptyDayCard extends StatelessWidget {
         chipIcon = Icons.cancel_outlined;
         chipLabel = 'Justificativa recusada';
         break;
+    }
+
+    void confirmDelete() {
+      showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Remover abono'),
+          content: const Text(
+              'Tem certeza que deseja remover este abono? Esta ação não pode ser desfeita.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancelar'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                onDeleteJustificativa?.call();
+              },
+              child: const Text(
+                'Remover',
+                style: TextStyle(color: AppColors.error),
+              ),
+            ),
+          ],
+        ),
+      );
     }
 
     return Padding(
@@ -276,10 +322,19 @@ class EmptyDayCard extends StatelessWidget {
                       fontSize: 11,
                     ),
                   ),
-                  if (isAdmin && onJustify != null) ...[
+                  if (onDeleteJustificativa != null || (isAdmin && onJustify != null)) ...[
                     const Spacer(),
-                    const Icon(Icons.edit_outlined,
-                        size: 12, color: AppColors.textSecondary),
+                    if (isAdmin && onJustify != null)
+                      const Icon(Icons.edit_outlined,
+                          size: 12, color: AppColors.textSecondary),
+                    if (onDeleteJustificativa != null) ...[
+                      if (isAdmin && onJustify != null) const SizedBox(width: 6),
+                      GestureDetector(
+                        onTap: confirmDelete,
+                        child: const Icon(Icons.delete_outline,
+                            size: 13, color: AppColors.error),
+                      ),
+                    ],
                   ],
                 ],
               ),

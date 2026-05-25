@@ -6,6 +6,12 @@ import 'package:flutter_application_appdeponto/models/atestado_model.dart';
 import 'package:flutter_application_appdeponto/services/ponto_service.dart';
 import 'package:flutter_application_appdeponto/services/excused_days_cache_service.dart';
 
+/// Opções de leitura: cache local (instantâneo) para re-buscas pós-escrita,
+/// servidor (padrão) para o carregamento inicial.
+GetOptions _getOpts(bool preferCache) => preferCache
+    ? const GetOptions(source: Source.cache)
+    : const GetOptions();
+
 class AtestadoRepository {
   static const String _collection = 'atestados';
   static const String _pontosCollection = 'pontos';
@@ -53,28 +59,32 @@ class AtestadoRepository {
     });
   }
 
-  Future<List<AtestadoModel>> getMyAtestados() async {
+  Future<List<AtestadoModel>> getMyAtestados({bool preferCache = false}) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return [];
 
-    final snap = await _atestadosRef.where('uid', isEqualTo: user.uid).get();
+    final snap = await _atestadosRef
+        .where('uid', isEqualTo: user.uid)
+        .get(_getOpts(preferCache));
 
     final list = snap.docs.map((d) => AtestadoModel.fromDoc(d)).toList();
     list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return list;
   }
 
-  Future<List<AtestadoModel>> getPendingAtestados() async {
-    final snap =
-        await _atestadosRef.where('status', isEqualTo: 'pending').get();
+  Future<List<AtestadoModel>> getPendingAtestados(
+      {bool preferCache = false}) async {
+    final snap = await _atestadosRef
+        .where('status', isEqualTo: 'pending')
+        .get(_getOpts(preferCache));
 
     final list = snap.docs.map((d) => AtestadoModel.fromDoc(d)).toList();
     list.sort((a, b) => a.createdAt.compareTo(b.createdAt));
     return list;
   }
 
-  Future<List<AtestadoModel>> getAllAtestados() async {
-    final snap = await _atestadosRef.get();
+  Future<List<AtestadoModel>> getAllAtestados({bool preferCache = false}) async {
+    final snap = await _atestadosRef.get(_getOpts(preferCache));
 
     final list = snap.docs.map((d) => AtestadoModel.fromDoc(d)).toList();
     list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
