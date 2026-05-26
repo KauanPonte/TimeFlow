@@ -6,13 +6,21 @@ import 'package:flutter_application_appdeponto/blocs/user_management/user_manage
 import 'package:flutter_application_appdeponto/blocs/global_loading/global_loading_cubit.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
+import 'users_management_mode.dart';
 import 'widgets/tabs/registered_users_tab.dart';
 
 class UsersManagementPage extends StatelessWidget {
-  const UsersManagementPage({super.key});
+  final UsersManagementMode mode;
+
+  const UsersManagementPage({
+    super.key,
+    this.mode = UsersManagementMode.reports,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final isEmployeesMode = mode == UsersManagementMode.employees;
+
     return BlocProvider(
       create: (context) => UserManagementBloc(
         globalLoading: context.read<GlobalLoadingCubit>(),
@@ -56,22 +64,24 @@ class UsersManagementPage extends StatelessWidget {
                     color: AppColors.primaryLight10,
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(
-                    Icons.bar_chart_outlined,
+                  child: Icon(
+                    isEmployeesMode
+                        ? Icons.people_outline
+                        : Icons.bar_chart_outlined,
                     color: AppColors.primary,
                     size: 20,
                   ),
                 ),
                 const SizedBox(width: 12),
                 Text(
-                  'Relatórios',
+                  isEmployeesMode ? 'Funcionários' : 'Relatórios',
                   style:
                       AppTextStyles.h3.copyWith(color: AppColors.textPrimary),
                 ),
               ],
             ),
           ),
-          body: const RegisteredUsersTab(),
+          body: RegisteredUsersTab(mode: mode),
         ),
       ),
     );

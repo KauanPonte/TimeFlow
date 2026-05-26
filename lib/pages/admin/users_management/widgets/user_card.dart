@@ -12,6 +12,7 @@ class UserCard extends StatelessWidget {
   final VoidCallback onDelete;
   final VoidCallback? onTap;
   final bool showActions;
+  final bool showDeleteAction;
 
   const UserCard({
     super.key,
@@ -21,6 +22,7 @@ class UserCard extends StatelessWidget {
     required this.onDelete,
     this.onTap,
     this.showActions = true,
+    this.showDeleteAction = true,
   });
 
   bool _isAdmin(String role) {
@@ -286,7 +288,7 @@ class UserCard extends StatelessWidget {
                             ),
                           ];
 
-                          if (!isCurrentUser) {
+                          if (showDeleteAction && !isCurrentUser) {
                             items.add(const PopupMenuDivider());
                             items.add(
                               PopupMenuItem(

@@ -9,6 +9,7 @@ import 'package:flutter_application_appdeponto/blocs/justificativa/justificativa
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
 import 'package:flutter_application_appdeponto/widgets/custom_snackbar.dart';
+import 'package:flutter_application_appdeponto/widgets/time_picker.dart';
 
 class AbonoConsultaPage extends StatefulWidget {
   final String? diaId;
@@ -54,23 +55,7 @@ class _AbonoConsultaPageState extends State<AbonoConsultaPage> {
         ? (_horaSaida ?? TimeOfDay.now())
         : (_horaRetorno ?? _horaSaida ?? TimeOfDay.now());
 
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: initial,
-      builder: (context, child) {
-        return Theme(
-          data: ThemeData.light().copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: AppColors.primary,
-              onPrimary: Colors.white,
-              surface: Colors.white,
-              onSurface: AppColors.textPrimary,
-            ),
-          ),
-          child: child!,
-        );
-      },
-    );
+    final picked = await showTimePicker24h(context, initial);
 
     if (picked != null) {
       setState(() {
@@ -373,8 +358,8 @@ class _TimeField extends StatelessWidget {
                 if (required)
                   Text(
                     ' *',
-                    style:
-                        AppTextStyles.bodySmall.copyWith(color: AppColors.error),
+                    style: AppTextStyles.bodySmall
+                        .copyWith(color: AppColors.error),
                   ),
               ],
             ),
@@ -393,8 +378,9 @@ class _TimeField extends StatelessWidget {
                 ),
                 Icon(
                   Icons.access_time_rounded,
-                  color:
-                      value != null ? AppColors.primary : AppColors.textSecondary,
+                  color: value != null
+                      ? AppColors.primary
+                      : AppColors.textSecondary,
                   size: 20,
                 ),
               ],

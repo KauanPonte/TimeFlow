@@ -90,7 +90,7 @@ class _UserReportPageState extends State<UserReportPage> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'RAD',
+          'RDA',
           style: AppTextStyles.h3.copyWith(color: AppColors.textPrimary),
         ),
       ),
@@ -107,7 +107,7 @@ class _UserReportPageState extends State<UserReportPage> {
 
           if (snapshot.hasError) {
             return _ErrorState(
-              message: 'Nao foi possivel carregar o RAD.',
+              message: 'Nao foi possivel carregar o RDA.',
               details: snapshot.error.toString(),
               onRetry: () => setState(() => _futureReport = _loadReport()),
             );
@@ -275,7 +275,7 @@ class _StatusBanner extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'RAD - $status',
+                  'RDA - $status',
                   style: AppTextStyles.bodyLarge.copyWith(
                     color: AppColors.textPrimary,
                     fontWeight: FontWeight.w800,
@@ -1125,7 +1125,7 @@ class _RadData {
       return 'Nenhuma atividade registrada no periodo selecionado.';
     }
     if (openDays > 0) {
-      return 'Existem dias sem fechamento; revise antes de consolidar o RAD.';
+      return 'Existem dias sem fechamento; revise antes de consolidar o RDA.';
     }
     if (balanceMinutes > 0) {
       return 'Funcionario com saldo positivo no periodo e ritmo dentro do esperado.';

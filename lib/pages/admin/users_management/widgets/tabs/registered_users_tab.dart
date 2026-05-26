@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -7,14 +5,21 @@ import 'package:flutter_application_appdeponto/blocs/user_management/user_manage
 import 'package:flutter_application_appdeponto/blocs/user_management/user_management_event.dart';
 import 'package:flutter_application_appdeponto/blocs/user_management/user_management_state.dart';
 import 'package:flutter_application_appdeponto/pages/admin/relatorios/user_report_page.dart';
-import 'package:flutter_application_appdeponto/theme/app_colors.dart';
+import 'package:flutter_application_appdeponto/pages/admin/users_management/users_management_mode.dart';
 import 'package:flutter_application_appdeponto/services/analytics_service.dart';
+import 'package:flutter_application_appdeponto/theme/app_colors.dart';
+import '../dialogs/edit_user_dialog.dart';
 import '../user_card.dart';
 import '../empty_users_state.dart';
 import '../error_loading_state.dart';
 
 class RegisteredUsersTab extends StatefulWidget {
-  const RegisteredUsersTab({super.key});
+  final UsersManagementMode mode;
+
+  const RegisteredUsersTab({
+    super.key,
+    required this.mode,
+  });
 
   @override
   State<RegisteredUsersTab> createState() => _RegisteredUsersTabState();
@@ -192,13 +197,20 @@ class _RegisteredUsersTabState extends State<RegisteredUsersTab>
                             itemCount: filteredUsers.length,
                             itemBuilder: (context, index) {
                               final user = filteredUsers[index];
+                              final isEmployeesMode =
+                                  widget.mode == UsersManagementMode.employees;
                               return UserCard(
                                 user: user,
                                 isCurrentUser: user['id'] == _currentUid,
-                                onTap: () => _openUserReport(user),
-                                onEdit: () {},
+                                onTap: isEmployeesMode
+                                    ? null
+                                    : () => _openUserReport(user),
+                                onEdit: isEmployeesMode
+                                    ? () => _openEditUserDialog(user)
+                                    : () {},
                                 onDelete: () {},
-                                showActions: false,
+                                showActions: isEmployeesMode,
+                                showDeleteAction: false,
                               );
                             },
                           ),
@@ -232,14 +244,35 @@ class _RegisteredUsersTabState extends State<RegisteredUsersTab>
   Future<void> _openUserReport(Map<String, dynamic> user) async {
     final userId = user['id']?.toString() ?? '';
 
-    unawaited(AnalyticsService.logAdminOpenUserReport(
+    AnalyticsService.logAdminOpenUserReport(
       userId: userId,
       adminUid: _currentUid,
-    ));
+    );
 
     await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => UserReportPage(user: user),
+      ),
+    );
+  }
+
+  void _openEditUserDialog(Map<String, dynamic> user) {
+    showDialog(
+      context: context,
+      builder: (_) => EditUserDialog(
+        userName: user['name']?.toString() ?? '',
+        currentRole: user['role']?.toString() ?? '',
+        currentWorkloadMinutes: user['workloadMinutes'] as int?,
+        onSave: (role, workloadMinutes) {
+          context.read<UserManagementBloc>().add(
+                UpdateUserProfileEvent(
+                  userId: user['id']?.toString() ?? '',
+                  userName: user['name']?.toString() ?? '',
+                  newRole: role,
+                  workloadMinutes: workloadMinutes,
+                ),
+              );
+        },
       ),
     );
   }
