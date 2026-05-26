@@ -1,0 +1,4 @@
+enum UsersManagementMode {
+  reports,
+  employees,
+}

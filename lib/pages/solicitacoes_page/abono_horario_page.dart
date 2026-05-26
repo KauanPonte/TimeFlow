@@ -7,6 +7,7 @@ import 'package:flutter_application_appdeponto/blocs/justificativa/justificativa
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
 import 'package:flutter_application_appdeponto/widgets/custom_snackbar.dart';
+import 'package:flutter_application_appdeponto/widgets/time_picker.dart';
 
 /// Página de abono com apenas horário de saída + retorno, sem PDF.
 /// Usada para "Aula".
@@ -61,21 +62,7 @@ class _AbonoHorarioPageState extends State<AbonoHorarioPage> {
         ? (_horaSaida ?? TimeOfDay.now())
         : (_horaRetorno ?? _horaSaida ?? TimeOfDay.now());
 
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: initial,
-      builder: (context, child) => Theme(
-        data: ThemeData.light().copyWith(
-          colorScheme: const ColorScheme.light(
-            primary: AppColors.primary,
-            onPrimary: Colors.white,
-            surface: Colors.white,
-            onSurface: AppColors.textPrimary,
-          ),
-        ),
-        child: child!,
-      ),
-    );
+    final picked = await showTimePicker24h(context, initial);
 
     if (picked != null) {
       setState(() {
