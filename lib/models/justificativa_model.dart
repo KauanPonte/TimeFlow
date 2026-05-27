@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_application_appdeponto/services/server_time_service.dart';
 
@@ -17,7 +16,7 @@ class JustificativaModel {
   final String? reason; // observação do admin ao recusar
   final bool seenByEmployee;
   final String? fileName;
-  final Uint8List? fileBytes;
+  final String? fileUrl;
   final String? dataInicio;
   final String? dataFim;
   final int? abonoMinutes;
@@ -36,7 +35,7 @@ class JustificativaModel {
     this.reason,
     this.seenByEmployee = false,
     this.fileName,
-    this.fileBytes,
+    this.fileUrl,
     this.dataInicio,
     this.dataFim,
     this.abonoMinutes,
@@ -56,7 +55,7 @@ class JustificativaModel {
         'reason': reason,
         'seenByEmployee': seenByEmployee,
         'fileName': fileName,
-        'fileBytes': fileBytes,
+        'fileUrl': fileUrl,
         'dataInicio': dataInicio,
         'dataFim': dataFim,
         'abonoMinutes': abonoMinutes,
@@ -82,7 +81,7 @@ class JustificativaModel {
       reason: data['reason'] as String?,
       seenByEmployee: (data['seenByEmployee'] as bool?) ?? false,
       fileName: data['fileName'] as String?,
-      fileBytes: data['fileBytes'] as Uint8List?,
+      fileUrl: data['fileUrl'] as String?,
       dataInicio: data['dataInicio'] as String?,
       dataFim: data['dataFim'] as String?,
       abonoMinutes: data['abonoMinutes'] as int?,
@@ -103,7 +102,7 @@ class JustificativaModel {
     String? reason,
     bool? seenByEmployee,
     String? fileName,
-    Uint8List? fileBytes,
+    String? fileUrl,
     String? dataInicio,
     String? dataFim,
     int? abonoMinutes,
@@ -122,7 +121,7 @@ class JustificativaModel {
       reason: reason ?? this.reason,
       seenByEmployee: seenByEmployee ?? this.seenByEmployee,
       fileName: fileName ?? this.fileName,
-      fileBytes: fileBytes ?? this.fileBytes,
+      fileUrl: fileUrl ?? this.fileUrl,
       dataInicio: dataInicio ?? this.dataInicio,
       dataFim: dataFim ?? this.dataFim,
       abonoMinutes: abonoMinutes ?? this.abonoMinutes,

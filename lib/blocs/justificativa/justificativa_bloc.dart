@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/global_loading/global_loading_cubit.dart';
 import 'package:flutter_application_appdeponto/models/justificativa_model.dart';
 import 'package:flutter_application_appdeponto/repositories/justificativa_repository.dart';
+import 'package:flutter_application_appdeponto/services/notification_service.dart';
 import 'justificativa_event.dart';
 import 'justificativa_state.dart';
 
@@ -12,24 +14,47 @@ class JustificativaBloc extends Bloc<JustificativaEvent, JustificativaState> {
   bool _isAdmin = false;
   List<JustificativaModel> _lastList = [];
 
+  StreamSubscription<List<JustificativaModel>>? _adminSub;
+
   JustificativaBloc({
     required this.repository,
     this.globalLoading,
   }) : super(const JustificativaInitial()) {
     on<LoadJustificativasEvent>(_onLoad);
     on<SilentLoadJustificativasEvent>(_onSilentLoad);
+    on<SubscribeAdminJustificativasEvent>(_onSubscribeAdmin);
     on<SubmitJustificativaEvent>(_onSubmit);
     on<ApproveJustificativaEvent>(_onApprove);
     on<RejectJustificativaEvent>(_onReject);
     on<DismissReviewedJustificativaEvent>(_onDismissReviewed);
     on<DeleteJustificativaEvent>(_onDelete);
-    on<ResetJustificativasEvent>((_, emit) {
+    on<ResetJustificativasEvent>((_, emit) async {
+      await _adminSub?.cancel();
+      _adminSub = null;
       _lastList = [];
       emit(const JustificativaInitial());
     });
   }
 
   void reset() => add(const ResetJustificativasEvent());
+
+  /// Inicia um stream Firestore em tempo real para o admin.
+  /// Cancela qualquer subscription anterior antes de abrir a nova.
+  Future<void> _onSubscribeAdmin(
+    SubscribeAdminJustificativasEvent event,
+    Emitter<JustificativaState> emit,
+  ) async {
+    await _adminSub?.cancel();
+    _isAdmin = true;
+    await emit.forEach<List<JustificativaModel>>(
+      repository.streamPendingJustificativas(),
+      onData: (list) {
+        _lastList = list;
+        return JustificativaLoaded(justificativas: list, isAdmin: true);
+      },
+      onError: (_, __) => state,
+    );
+  }
 
   Future<void> _onSilentLoad(
     SilentLoadJustificativasEvent event,
@@ -85,6 +110,11 @@ class JustificativaBloc extends Bloc<JustificativaEvent, JustificativaState> {
       final list = await repository.getMyJustificativas(preferCache: true);
       _lastList = list;
       globalLoading?.hide();
+      // Notifica o funcionário no dispositivo que o abono está aguardando aprovação.
+      NotificationService.showInstantNotification(
+        title: 'Abono enviado',
+        body: 'Sua solicitação está em análise pelo administrador.',
+      );
       emit(JustificativaActionSuccess(
         message: 'Justificativa enviada com sucesso!',
         justificativas: list,

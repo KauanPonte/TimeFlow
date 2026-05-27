@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/models/justificativa_model.dart';
 import 'package:flutter_application_appdeponto/models/solicitation_model.dart';
 import 'package:flutter_application_appdeponto/services/server_time_service.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
@@ -21,6 +22,8 @@ class FilledDayCard extends StatefulWidget {
   final void Function(String)? onCancelSolicitation;
   final String? holidayName;
   final VoidCallback? onOpenDayActions;
+  final JustificativaModel? justificativa;
+  final VoidCallback? onDeleteJustificativa;
 
   const FilledDayCard({
     super.key,
@@ -37,6 +40,8 @@ class FilledDayCard extends StatefulWidget {
     this.onCancelSolicitation,
     this.holidayName,
     this.onOpenDayActions,
+    this.justificativa,
+    this.onDeleteJustificativa,
   });
 
   @override
@@ -247,7 +252,105 @@ class _FilledDayCardState extends State<FilledDayCard> {
         if (hasPending)
           _badge(null, '$count pendencia${count != 1 ? 's' : ''}',
               AppColors.warning),
+        // Badge de abono pendente
+        if (widget.justificativa != null &&
+            widget.justificativa!.status == JustificativaStatus.pending)
+          _abonoComDeleteBadge(
+            child: _badge(
+                Icons.hourglass_top_rounded, 'Abono pendente', AppColors.warning),
+          ),
+        // Badge de abono aprovado: mostra as horas compensadas
+        if (widget.justificativa != null &&
+            widget.justificativa!.status == JustificativaStatus.approved &&
+            widget.justificativa!.abonoMinutes != null &&
+            widget.justificativa!.abonoMinutes! > 0)
+          _abonoComDeleteBadge(
+            child: _abonoAprovadoBadge(widget.justificativa!.abonoMinutes!),
+          ),
       ],
+    );
+  }
+
+  Widget _abonoAprovadoBadge(int minutes) {
+    final h = minutes ~/ 60;
+    final m = minutes % 60;
+    final label = h > 0 && m > 0
+        ? '${h}h ${m}min abonada${minutes != 1 ? 's' : ''}'
+        : h > 0
+            ? '${h}h abonada${h != 1 ? 's' : ''}'
+            : '${m}min abonado${m != 1 ? 's' : ''}';
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      decoration: BoxDecoration(
+        color: AppColors.success.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+            color: AppColors.success.withValues(alpha: 0.3), width: 0.5),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.verified_outlined,
+              size: 11, color: AppColors.success),
+          const SizedBox(width: 3),
+          Text(
+            label,
+            style: AppTextStyles.bodySmall.copyWith(
+              color: AppColors.success,
+              fontWeight: FontWeight.w600,
+              fontSize: 11,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _abonoComDeleteBadge({required Widget child}) {
+    if (widget.onDeleteJustificativa == null) return child;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        child,
+        const SizedBox(width: 2),
+        GestureDetector(
+          onTap: _confirmDeleteAbono,
+          child: Container(
+            padding: const EdgeInsets.all(3),
+            decoration: BoxDecoration(
+              color: AppColors.error.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: const Icon(Icons.delete_outline,
+                size: 13, color: AppColors.error),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _confirmDeleteAbono() {
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Remover abono'),
+        content: const Text(
+            'Deseja remover este pedido de abono? Esta ação não pode ser desfeita.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              widget.onDeleteJustificativa?.call();
+            },
+            child: const Text('Remover',
+                style: TextStyle(color: AppColors.error)),
+          ),
+        ],
+      ),
     );
   }
 
