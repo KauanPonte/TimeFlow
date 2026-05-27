@@ -59,3 +59,9 @@ class DeleteJustificativaEvent extends JustificativaEvent {
 class ResetJustificativasEvent extends JustificativaEvent {
   const ResetJustificativasEvent();
 }
+
+/// Inicia um stream em tempo real de justificativas pendentes para o admin.
+/// O bloc emite JustificativaLoaded sempre que o Firestore detectar mudança.
+class SubscribeAdminJustificativasEvent extends JustificativaEvent {
+  const SubscribeAdminJustificativasEvent();
+}

@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter_application_appdeponto/models/justificativa_model.dart';
 
 /// Opções de leitura: cache local (instantâneo) para re-buscas pós-escrita,
@@ -34,23 +35,35 @@ class JustificativaRepository {
       throw Exception('A justificativa não pode estar vazia.');
     }
 
-    // Verifica duplicata pendente para o mesmo dia
-    final existing = await _ref
-        .where('uid', isEqualTo: user.uid)
-        .where('diaId', isEqualTo: diaId)
-        .where('status', isEqualTo: 'pending')
-        .limit(1)
-        .get();
+    // Verifica duplicata e busca nome do usuário em paralelo (evita 2 round-trips sequenciais)
+    final results = await Future.wait([
+      _ref
+          .where('uid', isEqualTo: user.uid)
+          .where('diaId', isEqualTo: diaId)
+          .where('status', isEqualTo: 'pending')
+          .limit(1)
+          .get(),
+      FirebaseFirestore.instance.collection('usuarios').doc(user.uid).get(),
+    ]);
+    final existing = results[0] as QuerySnapshot<Map<String, dynamic>>;
+    final userSnap = results[1] as DocumentSnapshot<Map<String, dynamic>>;
     if (existing.docs.isNotEmpty) {
       throw Exception(
           'Já existe uma justificativa pendente para este dia. Aguarde a revisão do administrador.');
     }
-
-    final userSnap = await FirebaseFirestore.instance
-        .collection('usuarios')
-        .doc(user.uid)
-        .get();
     final employeeName = (userSnap.data()?['name'] ?? '').toString();
+
+    // Se há arquivo PDF, faz upload no Storage e salva só a URL.
+    // Guardar bytes diretamente no Firestore causa lentidão e erro (limite de 1 MB).
+    String? fileUrl;
+    if (fileBytes != null && fileName != null) {
+      final storageRef = FirebaseStorage.instance.ref(
+        'justificativas/${user.uid}/${DateTime.now().millisecondsSinceEpoch}_$fileName',
+      );
+      await storageRef.putData(
+          fileBytes, SettableMetadata(contentType: 'application/pdf'));
+      fileUrl = await storageRef.getDownloadURL();
+    }
 
     await _ref.add({
       'uid': user.uid,
@@ -64,7 +77,7 @@ class JustificativaRepository {
       'reason': null,
       'seenByEmployee': false,
       'fileName': fileName,
-      'fileBytes': fileBytes,
+      'fileUrl': fileUrl,
       'dataInicio': dataInicio,
       'dataFim': dataFim,
       'abonoMinutes': abonoMinutes,
@@ -95,6 +108,20 @@ class JustificativaRepository {
     final list = snap.docs.map((d) => JustificativaModel.fromDoc(d)).toList();
     list.sort((a, b) => a.createdAt.compareTo(b.createdAt));
     return list;
+  }
+
+  /// Stream em tempo real de justificativas pendentes (admin).
+  /// Emite uma nova lista sempre que o Firestore detectar mudança,
+  /// sem necessidade de polling manual.
+  Stream<List<JustificativaModel>> streamPendingJustificativas() {
+    return _ref
+        .where('status', isEqualTo: 'pending')
+        .snapshots()
+        .map((snap) {
+      final list = snap.docs.map((d) => JustificativaModel.fromDoc(d)).toList();
+      list.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+      return list;
+    });
   }
 
   /// Retorna todas as justificativas de um funcionário específico (uso do admin

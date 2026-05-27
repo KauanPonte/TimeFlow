@@ -302,7 +302,12 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
         .add(LoadHistoryEvent(month: ServerTimeService.nowBrazilUtc()));
     solicitationBloc.add(LoadSolicitationsEvent(isAdmin: isAdmin));
     atestadoBloc.add(LoadAtestadosEvent(isAdmin: isAdmin));
-    justificativaBloc.add(LoadJustificativasEvent(isAdmin: isAdmin));
+    if (isAdmin) {
+      // Admin usa stream em tempo real — novos pedidos aparecem instantaneamente.
+      justificativaBloc.add(const SubscribeAdminJustificativasEvent());
+    } else {
+      justificativaBloc.add(const LoadJustificativasEvent(isAdmin: false));
+    }
 
     if (isAdmin) {
       tasks.add(

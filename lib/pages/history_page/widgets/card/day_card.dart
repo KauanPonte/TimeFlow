@@ -107,6 +107,8 @@ class DayCard extends StatelessWidget {
       onRequestSolicitation: disabled ? null : onRequestSolicitation,
       onCancelSolicitation: disabled ? null : onCancelSolicitation,
       onOpenDayActions: onOpenDayActions,
+      justificativa: justificativa,
+      onDeleteJustificativa: disabled ? null : onDeleteJustificativa,
     );
   }
 }

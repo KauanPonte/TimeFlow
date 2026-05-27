@@ -1657,6 +1657,29 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                       ),
                     ),
                   ],
+                  // Link para o documento PDF (se enviado)
+                  if (just.fileUrl != null) ...[
+                    const SizedBox(height: 10),
+                    OutlinedButton.icon(
+                      onPressed: () async {
+                        try {
+                          await launchUrl(
+                            Uri.parse(just.fileUrl!),
+                            mode: LaunchMode.externalApplication,
+                          );
+                        } catch (_) {}
+                      },
+                      icon: const Icon(Icons.picture_as_pdf_outlined, size: 16),
+                      label: const Text('Ver documento'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.primary,
+                        side: const BorderSide(color: AppColors.primary),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 12),
 
                   // Campo de motivo (recusa)
