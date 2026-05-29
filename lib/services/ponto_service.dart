@@ -872,7 +872,7 @@ class PontoService {
         .collection('dias')
         .where('date', isGreaterThanOrEqualTo: '$prefix-01')
         .where('date', isLessThanOrEqualTo: '$prefix-31')
-        .get();
+        .get(const GetOptions(source: Source.server));
 
     // Monta mapa para acesso rápido por diaId
     final Map<String, Map<String, dynamic>> dayDataMap = {
@@ -908,11 +908,12 @@ class PontoService {
       }
     }
 
-    // Soma as horas reais trabalhadas, excluindo hoje se o dia ainda não foi fechado
+    // Soma horas trabalhadas + abono aprovado, excluindo hoje se ainda não fechado
     int workedMinutes = 0;
     for (final entry in dayDataMap.entries) {
       if (isCurrentMonth && !todayIsClosed && entry.key == todayId) continue;
       workedMinutes += (entry.value['workedMinutes'] as int?) ?? 0;
+      workedMinutes += (entry.value['abonoMinutes'] as int?) ?? 0;
     }
 
     // "subtrai isso (expectativa) pelo q realmente tem trabalhado e ent temos os saldo"

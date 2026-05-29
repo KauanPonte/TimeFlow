@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
-import 'package:flutter_application_appdeponto/blocs/justificativa/justificativa_bloc.dart';
-import 'package:flutter_application_appdeponto/blocs/justificativa/justificativa_event.dart';
-import 'package:flutter_application_appdeponto/blocs/justificativa/justificativa_state.dart';
+import 'package:flutter_application_appdeponto/blocs/abono/abono_bloc.dart';
+import 'package:flutter_application_appdeponto/blocs/abono/abono_event.dart';
+import 'package:flutter_application_appdeponto/blocs/abono/abono_state.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
 import 'package:flutter_application_appdeponto/widgets/custom_snackbar.dart';
@@ -70,23 +70,23 @@ class _RequestAbonoPageState extends State<RequestAbonoPage> {
         ? _otherReasonController.text.trim()
         : _selectedReason!;
 
-    context.read<JustificativaBloc>().add(
-          SubmitJustificativaEvent(
+    context.read<AbonoBloc>().add(
+          SubmitAbonoEvent(
             diaId: DateFormat('yyyy-MM-dd').format(date),
-            justificativa: reason,
-            isFullDayAbono: _fullDayReasons.contains(_selectedReason),
+            observacao: reason,
+            isFullDay: _fullDayReasons.contains(_selectedReason),
           ),
         );
   }
 
   @override
   Widget build(BuildContext context) {
-    return BlocListener<JustificativaBloc, JustificativaState>(
+    return BlocListener<AbonoBloc, AbonoState>(
       listener: (context, state) {
-        if (state is JustificativaActionSuccess) {
+        if (state is AbonoActionSuccess) {
           CustomSnackbar.showSuccess(context, state.message);
           if (mounted) Navigator.pop(context);
-        } else if (state is JustificativaError) {
+        } else if (state is AbonoError) {
           CustomSnackbar.showError(context, state.message);
         }
       },

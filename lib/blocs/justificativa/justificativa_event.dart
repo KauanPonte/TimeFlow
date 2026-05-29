@@ -19,19 +19,11 @@ class SubmitJustificativaEvent extends JustificativaEvent {
   final String justificativa;
   final String? fileName;
   final Uint8List? fileBytes;
-  final String? dataInicio;
-  final String? dataFim;
-  final int? abonoMinutes;
-  final bool isFullDayAbono;
   const SubmitJustificativaEvent({
     required this.diaId,
     required this.justificativa,
     this.fileName,
     this.fileBytes,
-    this.dataInicio,
-    this.dataFim,
-    this.abonoMinutes,
-    this.isFullDayAbono = false,
   });
 }
 

@@ -8,7 +8,9 @@ import 'package:flutter_application_appdeponto/blocs/ponto_history/ponto_history
 import 'package:flutter_application_appdeponto/blocs/ponto_history/ponto_history_event.dart';
 import 'package:flutter_application_appdeponto/blocs/ponto_history/ponto_history_state.dart';
 import 'package:flutter_application_appdeponto/blocs/global_loading/global_loading_cubit.dart';
+import 'package:flutter_application_appdeponto/models/abono_model.dart';
 import 'package:flutter_application_appdeponto/models/justificativa_model.dart';
+import 'package:flutter_application_appdeponto/repositories/abono_repository.dart';
 import 'package:flutter_application_appdeponto/repositories/justificativa_repository.dart';
 import 'package:flutter_application_appdeponto/repositories/ponto_history_repository.dart';
 import 'package:flutter_application_appdeponto/repositories/history_view_preference_repository.dart';
@@ -88,6 +90,7 @@ class _HistoryView extends StatefulWidget {
 class _HistoryViewState extends State<_HistoryView> {
   final _viewPreferenceRepository = HistoryViewPreferenceRepository();
   final _justificativaRepository = JustificativaRepository();
+  final _abonoRepository = AbonoRepository();
 
   late DateTime _currentMonth;
   late DateTime _selectedCalendarDay;
@@ -97,8 +100,17 @@ class _HistoryViewState extends State<_HistoryView> {
   Map<DateTime, List<Map<String, dynamic>>> _allCalendarEvents = {};
   final Set<int> _loadedFixedHolidaysYears = {};
 
-  /// Justificativas do funcionário sendo visualizado (admin mode).
+  /// Justificativas do funcionário sendo visualizado (admin vendo funcionário).
   Map<String, JustificativaModel> _adminJustificativas = {};
+
+  /// Abonos do funcionário sendo visualizado (admin vendo funcionário).
+  Map<String, AbonoModel> _adminAbonos = {};
+
+  /// Justificativas do próprio usuário logado (employee view).
+  Map<String, JustificativaModel> _myJustificativas = {};
+
+  /// Abonos do próprio usuário logado (employee view).
+  Map<String, AbonoModel> _myAbonos = {};
 
   /// Dias com atestado aprovado (isExcused = true).
   Set<String> _excusedDayIds = {};
@@ -127,6 +139,10 @@ class _HistoryViewState extends State<_HistoryView> {
     _loadCalendarBlockedDays();
     _loadMesResumo();
     _loadExcusedDays();
+    if (!isAdmin) {
+      _loadMyJustificativas();
+      _loadMyAbonos();
+    }
   }
 
   @override
@@ -249,6 +265,7 @@ class _HistoryViewState extends State<_HistoryView> {
 
     if (isAdmin) {
       _loadAdminJustificativas();
+      _loadAdminAbonos();
     }
   }
 
@@ -273,6 +290,41 @@ class _HistoryViewState extends State<_HistoryView> {
         _justificativasCache[key] = list;
         setState(() {
           _adminJustificativas = {for (final j in list) j.diaId: j};
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _loadMyJustificativas() async {
+    try {
+      final list = await _justificativaRepository.getMyJustificativas();
+      if (mounted) {
+        setState(() {
+          _myJustificativas = {for (final j in list) j.diaId: j};
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _loadMyAbonos() async {
+    try {
+      final list = await _abonoRepository.getMyAbonos();
+      if (mounted) {
+        setState(() {
+          _myAbonos = {for (final a in list) a.diaId: a};
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _loadAdminAbonos() async {
+    if (widget.targetUid == null) return;
+    try {
+      final list =
+          await _abonoRepository.getAbonosForEmployee(widget.targetUid!);
+      if (mounted) {
+        setState(() {
+          _adminAbonos = {for (final a in list) a.diaId: a};
         });
       }
     } catch (_) {}
@@ -338,7 +390,17 @@ class _HistoryViewState extends State<_HistoryView> {
           ),
         );
     _loadCalendarBlockedDays();
-    if (isAdmin) await _loadAdminJustificativas();
+    if (isAdmin) {
+      await Future.wait([
+        _loadAdminJustificativas(),
+        _loadAdminAbonos(),
+      ]);
+    } else {
+      await Future.wait([
+        _loadMyJustificativas(),
+        _loadMyAbonos(),
+      ]);
+    }
     _loadMesResumo();
     _loadExcusedDays();
   }
@@ -510,12 +572,17 @@ class _HistoryViewState extends State<_HistoryView> {
                 targetUid: widget.targetUid,
                 allCalendarEvents: _allCalendarEvents,
                 adminJustificativas: _adminJustificativas,
+                employeeJustificativas: _myJustificativas,
+                adminAbonos: _adminAbonos,
+                employeeAbonos: _myAbonos,
                 excusedDayIds: _excusedDayIds,
                 justificativaRepository: _justificativaRepository,
+                abonoRepository: _abonoRepository,
                 onDaySelected: (day) =>
                     setState(() => _selectedCalendarDay = day),
                 onRefresh: _refreshHistory,
                 onAdminJustificativasReloaded: _loadAdminJustificativas,
+                onAdminAbonosReloaded: _loadAdminAbonos,
               ),
             ),
           ],

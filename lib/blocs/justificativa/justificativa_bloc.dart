@@ -101,19 +101,14 @@ class JustificativaBloc extends Bloc<JustificativaEvent, JustificativaState> {
         justificativa: event.justificativa,
         fileName: event.fileName,
         fileBytes: event.fileBytes,
-        dataInicio: event.dataInicio,
-        dataFim: event.dataFim,
-        abonoMinutes: event.abonoMinutes,
-        isFullDayAbono: event.isFullDayAbono,
       );
       // Re-busca do cache local — o .add() acima já o populou (instantâneo).
       final list = await repository.getMyJustificativas(preferCache: true);
       _lastList = list;
       globalLoading?.hide();
-      // Notifica o funcionário no dispositivo que o abono está aguardando aprovação.
       NotificationService.showInstantNotification(
-        title: 'Abono enviado',
-        body: 'Sua solicitação está em análise pelo administrador.',
+        title: 'Justificativa enviada',
+        body: 'Sua justificativa está em análise pelo administrador.',
       );
       emit(JustificativaActionSuccess(
         message: 'Justificativa enviada com sucesso!',
@@ -192,7 +187,7 @@ class JustificativaBloc extends Bloc<JustificativaEvent, JustificativaState> {
     DeleteJustificativaEvent event,
     Emitter<JustificativaState> emit,
   ) async {
-    globalLoading?.show('Removendo abono...');
+    globalLoading?.show('Removendo justificativa...');
     try {
       await repository.deleteJustificativa(event.justificativaId);
       _lastList =

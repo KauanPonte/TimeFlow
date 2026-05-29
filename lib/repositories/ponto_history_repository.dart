@@ -334,7 +334,7 @@ class PontoHistoryRepository {
 
   /// Estado do dia lido do cache local: `eventosCache` cru (`at` como
   /// Timestamp), se o doc do dia existe, e o delta atual do dia.
-  Future<({List<Map<String, dynamic>> cache, bool dayExists, int oldDelta})>
+  Future<({List<Map<String, dynamic>> cache, bool dayExists, int oldDelta, int abonoMinutes})>
       _loadDayCache(String uid, String diaId) async {
     final refDia =
         _firestore.collection(_root).doc(uid).collection('dias').doc(diaId);
@@ -347,15 +347,16 @@ class PontoHistoryRepository {
     }
 
     if (!diaSnap.exists) {
-      return (cache: <Map<String, dynamic>>[], dayExists: false, oldDelta: 0);
+      return (cache: <Map<String, dynamic>>[], dayExists: false, oldDelta: 0, abonoMinutes: 0);
     }
 
     final data = diaSnap.data() ?? {};
     final oldDelta = (data['deltaMinutes'] as int?) ?? 0;
+    final abonoMin = (data['abonoMinutes'] as int?) ?? 0;
     final raw = data['eventosCache'];
 
     if (raw is List && raw.isNotEmpty) {
-      return (cache: _rawCacheList(raw), dayExists: true, oldDelta: oldDelta);
+      return (cache: _rawCacheList(raw), dayExists: true, oldDelta: oldDelta, abonoMinutes: abonoMin);
     }
 
     // Dado legado sem eventosCache → busca a subcoleção no servidor (1x).
@@ -373,7 +374,28 @@ class PontoHistoryRepository {
         'origin': (ev['origin'] ?? 'registrado').toString(),
       };
     }).toList();
-    return (cache: cache, dayExists: true, oldDelta: oldDelta);
+    return (cache: cache, dayExists: true, oldDelta: oldDelta, abonoMinutes: abonoMin);
+  }
+
+  /// Lê a carga horária do usuário em minutos, com fallback de 480 (8h).
+  Future<int> _getUserWorkload(String uid) async {
+    try {
+      DocumentSnapshot<Map<String, dynamic>> snap;
+      try {
+        snap = await _firestore
+            .collection('usuarios')
+            .doc(uid)
+            .get(const GetOptions(source: Source.cache));
+      } catch (_) {
+        snap = await _firestore.collection('usuarios').doc(uid).get();
+      }
+      final data = snap.data();
+      return (data?['workloadMinutes'] as int?) ??
+          (data?['cargaHorariaMinutos'] as int?) ??
+          480;
+    } catch (_) {
+      return 480;
+    }
   }
 
   /// Normaliza o array `eventosCache` cru mantendo `at` como Timestamp.
@@ -452,16 +474,16 @@ class PontoHistoryRepository {
     required List<Map<String, dynamic>> novoCache,
     required bool dayExisted,
     required int oldDelta,
+    int abonoMinutes = 0,
+    int workloadMinutes = 480,
   }) {
-    const targetMinutesPerDay = 8 * 60;
-
     final lastEvento = novoCache.last;
     final lastTipo = (lastEvento['tipo'] ?? '').toString();
     final lastAt = lastEvento['at'];
     final diaFechado = lastTipo == 'saida';
     final workedMinutes = _computeWorkedMinutes(novoCache);
     final deltaMinutes =
-        diaFechado ? (workedMinutes - targetMinutesPerDay) : 0;
+        diaFechado ? (workedMinutes + abonoMinutes - workloadMinutes) : 0;
     final balanceDiff = deltaMinutes - oldDelta;
 
     final diaUpdate = <String, dynamic>{
@@ -501,7 +523,10 @@ class PontoHistoryRepository {
     final refEventos = refDia.collection('eventos');
     final ts = Timestamp.fromDate(horario);
 
-    final estado = await _loadDayCache(uid, diaId);
+    final (estado, workload) = await (
+      _loadDayCache(uid, diaId),
+      _getUserWorkload(uid),
+    ).wait;
 
     final erro = PontoValidator.validarNovoEvento(
       eventosExistentes: _toValidatorInput(estado.cache),
@@ -537,6 +562,8 @@ class PontoHistoryRepository {
       novoCache: novoCache,
       dayExisted: estado.dayExists,
       oldDelta: estado.oldDelta,
+      abonoMinutes: estado.abonoMinutes,
+      workloadMinutes: workload,
     );
   }
 
@@ -553,7 +580,10 @@ class PontoHistoryRepository {
     final refEventos = refDia.collection('eventos');
     final ts = Timestamp.fromDate(horario);
 
-    final estado = await _loadDayCache(uid, diaId);
+    final (estado, workload) = await (
+      _loadDayCache(uid, diaId),
+      _getUserWorkload(uid),
+    ).wait;
 
     final erro = PontoValidator.validarEdicaoEvento(
       eventosExistentes: _toValidatorInput(estado.cache),
@@ -590,6 +620,8 @@ class PontoHistoryRepository {
       novoCache: novoCache,
       dayExisted: true,
       oldDelta: estado.oldDelta,
+      abonoMinutes: estado.abonoMinutes,
+      workloadMinutes: workload,
     );
   }
 
@@ -603,7 +635,10 @@ class PontoHistoryRepository {
         _firestore.collection(_root).doc(uid).collection('dias').doc(diaId);
     final refEventos = refDia.collection('eventos');
 
-    final estado = await _loadDayCache(uid, diaId);
+    final (estado, workload) = await (
+      _loadDayCache(uid, diaId),
+      _getUserWorkload(uid),
+    ).wait;
 
     final erro = PontoValidator.validarExclusaoEvento(
       eventosExistentes: _toValidatorInput(estado.cache),
@@ -631,6 +666,8 @@ class PontoHistoryRepository {
         novoCache: novoCache,
         dayExisted: true,
         oldDelta: estado.oldDelta,
+        abonoMinutes: estado.abonoMinutes,
+        workloadMinutes: workload,
       );
     }
   }
@@ -676,7 +713,10 @@ class PontoHistoryRepository {
         _firestore.collection(_root).doc(uid).collection('dias').doc(diaId);
     final refEventos = refDia.collection('eventos');
 
-    final estado = await _loadDayCache(uid, diaId);
+    final (estado, workload) = await (
+      _loadDayCache(uid, diaId),
+      _getUserWorkload(uid),
+    ).wait;
 
     final updateMap = <String, Map<String, dynamic>>{
       for (final u in updates) u['id'] as String: u,
@@ -769,6 +809,8 @@ class PontoHistoryRepository {
         novoCache: novoCache,
         dayExisted: estado.dayExists,
         oldDelta: estado.oldDelta,
+        abonoMinutes: estado.abonoMinutes,
+        workloadMinutes: workload,
       );
     }
   }
