@@ -7,20 +7,16 @@ class JustificativaModel {
   final String id;
   final String uid;
   final String employeeName;
-  final String diaId; // 'yyyy-MM-dd'
-  final String justificativa; // texto da justificativa
+  final String diaId;
+  final String justificativa;
   final JustificativaStatus status;
   final DateTime createdAt;
   final DateTime? resolvedAt;
-  final String? resolvedBy; // uid do admin
-  final String? reason; // observação do admin ao recusar
+  final String? resolvedBy;
+  final String? reason;
   final bool seenByEmployee;
   final String? fileName;
   final String? fileUrl;
-  final String? dataInicio;
-  final String? dataFim;
-  final int? abonoMinutes;
-  final bool isFullDayAbono;
 
   const JustificativaModel({
     required this.id,
@@ -36,10 +32,6 @@ class JustificativaModel {
     this.seenByEmployee = false,
     this.fileName,
     this.fileUrl,
-    this.dataInicio,
-    this.dataFim,
-    this.abonoMinutes,
-    this.isFullDayAbono = false,
   });
 
   Map<String, dynamic> toMap() => {
@@ -56,10 +48,6 @@ class JustificativaModel {
         'seenByEmployee': seenByEmployee,
         'fileName': fileName,
         'fileUrl': fileUrl,
-        'dataInicio': dataInicio,
-        'dataFim': dataFim,
-        'abonoMinutes': abonoMinutes,
-        'isFullDayAbono': isFullDayAbono,
       };
 
   factory JustificativaModel.fromDoc(
@@ -82,10 +70,6 @@ class JustificativaModel {
       seenByEmployee: (data['seenByEmployee'] as bool?) ?? false,
       fileName: data['fileName'] as String?,
       fileUrl: data['fileUrl'] as String?,
-      dataInicio: data['dataInicio'] as String?,
-      dataFim: data['dataFim'] as String?,
-      abonoMinutes: data['abonoMinutes'] as int?,
-      isFullDayAbono: (data['isFullDayAbono'] as bool?) ?? false,
     );
   }
 
@@ -103,10 +87,6 @@ class JustificativaModel {
     bool? seenByEmployee,
     String? fileName,
     String? fileUrl,
-    String? dataInicio,
-    String? dataFim,
-    int? abonoMinutes,
-    bool? isFullDayAbono,
   }) {
     return JustificativaModel(
       id: id ?? this.id,
@@ -122,10 +102,6 @@ class JustificativaModel {
       seenByEmployee: seenByEmployee ?? this.seenByEmployee,
       fileName: fileName ?? this.fileName,
       fileUrl: fileUrl ?? this.fileUrl,
-      dataInicio: dataInicio ?? this.dataInicio,
-      dataFim: dataFim ?? this.dataFim,
-      abonoMinutes: abonoMinutes ?? this.abonoMinutes,
-      isFullDayAbono: isFullDayAbono ?? this.isFullDayAbono,
     );
   }
 }

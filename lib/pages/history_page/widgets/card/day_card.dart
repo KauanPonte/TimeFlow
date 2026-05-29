@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/models/abono_model.dart';
 import 'package:flutter_application_appdeponto/models/justificativa_model.dart';
 import 'package:flutter_application_appdeponto/models/solicitation_model.dart';
 import 'widgets/empty_day_card.dart';
@@ -15,15 +16,16 @@ class DayCard extends StatelessWidget {
   final VoidCallback? onAddEvento;
   final VoidCallback? onRequestSolicitation;
   final VoidCallback? onJustify;
+  final VoidCallback? onApplyAbono;
   final VoidCallback? onDeleteJustificativa;
+  final VoidCallback? onDeleteAbono;
   final JustificativaModel? justificativa;
+  final AbonoModel? abono;
   final List<SolicitationModel> pendingSolicitations;
   final void Function(String solicitationId)? onCancelSolicitation;
   final Set<String> calendarBlockedDays;
   final String? holidayName;
   final VoidCallback? onOpenDayActions;
-
-  /// Admin: abre edição em lote passando diaId e eventos atuais.
   final void Function(String diaId, List<Map<String, dynamic>> eventos)?
       onBatchEdit;
 
@@ -36,8 +38,11 @@ class DayCard extends StatelessWidget {
     this.onAddEvento,
     this.onRequestSolicitation,
     this.onJustify,
+    this.onApplyAbono,
     this.onDeleteJustificativa,
+    this.onDeleteAbono,
     this.justificativa,
+    this.abono,
     this.pendingSolicitations = const [],
     this.onCancelSolicitation,
     this.onBatchEdit,
@@ -48,8 +53,6 @@ class DayCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Feriados não devem desativar o card (os cliques são bloqueados no backend)
-    // Apenas dias futuros e fins de semana desativam a visualização.
     final disabled = isFuture || isWeekendDay(diaId);
 
     if (isFuture) {
@@ -65,6 +68,7 @@ class DayCard extends StatelessWidget {
         onRequestSolicitation: disabled ? null : onRequestSolicitation,
       );
     }
+
     if (eventos.isEmpty && pendingSolicitations.isEmpty) {
       return EmptyDayCard(
         diaId: diaId,
@@ -77,11 +81,15 @@ class DayCard extends StatelessWidget {
             : null,
         onRequestSolicitation: disabled ? null : onRequestSolicitation,
         onJustify: disabled ? null : onJustify,
+        onApplyAbono: disabled ? null : onApplyAbono,
         onDeleteJustificativa: disabled ? null : onDeleteJustificativa,
+        onDeleteAbono: disabled ? null : onDeleteAbono,
         justificativa: justificativa,
+        abono: abono,
         onOpenDayActions: onOpenDayActions,
       );
     }
+
     if (eventos.isEmpty && pendingSolicitations.isNotEmpty) {
       return PendingOnlyDayCard(
         diaId: diaId,
@@ -93,6 +101,7 @@ class DayCard extends StatelessWidget {
         onRequestSolicitation: disabled ? null : onRequestSolicitation,
       );
     }
+
     return FilledDayCard(
       diaId: diaId,
       holidayName: holidayName,
@@ -107,8 +116,9 @@ class DayCard extends StatelessWidget {
       onRequestSolicitation: disabled ? null : onRequestSolicitation,
       onCancelSolicitation: disabled ? null : onCancelSolicitation,
       onOpenDayActions: onOpenDayActions,
-      justificativa: justificativa,
-      onDeleteJustificativa: disabled ? null : onDeleteJustificativa,
+      abono: abono,
+      onApplyAbono: disabled ? null : onApplyAbono,
+      onDeleteAbono: disabled ? null : onDeleteAbono,
     );
   }
 }
