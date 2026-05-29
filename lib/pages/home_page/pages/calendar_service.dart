@@ -99,7 +99,7 @@ class CalendarService {
         final event = {
           'id': doc.id,
           'title': data['title'] ?? '',
-          'color': Color(data['colorValue'] ?? Colors.blue.toARGB32()),
+          'color': Color(data['colorValue'] ?? 0xFF178573),
           'type': data['type'] ?? '',
           'userId': data['userId'] ?? '',
         };

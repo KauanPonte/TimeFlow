@@ -49,6 +49,7 @@ dependencies:
   flutter_localizations:
     sdk: flutter
   timezone: ^0.10.1
+  fl_chart: '>=0.69.0 <1.0.0'
 
 dev_dependencies:
   flutter_test:
@@ -74,15 +75,17 @@ flutter:
 flutter_launcher_icons:
   android: "launcher_icon"
   ios: true
+  remove_alpha_ios: true
+  background_color_ios: "#178573"
   image_path: "assets/app_icon/timeflow.png"
-  adaptive_icon_background: "#303F9F"
+  adaptive_icon_background: "#178573"
   adaptive_icon_foreground: "assets/app_icon/timeflow.png"
   min_sdk_android: 21 # android min sdk min:16, default 21
   web:
     generate: true
     image_path: "assets/app_icon/timeflow.png"
-    background_color: "#303F9F"
-    theme_color: "#303F9F"
+    background_color: "#178573"
+    theme_color: "#178573"
   windows:
     generate: true
     image_path: "assets/app_icon/timeflow.png"

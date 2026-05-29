@@ -116,7 +116,7 @@ class _TimePickerDialogState extends State<_TimePickerDialog> {
       width: double.infinity,
       decoration: const BoxDecoration(
         gradient: LinearGradient(
-          colors: [AppColors.primary, Color(0xFF3949AB)],
+          colors: [AppColors.primary, AppColors.primaryLight],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -718,8 +718,8 @@ class _ClockPainter extends CustomPainter {
     this.contentAlpha = 1.0,
   });
 
-  static const _bgColor = Color(0xFFF0F2FF);
-  static const _ringColor = Color(0xFFE3E6F8);
+  static const _bgColor = Color(0xFFEAF6F2);
+  static const _ringColor = Color(0xFFD3EDE7);
   static const _tickMinor = Color(0xFFBDBDBD);
   static const _tickMajor = Color(0xFF9E9E9E);
 

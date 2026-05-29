@@ -322,7 +322,7 @@ class _KpiGrid extends StatelessWidget {
           icon: Icons.schedule_outlined,
           label: 'Horas trabalhadas',
           value: _formatDuration(report.workedMinutes),
-          accent: const Color(0xFF1976D2),
+          accent: AppColors.accent,
         ),
         _KpiTile(
           icon: Icons.trending_up_outlined,
@@ -503,8 +503,8 @@ class _WorkModeCard extends StatelessWidget {
                 painter: _DonutPainter(
                   firstValue: report.presencialDays,
                   secondValue: report.remoteDays,
-                  firstColor: const Color(0xFF00A6A6),
-                  secondColor: const Color(0xFF8BC34A),
+                  firstColor: const Color(0xFF178573),
+                  secondColor: const Color(0xFFFA8D57),
                 ),
                 child: Center(
                   child: Text(
@@ -522,9 +522,9 @@ class _WorkModeCard extends StatelessWidget {
           const Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              _LegendDot(color: Color(0xFF00A6A6), label: 'Presencial'),
+              _LegendDot(color: Color(0xFF178573), label: 'Presencial'),
               SizedBox(width: 16),
-              _LegendDot(color: Color(0xFF8BC34A), label: 'Home'),
+              _LegendDot(color: Color(0xFFFA8D57), label: 'Home'),
             ],
           ),
         ],

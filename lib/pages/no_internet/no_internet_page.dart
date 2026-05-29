@@ -55,8 +55,8 @@ class _NoInternetPageState extends State<NoInternetPage>
             end: Alignment.bottomRight,
             colors: [
               AppColors.bgLight,
-              Color(0xFFDCE3F8),
-              Color(0xFFD3DCF7),
+              Color(0xFFDDEFEA),
+              Color(0xFFCDE9E1),
             ],
           ),
         ),

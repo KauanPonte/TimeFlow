@@ -83,13 +83,13 @@ IconData iconForTipo(String tipo) {
 Color colorForTipo(String tipo) {
   switch (tipo) {
     case 'entrada':
-      return AppColors.success;
+      return AppColors.tipoEntrada;
     case 'pausa':
-      return const Color(0xFF3DB2FF);
+      return AppColors.tipoPausa;
     case 'retorno':
-      return AppColors.warning;
+      return AppColors.tipoRetorno;
     case 'saida':
-      return AppColors.error;
+      return AppColors.tipoSaida;
     default:
       return AppColors.textSecondary;
   }

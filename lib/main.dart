@@ -48,6 +48,7 @@ import 'pages/ponto_page/ponto_page.dart';
 import 'pages/profile_page/profile_page.dart';
 import 'pages/history_page/history_page.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -243,6 +244,22 @@ class TimeFlow extends StatelessWidget {
           return ConnectivityGuard(child: appShell);
         },
         theme: ThemeData(
+          useMaterial3: true,
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: AppColors.primary,
+            primary: AppColors.primary,
+            secondary: AppColors.accent,
+            brightness: Brightness.light,
+          ),
+          scaffoldBackgroundColor: AppColors.bgLight,
+          progressIndicatorTheme: const ProgressIndicatorThemeData(
+            color: AppColors.primary,
+          ),
+          textSelectionTheme: const TextSelectionThemeData(
+            cursorColor: AppColors.primary,
+            selectionColor: Color(0x3362C1B1),
+            selectionHandleColor: AppColors.primary,
+          ),
           pageTransitionsTheme: const PageTransitionsTheme(
             builders: {
               TargetPlatform.android: _NoTransitionBuilder(),

@@ -398,8 +398,8 @@ class _CreateUserViewState extends State<CreateUserView> {
                         child: OutlinedButton(
                           style: OutlinedButton.styleFrom(
                             backgroundColor: _contractType == 'CLT'
-                                ? const Color(0xFF3F51B5)
-                                : const Color(0xFF7C8CFF),
+                                ? const Color(0xFF178573)
+                                : const Color(0xFF62C1B1),
                             foregroundColor: Colors.white,
                             side: BorderSide.none,
                           ),
@@ -420,8 +420,8 @@ class _CreateUserViewState extends State<CreateUserView> {
                         child: OutlinedButton(
                           style: OutlinedButton.styleFrom(
                             backgroundColor: _contractType == 'Bolsista'
-                                ? const Color(0xFF3F51B5)
-                                : const Color(0xFF7C8CFF),
+                                ? const Color(0xFF178573)
+                                : const Color(0xFF62C1B1),
                             foregroundColor: Colors.white,
                             side: BorderSide.none,
                           ),
@@ -471,8 +471,8 @@ class _CreateUserViewState extends State<CreateUserView> {
                             child: OutlinedButton(
                               style: OutlinedButton.styleFrom(
                                 backgroundColor: selected
-                                    ? const Color(0xFF3F51B5)
-                                    : const Color(0xFF7C8CFF),
+                                    ? const Color(0xFF178573)
+                                    : const Color(0xFF62C1B1),
                                 foregroundColor: Colors.white,
                                 side: BorderSide.none,
                               ),
@@ -517,8 +517,8 @@ class _CreateUserViewState extends State<CreateUserView> {
                           ),
                           selected: selected,
                           onSelected: (_) => _toggleWorkDay(option['value']!),
-                          selectedColor: const Color(0xFF3F51B5),
-                          backgroundColor: const Color(0xFF7C8CFF),
+                          selectedColor: const Color(0xFF178573),
+                          backgroundColor: const Color(0xFF62C1B1),
                         );
                       }).toList(),
                     ),
@@ -565,8 +565,8 @@ class _CreateUserViewState extends State<CreateUserView> {
                             child: OutlinedButton(
                               style: OutlinedButton.styleFrom(
                                 backgroundColor: selected
-                                    ? const Color(0xFF3F51B5)
-                                    : const Color(0xFF7C8CFF),
+                                    ? const Color(0xFF178573)
+                                    : const Color(0xFF62C1B1),
                                 foregroundColor: Colors.white,
                                 side: BorderSide.none,
                               ),

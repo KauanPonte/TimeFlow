@@ -35,10 +35,10 @@ class _EventOption {
 class _EventColors {
   _EventColors._();
   static const Color feriado = Color(0xFF43A047);
-  static const Color recesso = Color(0xFF00897B);
-  static const Color pontoFacultativo = Color(0xFFF57C00);
-  static const Color escritorio = Color(0xFF7E57C2);
-  static const Color reuniao = Color(0xFFFF8A65);
+  static const Color recesso = Color(0xFF178573);
+  static const Color pontoFacultativo = Color(0xFFFA8D57);
+  static const Color escritorio = Color(0xFF7CB342);
+  static const Color reuniao = Color(0xFF2BB3A0);
 }
 
 // Página

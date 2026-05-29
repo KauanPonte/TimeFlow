@@ -62,11 +62,11 @@ enum ReminderCategory {
   Color get color {
     switch (this) {
       case ReminderCategory.entrada:
-        return const Color(0xFF18A999);
+        return const Color(0xFF1AA188);
       case ReminderCategory.pausa:
-        return const Color(0xFF3DB2FF);
+        return const Color(0xFFFA8D57);
       case ReminderCategory.volta:
-        return const Color(0xFFF7A500);
+        return const Color(0xFF7CB342);
       case ReminderCategory.saida:
         return const Color(0xFFE53935);
     }

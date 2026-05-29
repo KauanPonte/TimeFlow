@@ -369,7 +369,7 @@ class _PontoPageState extends State<PontoPage> {
                               ActionRow(
                                 label: 'Entrada',
                                 icon: Icons.login_rounded,
-                                accentColor: const Color(0xFF18A999),
+                                accentColor: AppColors.tipoEntrada,
                                 done: hoje['entrada'] != null,
                                 isNext: proximas.contains('entrada'),
                                 time: hoje['entrada'],
@@ -380,7 +380,7 @@ class _PontoPageState extends State<PontoPage> {
                               ActionRow(
                                 label: 'Pausa',
                                 icon: Icons.coffee_rounded,
-                                accentColor: const Color(0xFF3DB2FF),
+                                accentColor: AppColors.tipoPausa,
                                 done: hoje['pausa'] != null,
                                 isNext: proximas.contains('pausa'),
                                 optional: true,
@@ -392,7 +392,7 @@ class _PontoPageState extends State<PontoPage> {
                               ActionRow(
                                 label: 'Retorno',
                                 icon: Icons.replay_rounded,
-                                accentColor: const Color(0xFFF7A500),
+                                accentColor: AppColors.tipoRetorno,
                                 done: hoje['retorno'] != null,
                                 isNext: proximas.contains('retorno'),
                                 time: hoje['retorno'],
@@ -403,7 +403,7 @@ class _PontoPageState extends State<PontoPage> {
                               ActionRow(
                                 label: 'Saída',
                                 icon: Icons.logout_rounded,
-                                accentColor: const Color(0xFFE53935),
+                                accentColor: AppColors.tipoSaida,
                                 done: hoje['saida'] != null,
                                 isNext: proximas.contains('saida'),
                                 time: hoje['saida'],

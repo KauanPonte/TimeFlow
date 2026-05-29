@@ -20,10 +20,10 @@ class TodayTimeline extends StatelessWidget {
     'saida': Icons.logout_rounded,
   };
   static const _colors = {
-    'entrada': Color(0xFF18A999),
-    'pausa': Color(0xFF3DB2FF),
-    'retorno': Color(0xFFF7A500),
-    'saida': Color(0xFFE53935),
+    'entrada': AppColors.tipoEntrada,
+    'pausa': AppColors.tipoPausa,
+    'retorno': AppColors.tipoRetorno,
+    'saida': AppColors.tipoSaida,
   };
 
   static const _originLabels = {
