@@ -183,7 +183,7 @@ class _CreateUserViewState extends State<CreateUserView> {
         final isLoading = state is CreateUserLoading;
         final formState = state is CreateUserFormState ? state : null;
         return Scaffold(
-          backgroundColor: AppColors.bgLight,
+          backgroundColor: Colors.transparent,
           appBar: AppBar(
             backgroundColor: AppColors.surface,
             elevation: 0,

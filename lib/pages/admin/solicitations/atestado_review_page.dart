@@ -31,7 +31,7 @@ class _AtestadoReviewPageState extends State<AtestadoReviewPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.bgLight,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: const Text('Atestados'),
         backgroundColor: AppColors.surface,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/widgets/instant_page_route.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_application_appdeponto/blocs/justificativa/justificativa_bloc.dart';
@@ -91,7 +92,7 @@ class _RequestAbonoPageState extends State<RequestAbonoPage> {
         }
       },
       child: Scaffold(
-        backgroundColor: AppColors.bgLight,
+        backgroundColor: Colors.transparent,
         appBar: AppBar(
           titleSpacing: 0,
           backgroundColor: AppColors.surface,
@@ -144,7 +145,7 @@ class _RequestAbonoPageState extends State<RequestAbonoPage> {
                     if (value == 'Consulta médica') {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(
+                        InstantPageRoute(
                           builder: (context) =>
                               AbonoConsultaPage(diaId: widget.diaId),
                         ),
@@ -152,7 +153,7 @@ class _RequestAbonoPageState extends State<RequestAbonoPage> {
                     } else if (value == 'Doação de sangue') {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(
+                        InstantPageRoute(
                           builder: (context) => AbonoPdfPage(
                             diaId: widget.diaId,
                             motivo: 'Doação de sangue',
@@ -165,7 +166,7 @@ class _RequestAbonoPageState extends State<RequestAbonoPage> {
                     } else if (value == 'Aula') {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(
+                        InstantPageRoute(
                           builder: (context) => AbonoHorarioPage(
                             diaId: widget.diaId,
                             motivo: 'Aula',

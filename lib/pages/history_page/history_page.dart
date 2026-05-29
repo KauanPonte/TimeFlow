@@ -680,7 +680,7 @@ class _HistoryViewState extends State<_HistoryView> {
     return DefaultTabController(
       length: widget.showMonthlyTab ? 2 : 1,
       child: Scaffold(
-        backgroundColor: AppColors.bgLight,
+        backgroundColor: Colors.transparent,
         appBar: HistoryAppBar(
           title: title,
           subTitle: subTitle,

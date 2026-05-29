@@ -315,7 +315,7 @@ class _HomePageState extends State<HomePage> {
         : (workedMinutes / targetMinutesPerDay).clamp(0.0, 1.0);
 
     return Scaffold(
-      backgroundColor: AppColors.bgLight,
+      backgroundColor: Colors.transparent,
       appBar: MainAppBar(
         subtitle: 'Meu Ponto',
         onNotificationDayTap: _goToDay,

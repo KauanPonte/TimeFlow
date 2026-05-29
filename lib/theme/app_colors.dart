@@ -18,6 +18,28 @@ class AppColors {
   static const Color accent = Color(0xFFFA8D57); // laranja da paleta
 
   static const Color bgLight = Color(0xFFF4FAE6); // lavagem lime bem suave
+
+  /// Degradê de fundo do app: bege → verde-lima → teal/azul (suave).
+  /// Pintado atrás de todas as telas (scaffolds transparentes) no main.dart.
+  static const LinearGradient appBackground = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [
+      Color(0xFFFAF6E6), // bege / creme suave
+      Color(0xFFEFF3DB), // verde-lima bem leve (dessaturado)
+      Color(0xFFE0F0EA), // teal / azul bem leve (dessaturado)
+    ],
+    stops: [0.0, 0.5, 1.0],
+  );
+
+  /// Degradê de marca (teal profundo) para telas-herói (splash, welcome).
+  /// Ambas as paradas mantêm contraste AA com texto branco.
+  static const LinearGradient brandGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0xFF178573), Color(0xFF0F6356)],
+  );
+
   static const Color surface = Color(0xFFFFFFFF); // white
   static const Color white = Color(0xFFFFFFFF);
   static const Color surface90 = Color(0xE6FFFFFF); // 90% opacity

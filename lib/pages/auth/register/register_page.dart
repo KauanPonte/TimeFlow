@@ -95,14 +95,7 @@ class _RegisterPageState extends State<RegisterPage> {
               return Container(
                 height: constraints.maxHeight,
                 decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      AppColors.bgLight,
-                      AppColors.surface,
-                    ],
-                  ),
+                  gradient: AppColors.appBackground,
                 ),
                 child: SafeArea(
                   child: Center(

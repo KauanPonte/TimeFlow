@@ -482,7 +482,7 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
             scale: _exitScale,
             child: Container(
               decoration: const BoxDecoration(
-                color: AppColors.primary,
+                gradient: AppColors.brandGradient,
               ),
               child: Stack(
                 children: [

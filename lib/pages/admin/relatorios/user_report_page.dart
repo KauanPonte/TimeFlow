@@ -80,7 +80,7 @@ class _UserReportPageState extends State<UserReportPage> {
     final role = widget.user['role']?.toString() ?? '';
 
     return Scaffold(
-      backgroundColor: AppColors.bgLight,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         backgroundColor: AppColors.surface,
         elevation: 0,

@@ -11,7 +11,7 @@ class WelcomePage extends StatelessWidget {
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
-          color: AppColors.primary,
+          gradient: AppColors.brandGradient,
         ),
         child: SafeArea(
           child: Padding(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/widgets/instant_page_route.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
 import 'package:flutter_application_appdeponto/pages/admin/settings/settings_hub_page.dart';
@@ -85,7 +86,7 @@ class AdminAppBar extends StatelessWidget implements PreferredSizeWidget {
               case 'settings':
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
+                  InstantPageRoute(
                     builder: (context) => const SettingsHubPage(),
                   ),
                 );

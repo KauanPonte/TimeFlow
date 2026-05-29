@@ -160,7 +160,7 @@ class _UploadAtestadoPageState extends State<UploadAtestadoPage> {
         }
       },
       child: Scaffold(
-        backgroundColor: AppColors.bgLight,
+        backgroundColor: Colors.transparent,
         appBar: AppBar(
           titleSpacing: 0,
           backgroundColor: AppColors.surface,

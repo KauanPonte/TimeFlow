@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/widgets/instant_page_route.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_application_appdeponto/blocs/auth/auth_bloc.dart';
@@ -51,7 +52,7 @@ class _SolicitacoesPageState extends State<SolicitacoesPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.bgLight,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         titleSpacing: 0,
         backgroundColor: AppColors.surface,
@@ -123,7 +124,7 @@ class _SolicitacoesPageState extends State<SolicitacoesPage> {
                   onTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(
+                      InstantPageRoute(
                         builder: (context) => const UploadAtestadoPage(),
                       ),
                     ).then((_) {
@@ -146,7 +147,7 @@ class _SolicitacoesPageState extends State<SolicitacoesPage> {
                   onTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(
+                      InstantPageRoute(
                         builder: (context) => const RequestAbonoPage(),
                       ),
                     );

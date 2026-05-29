@@ -42,6 +42,7 @@ import 'pages/auth/login/login_page.dart';
 import 'pages/auth/register/register_page.dart';
 import 'pages/auth/forgot_password/forgot_password_page.dart';
 import 'pages/home_page/home_page.dart';
+import 'pages/home_page/widgets/status_card.dart';
 import 'pages/admin/home/home_admin_page.dart';
 import 'pages/admin/users_management/users_management_page.dart';
 import 'pages/ponto_page/ponto_page.dart';
@@ -49,6 +50,7 @@ import 'pages/profile_page/profile_page.dart';
 import 'pages/history_page/history_page.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
+import 'package:flutter_application_appdeponto/widgets/instant_page_route.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -84,6 +86,8 @@ void main() async {
   try {
     await NotificationService.scheduleForLastLoggedUser();
   } catch (_) {}
+  // Pré-carrega a animação de engrenagens da home para aparecer instantânea.
+  StatusCard.precacheGears();
   runApp(const TimeFlow());
 }
 
@@ -241,7 +245,12 @@ class TimeFlow extends StatelessWidget {
             ),
           );
 
-          return ConnectivityGuard(child: appShell);
+          // Degradê de fundo global (bege → verde → teal) pintado atrás de
+          // todas as telas; os scaffolds são transparentes para deixá-lo visível.
+          return Container(
+            decoration: const BoxDecoration(gradient: AppColors.appBackground),
+            child: ConnectivityGuard(child: appShell),
+          );
         },
         theme: ThemeData(
           useMaterial3: true,
@@ -251,7 +260,7 @@ class TimeFlow extends StatelessWidget {
             secondary: AppColors.accent,
             brightness: Brightness.light,
           ),
-          scaffoldBackgroundColor: AppColors.bgLight,
+          scaffoldBackgroundColor: Colors.transparent,
           progressIndicatorTheme: const ProgressIndicatorThemeData(
             color: AppColors.primary,
           ),
@@ -281,7 +290,7 @@ class TimeFlow extends StatelessWidget {
 
             // Redireciona para home admin se o cargo contém "ADM"
             if (employeeRole.toUpperCase().contains("ADM")) {
-              return MaterialPageRoute(
+              return InstantPageRoute(
                 builder: (context) => HomeAdminPage(
                   employeeName: args["employeeName"] ?? "",
                   profileImageUrl: args["profileImageUrl"] ?? "",
@@ -290,7 +299,7 @@ class TimeFlow extends StatelessWidget {
               );
             }
 
-            return MaterialPageRoute(
+            return InstantPageRoute(
               builder: (context) => HomePage(
                 employeeName: args["employeeName"] ?? "",
                 profileImageUrl: args["profileImageUrl"] ?? "",
@@ -303,7 +312,7 @@ class TimeFlow extends StatelessWidget {
           // Rota exclusiva para admin acessar a home de funcionário (aba Meu Ponto)
           if (settings.name == "/home/employee") {
             final args = (settings.arguments as Map<String, dynamic>?) ?? {};
-            return MaterialPageRoute(
+            return InstantPageRoute(
               builder: (context) => HomePage(
                 employeeName: args["employeeName"] ?? "",
                 profileImageUrl: args["profileImageUrl"] ?? "",
@@ -313,18 +322,24 @@ class TimeFlow extends StatelessWidget {
             );
           }
 
+          // Telas simples (sem argumentos) — também via InstantPageRoute
+          // para que a navegação seja instantânea (sem ver a tela anterior).
+          final builders = <String, WidgetBuilder>{
+            "/": (context) => const SplashPage(),
+            "/welcome": (context) => const WelcomePage(),
+            "/login": (context) => const LoginPage(),
+            "/register": (context) => const RegisterPage(),
+            "/forgot-password": (context) => const ForgotPasswordPage(),
+            "/ponto": (context) => const PontoPage(),
+            "/profile": (context) => const ProfilePage(),
+            "/history": (context) => const HistoryPage(),
+            "/admin/users": (context) => const UsersManagementPage(),
+          };
+          final builder = builders[settings.name];
+          if (builder != null) {
+            return InstantPageRoute(settings: settings, builder: builder);
+          }
           return null;
-        },
-        routes: {
-          "/": (context) => const SplashPage(),
-          "/welcome": (context) => const WelcomePage(),
-          "/login": (context) => const LoginPage(),
-          "/register": (context) => const RegisterPage(),
-          "/forgot-password": (context) => const ForgotPasswordPage(),
-          "/ponto": (context) => const PontoPage(),
-          "/profile": (context) => const ProfilePage(),
-          "/history": (context) => const HistoryPage(),
-          "/admin/users": (context) => const UsersManagementPage(),
         },
       ),
     );

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/widgets/instant_page_route.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/admin_home/admin_home_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/admin_home/admin_home_event.dart';
@@ -98,7 +99,7 @@ class _HomeAdminViewState extends State<HomeAdminView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.bgLight,
+      backgroundColor: Colors.transparent,
       appBar: const MainAppBar(subtitle: 'Painel Admin'),
       bottomNavigationBar: BottomNav(
         index: 0,
@@ -251,7 +252,7 @@ class _HomeAdminViewState extends State<HomeAdminView> {
                     onTap: () async {
                       await Navigator.push(
                         context,
-                        MaterialPageRoute(
+                        InstantPageRoute(
                           builder: (context) => const ControlePontoPage(),
                         ),
                       );
@@ -269,7 +270,7 @@ class _HomeAdminViewState extends State<HomeAdminView> {
                     onTap: () async {
                       final result = await Navigator.push(
                         context,
-                        MaterialPageRoute(
+                        InstantPageRoute(
                           builder: (context) => const CadastrosPage(),
                         ),
                       );

@@ -47,7 +47,7 @@ class UsersManagementPage extends StatelessWidget {
           }
         },
         child: Scaffold(
-          backgroundColor: AppColors.bgLight,
+          backgroundColor: Colors.transparent,
           appBar: AppBar(
             backgroundColor: AppColors.surface,
             elevation: 0,

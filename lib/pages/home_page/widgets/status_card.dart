@@ -1,6 +1,5 @@
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:lottie/lottie.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
@@ -23,6 +22,24 @@ class StatusCard extends StatefulWidget {
     this.monthWorkedMinutes = 0,
     this.monthExpectedMinutes = 0,
   });
+
+  // Cache estático da composição Lottie das engrenagens, carregada uma única
+  // vez por sessão. Como a navegação agora é instantânea, o load assíncrono
+  // deixou de ficar "escondido" pela transição; manter a composição em cache
+  // faz a engrenagem aparecer na hora ao trocar de tela (sem o ícone piscando).
+  static LottieComposition? _gearsComposition;
+  static Future<LottieComposition?>? _gearsLoader;
+
+  static Future<LottieComposition?> _loadGears() {
+    return _gearsLoader ??= AssetLottie('assets/lottie/gears.json')
+        .load()
+        .then<LottieComposition?>((c) => _gearsComposition = c)
+        .catchError((_) => null);
+  }
+
+  /// Pré-carrega a animação (chamado no boot) para já aparecer instantânea na
+  /// primeira exibição da home.
+  static Future<void> precacheGears() => _loadGears().then((_) {});
 
   @override
   State<StatusCard> createState() => _StatusCardState();
@@ -60,6 +77,13 @@ class _StatusCardState extends State<StatusCard>
       vsync: this,
       duration: _workingAnimationDuration,
     );
+    // Garante o carregamento da composição (caso o precache do boot ainda não
+    // tenha terminado) e reconstrói quando estiver pronta.
+    if (StatusCard._gearsComposition == null) {
+      StatusCard._loadGears().then((_) {
+        if (mounted) setState(() {});
+      });
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _updateAnimationState();
     });
@@ -208,23 +232,17 @@ class _StatusCardState extends State<StatusCard>
               SizedBox(
                 width: 72,
                 height: 72,
-                child: FutureBuilder<String>(
-                  future: rootBundle
-                      .loadString('assets/lottie/gears.json')
-                      .catchError((_) => ''),
-                  builder: (context, snapshot) {
-                    if (!snapshot.hasData || (snapshot.data ?? '').isEmpty) {
-                      return const Icon(Icons.timer_outlined,
-                          size: 40, color: AppColors.primary);
-                    }
-                    return Lottie.asset(
-                      'assets/lottie/gears.json',
-                      controller: _controller,
-                      fit: BoxFit.contain,
-                      animate: false,
-                    );
-                  },
-                ),
+                // Renderiza a composição já em cache de forma síncrona — sem
+                // FutureBuilder, a engrenagem aparece imediatamente.
+                child: StatusCard._gearsComposition != null
+                    ? Lottie(
+                        composition: StatusCard._gearsComposition!,
+                        controller: _controller,
+                        fit: BoxFit.contain,
+                        animate: false,
+                      )
+                    : const Icon(Icons.timer_outlined,
+                        size: 40, color: AppColors.primary),
               ),
             ],
           ),

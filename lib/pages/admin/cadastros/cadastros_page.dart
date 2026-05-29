@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/widgets/instant_page_route.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
 import '../users_management/users_management_mode.dart';
@@ -11,7 +12,7 @@ class CadastrosPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.bgLight,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         titleSpacing: 0,
         backgroundColor: AppColors.surface,
@@ -64,7 +65,7 @@ class CadastrosPage extends StatelessWidget {
               onTap: () async {
                 final result = await Navigator.push(
                   context,
-                  MaterialPageRoute(
+                  InstantPageRoute(
                     builder: (context) => const CreateUserPage(),
                   ),
                 );
@@ -81,7 +82,7 @@ class CadastrosPage extends StatelessWidget {
               onTap: () async {
                 await Navigator.push(
                   context,
-                  MaterialPageRoute(
+                  InstantPageRoute(
                     builder: (context) => const UsersManagementPage(
                       mode: UsersManagementMode.employees,
                     ),

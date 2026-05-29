@@ -76,14 +76,7 @@ class _LoginPageState extends State<LoginPage> {
 
           return Container(
             decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  AppColors.bgLight,
-                  AppColors.surface,
-                ],
-              ),
+              gradient: AppColors.appBackground,
             ),
             child: SafeArea(
               child: Center(

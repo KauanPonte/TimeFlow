@@ -70,14 +70,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
 
           return Container(
             decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  AppColors.bgLight,
-                  AppColors.surface,
-                ],
-              ),
+              gradient: AppColors.appBackground,
             ),
             child: SafeArea(
               child: Center(

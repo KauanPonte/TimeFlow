@@ -446,7 +446,7 @@ class _CalendarPageState extends State<CalendarPage> {
         });
 
         return Scaffold(
-          backgroundColor: AppColors.bgLight,
+          backgroundColor: Colors.transparent,
           appBar: AppBar(
             backgroundColor: AppColors.surface,
             elevation: 0,

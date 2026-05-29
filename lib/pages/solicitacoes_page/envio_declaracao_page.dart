@@ -120,7 +120,7 @@ class _EnvioDeclaracaoPageState extends State<EnvioDeclaracaoPage> {
         }
       },
       child: Scaffold(
-        backgroundColor: AppColors.bgLight,
+        backgroundColor: Colors.transparent,
         appBar: AppBar(
           titleSpacing: 0,
           backgroundColor: AppColors.surface,

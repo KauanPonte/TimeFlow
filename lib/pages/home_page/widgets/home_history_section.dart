@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/widgets/instant_page_route.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_application_appdeponto/services/ponto_service.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -648,7 +649,7 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
 
     Navigator.push(
       context,
-      MaterialPageRoute(
+      InstantPageRoute(
         builder: (_) => RequestAbonoPage(diaId: diaId),
       ),
     );
@@ -754,7 +755,7 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
                     Navigator.pop(context);
                     Navigator.push(
                       context,
-                      MaterialPageRoute(
+                      InstantPageRoute(
                         builder: (_) => const UploadAtestadoPage(),
                       ),
                     );

@@ -11,7 +11,6 @@ import '../../blocs/ponto_today/ponto_today_state.dart';
 import '../../widgets/bottom_nav.dart';
 import '../../widgets/custom_snackbar.dart';
 import '../../services/notification_service.dart';
-import '../../services/ponto_service.dart';
 import '../../services/ponto_validator.dart';
 import '../../services/location_service.dart';
 
@@ -270,7 +269,7 @@ class _PontoPageState extends State<PontoPage> {
         effectiveMode != null && !pontoState.isFeriadoHoje;
 
     return Scaffold(
-      backgroundColor: AppColors.bgLight,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         backgroundColor: AppColors.surface,
         elevation: 0,

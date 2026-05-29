@@ -246,7 +246,7 @@ class _ProfilePageViewState extends State<_ProfilePageView> {
         ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
 
     return Scaffold(
-      backgroundColor: AppColors.bgLight,
+      backgroundColor: Colors.transparent,
       appBar: const MainAppBar(subtitle: 'Meu Perfil'),
       body: BlocConsumer<ProfileBloc, ProfileState>(
         listener: (context, state) {

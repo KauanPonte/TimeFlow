@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/widgets/instant_page_route.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_application_appdeponto/blocs/user_management/user_management_bloc.dart';
@@ -250,7 +251,7 @@ class _RegisteredUsersTabState extends State<RegisteredUsersTab>
     );
 
     await Navigator.of(context).push(
-      MaterialPageRoute(
+      InstantPageRoute(
         builder: (_) => UserReportPage(user: user),
       ),
     );

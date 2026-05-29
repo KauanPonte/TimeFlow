@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/widgets/instant_page_route.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_application_appdeponto/blocs/global_loading/global_loading_cubit.dart';
@@ -63,7 +64,7 @@ class _ControlePontoViewState extends State<_ControlePontoView>
   Widget build(BuildContext context) {
     super.build(context);
     return Scaffold(
-      backgroundColor: AppColors.bgLight,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         backgroundColor: AppColors.surface,
         elevation: 0,
@@ -206,7 +207,7 @@ class _ControlePontoViewState extends State<_ControlePontoView>
   void _openHistory(Map<String, dynamic> user) {
     Navigator.push(
       context,
-      MaterialPageRoute(
+      InstantPageRoute(
         builder: (_) => HistoryPage(
           targetUid: user['id'] as String?,
           targetName: user['name'] as String?,

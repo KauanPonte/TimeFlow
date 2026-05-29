@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/widgets/instant_page_route.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
 import 'package:flutter_application_appdeponto/pages/admin/settings/admin_settings_page.dart';
@@ -12,7 +13,7 @@ class SettingsHubPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.bgLight,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         backgroundColor: AppColors.surface,
         elevation: 0,
@@ -68,7 +69,7 @@ class SettingsHubPage extends StatelessWidget {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(
+                InstantPageRoute(
                   builder: (context) => const AdminSettingsPage(),
                 ),
               );
@@ -84,7 +85,7 @@ class SettingsHubPage extends StatelessWidget {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(
+                InstantPageRoute(
                   builder: (context) => const CalendarPage(),
                 ),
               );

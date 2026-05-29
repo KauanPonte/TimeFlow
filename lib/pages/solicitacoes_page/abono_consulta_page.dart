@@ -130,7 +130,7 @@ class _AbonoConsultaPageState extends State<AbonoConsultaPage> {
         }
       },
       child: Scaffold(
-        backgroundColor: AppColors.bgLight,
+        backgroundColor: Colors.transparent,
         appBar: AppBar(
           titleSpacing: 0,
           backgroundColor: AppColors.surface,
