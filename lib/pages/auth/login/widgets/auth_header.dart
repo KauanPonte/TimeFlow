@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/theme/app_palette.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
 
@@ -28,14 +29,14 @@ class AuthHeader extends StatelessWidget {
             child: Icon(
               icon,
               size: 60,
-              color: AppColors.surface,
+              color: AppColors.white,
             ),
           ),
         const SizedBox(height: 30),
         Text(
           title,
           textAlign: TextAlign.center,
-          style: AppTextStyles.h2.copyWith(color: AppColors.textPrimary),
+          style: AppTextStyles.h2.copyWith(color: context.palette.textPrimary),
         ),
         const SizedBox(height: 10),
         Text(

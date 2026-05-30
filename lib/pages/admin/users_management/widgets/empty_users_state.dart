@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/theme/app_palette.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
 
@@ -27,14 +28,14 @@ class EmptyUsersState extends StatelessWidget {
           Text(
             'Nenhum usuário cadastrado',
             style: AppTextStyles.h3.copyWith(
-              color: AppColors.textPrimary,
+              color: context.palette.textPrimary,
             ),
           ),
           const SizedBox(height: 8),
           Text(
             'Aprove solicitações pendentes\npara adicionar usuários',
             style: AppTextStyles.bodyMedium.copyWith(
-              color: AppColors.textSecondary,
+              color: context.palette.textSecondary,
             ),
             textAlign: TextAlign.center,
           ),

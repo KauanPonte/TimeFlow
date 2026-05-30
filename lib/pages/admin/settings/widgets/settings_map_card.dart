@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/theme/app_palette.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -33,12 +34,12 @@ class SettingsMapCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.borderLight),
-        boxShadow: const [
+        border: Border.all(color: context.palette.borderLight),
+        boxShadow: [
           BoxShadow(
-            color: AppColors.shadowMedium,
+            color: context.palette.shadowMedium,
             blurRadius: 14,
-            offset: Offset(0, 8),
+            offset: const Offset(0, 8),
           ),
         ],
       ),
@@ -104,7 +105,7 @@ class SettingsMapCard extends StatelessWidget {
               bottom: 14,
               child: FloatingActionButton.small(
                 heroTag: 'admin_settings_gps_btn',
-                backgroundColor: AppColors.surface,
+                backgroundColor: context.palette.surface,
                 onPressed: capturingGps ? null : onMyLocationPressed,
                 child: capturingGps
                     ? const SizedBox(

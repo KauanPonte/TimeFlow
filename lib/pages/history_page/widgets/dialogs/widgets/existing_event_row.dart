@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
+import 'package:flutter_application_appdeponto/theme/app_palette.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
 import 'package:intl/intl.dart';
 import 'solicitation_helpers.dart';
@@ -38,11 +39,11 @@ class ExistingEventRow extends StatelessWidget {
       case RowMode.editing:
         return _buildEditingRow();
       case RowMode.normal:
-        return _buildNormalRow();
+        return _buildNormalRow(context);
     }
   }
 
-  Widget _buildNormalRow() {
+  Widget _buildNormalRow(BuildContext context) {
     final color = colorForTipo(ev.tipo);
     final hora = ev.originalAt != null
         ? DateFormat('HH:mm').format(ev.originalAt!)
@@ -52,9 +53,9 @@ class ExistingEventRow extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 6),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.palette.surface,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.borderLight),
+        border: Border.all(color: context.palette.borderLight),
       ),
       child: Row(
         children: [
@@ -64,7 +65,7 @@ class ExistingEventRow extends StatelessWidget {
             child: Text(
               '${labelForTipo(ev.tipo)} — $hora',
               style: AppTextStyles.bodySmall
-                  .copyWith(color: AppColors.textPrimary),
+                  .copyWith(color: context.palette.textPrimary),
             ),
           ),
           if (ev.id != null) ...[

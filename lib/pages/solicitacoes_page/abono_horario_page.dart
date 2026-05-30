@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/theme/app_palette.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_application_appdeponto/blocs/justificativa/justificativa_bloc.dart';
@@ -116,12 +117,12 @@ class _AbonoHorarioPageState extends State<AbonoHorarioPage> {
         backgroundColor: Colors.transparent,
         appBar: AppBar(
           titleSpacing: 0,
-          backgroundColor: AppColors.surface,
+          backgroundColor: context.palette.surface,
           elevation: 0,
           scrolledUnderElevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new_rounded,
-                color: AppColors.textPrimary, size: 20),
+            icon: Icon(Icons.arrow_back_ios_new_rounded,
+                color: context.palette.textPrimary, size: 20),
             onPressed: () => Navigator.pop(context),
           ),
           title: Row(
@@ -137,7 +138,7 @@ class _AbonoHorarioPageState extends State<AbonoHorarioPage> {
               const SizedBox(width: 12),
               Text(
                 widget.titulo,
-                style: AppTextStyles.h3.copyWith(color: AppColors.textPrimary),
+                style: AppTextStyles.h3.copyWith(color: context.palette.textPrimary),
               ),
             ],
           ),
@@ -148,7 +149,7 @@ class _AbonoHorarioPageState extends State<AbonoHorarioPage> {
             Text(
               'Período de ausência',
               style: AppTextStyles.titleSmall.copyWith(
-                color: AppColors.textPrimary,
+                color: context.palette.textPrimary,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -156,7 +157,7 @@ class _AbonoHorarioPageState extends State<AbonoHorarioPage> {
             Text(
               'Informe quando saiu e, se já retornou, o horário de retorno.',
               style: AppTextStyles.bodySmall
-                  .copyWith(color: AppColors.textSecondary),
+                  .copyWith(color: context.palette.textSecondary),
             ),
             const SizedBox(height: 16),
             Row(
@@ -199,7 +200,7 @@ class _AbonoHorarioPageState extends State<AbonoHorarioPage> {
                     Text(
                       'Duração da ausência: ',
                       style: AppTextStyles.bodySmall
-                          .copyWith(color: AppColors.textSecondary),
+                          .copyWith(color: context.palette.textSecondary),
                     ),
                     Text(
                       _formatDuration(_durationMinutes!),
@@ -217,14 +218,14 @@ class _AbonoHorarioPageState extends State<AbonoHorarioPage> {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(Icons.info_outline,
-                      size: 14, color: AppColors.textSecondary),
+                  Icon(Icons.info_outline,
+                      size: 14, color: context.palette.textSecondary),
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
                       'Sem retorno informado, o abono de horas será definido pelo administrador na aprovação.',
                       style: AppTextStyles.bodySmall
-                          .copyWith(color: AppColors.textSecondary),
+                          .copyWith(color: context.palette.textSecondary),
                     ),
                   ),
                 ],
@@ -238,7 +239,7 @@ class _AbonoHorarioPageState extends State<AbonoHorarioPage> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
-                  disabledBackgroundColor: AppColors.border,
+                  disabledBackgroundColor: context.palette.border,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
@@ -266,7 +267,7 @@ class _AbonoHorarioPageState extends State<AbonoHorarioPage> {
               child: Text(
                 'A solicitação será revisada pela administração.',
                 style: AppTextStyles.bodySmall
-                    .copyWith(color: AppColors.textSecondary),
+                    .copyWith(color: context.palette.textSecondary),
               ),
             ),
           ],
@@ -296,10 +297,10 @@ class _TimeField extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: context.palette.surface,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: value != null ? AppColors.primary : AppColors.borderLight,
+            color: value != null ? AppColors.primary : context.palette.borderLight,
             width: value != null ? 1.5 : 1,
           ),
         ),
@@ -311,7 +312,7 @@ class _TimeField extends StatelessWidget {
                 Text(
                   label,
                   style: AppTextStyles.bodySmall.copyWith(
-                    color: AppColors.textSecondary,
+                    color: context.palette.textSecondary,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -329,8 +330,8 @@ class _TimeField extends StatelessWidget {
                     value ?? 'Selecionar',
                     style: AppTextStyles.bodyMedium.copyWith(
                       color: value != null
-                          ? AppColors.textPrimary
-                          : AppColors.textSecondary.withValues(alpha: 0.6),
+                          ? context.palette.textPrimary
+                          : context.palette.textSecondary.withValues(alpha: 0.6),
                     ),
                   ),
                 ),
@@ -338,7 +339,7 @@ class _TimeField extends StatelessWidget {
                   Icons.access_time_rounded,
                   color: value != null
                       ? AppColors.primary
-                      : AppColors.textSecondary,
+                      : context.palette.textSecondary,
                   size: 20,
                 ),
               ],

@@ -1,5 +1,6 @@
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/theme/app_palette.dart';
 import 'package:lottie/lottie.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
@@ -66,7 +67,7 @@ class _StatusCardState extends State<StatusCard>
       case 'Pausado':
         return AppColors.warning;
       default:
-        return AppColors.textSecondary;
+        return context.palette.textSecondary;
     }
   }
 
@@ -181,14 +182,14 @@ class _StatusCardState extends State<StatusCard>
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.palette.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.borderLight),
-        boxShadow: const [
+        border: Border.all(color: context.palette.borderLight),
+        boxShadow: [
           BoxShadow(
-            color: AppColors.shadow,
+            color: context.palette.shadow,
             blurRadius: 8,
-            offset: Offset(0, 2),
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -215,7 +216,7 @@ class _StatusCardState extends State<StatusCard>
                         widget.statusLabel,
                         style: AppTextStyles.bodyLarge.copyWith(
                           fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
+                          color: context.palette.textPrimary,
                         ),
                       ),
                     ],
@@ -251,7 +252,7 @@ class _StatusCardState extends State<StatusCard>
           Text(
             'trabalhado hoje',
             style: AppTextStyles.bodySmall
-                .copyWith(color: AppColors.textSecondary),
+                .copyWith(color: context.palette.textSecondary),
           ),
           const SizedBox(height: 12),
           ClipRRect(
@@ -259,7 +260,7 @@ class _StatusCardState extends State<StatusCard>
             child: LinearProgressIndicator(
               value: widget.workProgress,
               minHeight: 8,
-              backgroundColor: AppColors.borderLight,
+              backgroundColor: context.palette.borderLight,
               valueColor:
                   const AlwaysStoppedAnimation<Color>(AppColors.primary),
             ),
@@ -268,7 +269,7 @@ class _StatusCardState extends State<StatusCard>
           Text(
             '${(widget.workProgress * 100).toStringAsFixed(0)}% da jornada diária',
             style: AppTextStyles.bodySmall
-                .copyWith(color: AppColors.textSecondary),
+                .copyWith(color: context.palette.textSecondary),
           ),
 
           // --- SEÇÃO DE DATAS E MÊS ---
@@ -277,7 +278,7 @@ class _StatusCardState extends State<StatusCard>
             '$formattedFirstDay à $formattedLastDay',
             style: AppTextStyles.bodySmall.copyWith(
               fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
+              color: context.palette.textPrimary,
             ),
           ),
           const SizedBox(height: 2),
@@ -285,7 +286,7 @@ class _StatusCardState extends State<StatusCard>
             Text(
               monthlyProgress,
               style: AppTextStyles.bodySmall.copyWith(
-                color: AppColors.textSecondary,
+                color: context.palette.textSecondary,
                 fontSize: 11,
               ),
             ),

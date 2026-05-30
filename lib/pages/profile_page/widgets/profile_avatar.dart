@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/theme/app_palette.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 
 class ProfileAvatar extends StatelessWidget {
@@ -39,11 +40,11 @@ class ProfileAvatar extends StatelessWidget {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               border: Border.all(color: AppColors.primary, width: 3),
-              boxShadow: const [
+              boxShadow: [
                 BoxShadow(
-                  color: AppColors.shadowMedium,
+                  color: context.palette.shadowMedium,
                   blurRadius: 12,
-                  offset: Offset(0, 4),
+                  offset: const Offset(0, 4),
                 ),
               ],
             ),
@@ -52,11 +53,11 @@ class ProfileAvatar extends StatelessWidget {
                   ? Image.memory(bytes,
                       width: 140, height: 140, fit: BoxFit.cover)
                   : Container(
-                      color: AppColors.greyLight,
-                      child: const Icon(
+                      color: context.palette.greyLight,
+                      child: Icon(
                         Icons.person,
                         size: 60,
-                        color: AppColors.textSecondary,
+                        color: context.palette.textSecondary,
                       ),
                     ),
             ),
@@ -85,12 +86,12 @@ class ProfileAvatar extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: AppColors.primary,
                   shape: BoxShape.circle,
-                  border: Border.all(color: AppColors.surface, width: 2),
-                  boxShadow: const [
+                  border: Border.all(color: context.palette.surface, width: 2),
+                  boxShadow: [
                     BoxShadow(
-                      color: AppColors.shadow,
+                      color: context.palette.shadow,
                       blurRadius: 4,
-                      offset: Offset(0, 2),
+                      offset: const Offset(0, 2),
                     ),
                   ],
                 ),

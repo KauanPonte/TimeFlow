@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/theme/app_palette.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
 
@@ -30,13 +31,13 @@ class ActionLoadingOverlay extends StatelessWidget {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 28, vertical: 20),
                   decoration: BoxDecoration(
-                    color: AppColors.surface,
+                    color: context.palette.surface,
                     borderRadius: BorderRadius.circular(16),
-                    boxShadow: const [
+                    boxShadow: [
                       BoxShadow(
-                        color: AppColors.shadow,
+                        color: context.palette.shadow,
                         blurRadius: 20,
-                        offset: Offset(0, 4),
+                        offset: const Offset(0, 4),
                       ),
                     ],
                   ),
@@ -55,7 +56,7 @@ class ActionLoadingOverlay extends StatelessWidget {
                       Text(
                         message,
                         style: AppTextStyles.bodyMedium.copyWith(
-                          color: AppColors.textPrimary,
+                          color: context.palette.textPrimary,
                           fontWeight: FontWeight.w500,
                           decoration: TextDecoration.none,
                           fontFamily: 'Roboto',

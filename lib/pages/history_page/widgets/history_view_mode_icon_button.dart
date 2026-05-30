@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/theme/app_palette.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 
 class HistoryViewModeIconButton extends StatelessWidget {
@@ -22,7 +23,7 @@ class HistoryViewModeIconButton extends StatelessWidget {
       tooltip: tooltip,
       icon: Icon(
         icon,
-        color: selected ? AppColors.primary : AppColors.textSecondary,
+        color: selected ? AppColors.primary : context.palette.textSecondary,
       ),
     );
   }

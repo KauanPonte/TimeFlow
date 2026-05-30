@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../theme/app_colors.dart';
+import 'package:flutter_application_appdeponto/theme/app_palette.dart';
 import '../../../theme/app_text_styles.dart';
 
 class ActionRow extends StatelessWidget {
@@ -54,7 +54,7 @@ class ActionRow extends StatelessWidget {
                         ? accentColor.withValues(alpha: 0.12)
                         : isNext
                             ? accentColor
-                            : AppColors.bgLight,
+                            : context.palette.bgLight,
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Icon(
@@ -63,7 +63,7 @@ class ActionRow extends StatelessWidget {
                         ? accentColor
                         : isNext
                             ? Colors.white
-                            : AppColors.textSecondary,
+                            : context.palette.textSecondary,
                     size: 20,
                   ),
                 ),
@@ -82,8 +82,8 @@ class ActionRow extends StatelessWidget {
                               color: done
                                   ? accentColor
                                   : isNext
-                                      ? AppColors.textPrimary
-                                      : AppColors.textSecondary,
+                                      ? context.palette.textPrimary
+                                      : context.palette.textSecondary,
                             ),
                           ),
                           if (optional && !done) ...[
@@ -92,14 +92,14 @@ class ActionRow extends StatelessWidget {
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
-                                color: AppColors.borderLight,
+                                color: context.palette.borderLight,
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text(
                                 'opcional',
                                 style: AppTextStyles.bodySmall.copyWith(
                                     fontSize: 10,
-                                    color: AppColors.textSecondary),
+                                    color: context.palette.textSecondary),
                               ),
                             ),
                           ],
@@ -115,14 +115,14 @@ class ActionRow extends StatelessWidget {
                         Text(
                           'Toque para registrar',
                           style: AppTextStyles.bodySmall.copyWith(
-                              color: AppColors.textSecondary, fontSize: 12),
+                              color: context.palette.textSecondary, fontSize: 12),
                         )
                       else if (skipped)
                         Text(
                           'Não utilizada',
                           style: AppTextStyles.bodySmall.copyWith(
                               fontSize: 12,
-                              color: AppColors.textSecondary
+                              color: context.palette.textSecondary
                                   .withValues(alpha: 0.5)),
                         ),
                     ],
@@ -154,11 +154,11 @@ class ActionRow extends StatelessWidget {
           ),
         ),
         if (!isLast)
-          const Divider(
+          Divider(
               height: 1,
               indent: 70,
               endIndent: 16,
-              color: AppColors.borderLight),
+              color: context.palette.borderLight),
       ],
     );
   }

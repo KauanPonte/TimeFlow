@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/theme/app_palette.dart';
 import '../../../theme/app_colors.dart';
 import '../../../theme/app_text_styles.dart';
 
@@ -43,12 +44,12 @@ class TodayTimeline extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.palette.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.borderLight),
-        boxShadow: const [
+        border: Border.all(color: context.palette.borderLight),
+        boxShadow: [
           BoxShadow(
-              color: AppColors.shadow, blurRadius: 8, offset: Offset(0, 2)),
+              color: context.palette.shadow, blurRadius: 8, offset: const Offset(0, 2)),
         ],
       ),
       child: Column(
@@ -57,12 +58,12 @@ class TodayTimeline extends StatelessWidget {
           final tipo = ev['tipo'] ?? '';
           final hora = ev['hora'] ?? '--:--';
           final origin = ev['origin'] ?? 'registrado';
-          final color = _colors[tipo] ?? AppColors.textSecondary;
+          final color = _colors[tipo] ?? context.palette.textSecondary;
           final icon = _icons[tipo] ?? Icons.access_time;
           final label = _labels[tipo] ?? tipo;
           final isLast = i == eventos.length - 1;
           final originLabel = _originLabels[origin] ?? origin;
-          final originColor = _originColors[origin] ?? AppColors.textSecondary;
+          final originColor = _originColors[origin] ?? context.palette.textSecondary;
           return IntrinsicHeight(
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -90,7 +91,7 @@ class TodayTimeline extends StatelessWidget {
                           child: Container(
                             width: 2,
                             margin: const EdgeInsets.symmetric(vertical: 4),
-                            color: AppColors.borderLight,
+                            color: context.palette.borderLight,
                           ),
                         ),
                       if (isLast) const SizedBox(height: 16),
@@ -116,7 +117,7 @@ class TodayTimeline extends StatelessWidget {
                                 label,
                                 style: AppTextStyles.bodyLarge.copyWith(
                                   fontWeight: FontWeight.w600,
-                                  color: AppColors.textPrimary,
+                                  color: context.palette.textPrimary,
                                 ),
                               ),
                               Container(

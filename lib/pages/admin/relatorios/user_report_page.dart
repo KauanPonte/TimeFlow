@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/theme/app_palette.dart';
 import 'package:flutter_application_appdeponto/repositories/ponto_history_repository.dart';
 import 'package:flutter_application_appdeponto/services/analytics_service.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
@@ -82,16 +83,16 @@ class _UserReportPageState extends State<UserReportPage> {
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
-        backgroundColor: AppColors.surface,
+        backgroundColor: context.palette.surface,
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
+          icon: Icon(Icons.arrow_back, color: context.palette.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           'RDA',
-          style: AppTextStyles.h3.copyWith(color: AppColors.textPrimary),
+          style: AppTextStyles.h3.copyWith(color: context.palette.textPrimary),
         ),
       ),
       body: FutureBuilder<_RadData>(
@@ -174,7 +175,7 @@ class _ReportHeader extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.all(18),
-      decoration: _panelDecoration(),
+      decoration: _panelDecoration(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -193,7 +194,7 @@ class _ReportHeader extends StatelessWidget {
                     Text(
                       'Relatorio de Acompanhamento de Desempenho',
                       style: AppTextStyles.bodySmall.copyWith(
-                        color: AppColors.textSecondary,
+                        color: context.palette.textSecondary,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -201,7 +202,7 @@ class _ReportHeader extends StatelessWidget {
                     Text(
                       name,
                       style: AppTextStyles.h3.copyWith(
-                        color: AppColors.textPrimary,
+                        color: context.palette.textPrimary,
                         fontSize: 22,
                       ),
                     ),
@@ -210,7 +211,7 @@ class _ReportHeader extends StatelessWidget {
                       '$role - $email',
                       overflow: TextOverflow.ellipsis,
                       style: AppTextStyles.bodySmall.copyWith(
-                        color: AppColors.textSecondary,
+                        color: context.palette.textSecondary,
                       ),
                     ),
                   ],
@@ -231,7 +232,7 @@ class _ReportHeader extends StatelessWidget {
                   monthLabel[0].toUpperCase() + monthLabel.substring(1),
                   textAlign: TextAlign.center,
                   style: AppTextStyles.bodyLarge.copyWith(
-                    color: AppColors.textPrimary,
+                    color: context.palette.textPrimary,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -277,7 +278,7 @@ class _StatusBanner extends StatelessWidget {
                 Text(
                   'RDA - $status',
                   style: AppTextStyles.bodyLarge.copyWith(
-                    color: AppColors.textPrimary,
+                    color: context.palette.textPrimary,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -285,7 +286,7 @@ class _StatusBanner extends StatelessWidget {
                 Text(
                   report.statusDescription,
                   style: AppTextStyles.bodySmall.copyWith(
-                    color: AppColors.textSecondary,
+                    color: context.palette.textSecondary,
                   ),
                 ),
               ],
@@ -358,7 +359,7 @@ class _KpiTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(14),
-      decoration: _panelDecoration(),
+      decoration: _panelDecoration(context),
       child: Row(
         children: [
           Container(
@@ -381,7 +382,7 @@ class _KpiTile extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: AppTextStyles.bodyLarge.copyWith(
-                    color: AppColors.textPrimary,
+                    color: context.palette.textPrimary,
                     fontWeight: FontWeight.w900,
                     fontSize: 20,
                   ),
@@ -391,7 +392,7 @@ class _KpiTile extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: AppTextStyles.bodySmall.copyWith(
-                    color: AppColors.textSecondary,
+                    color: context.palette.textSecondary,
                   ),
                 ),
               ],
@@ -412,7 +413,7 @@ class _HoursChartCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: _panelDecoration(),
+      decoration: _panelDecoration(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -430,11 +431,11 @@ class _HoursChartCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          const Row(
+          Row(
             children: [
-              _LegendDot(color: AppColors.primary, label: 'Realizado'),
-              SizedBox(width: 16),
-              _LegendDot(color: AppColors.border, label: 'Esperado'),
+              const _LegendDot(color: AppColors.primary, label: 'Realizado'),
+              const SizedBox(width: 16),
+              _LegendDot(color: context.palette.border, label: 'Esperado'),
             ],
           ),
         ],
@@ -485,7 +486,7 @@ class _WorkModeCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: _panelDecoration(),
+      decoration: _panelDecoration(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -510,7 +511,7 @@ class _WorkModeCard extends StatelessWidget {
                   child: Text(
                     '${report.remotePercent}%',
                     style: AppTextStyles.h3.copyWith(
-                      color: AppColors.textPrimary,
+                      color: context.palette.textPrimary,
                       fontSize: 34,
                     ),
                   ),
@@ -542,7 +543,7 @@ class _ProjectsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: _panelDecoration(),
+      decoration: _panelDecoration(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -568,7 +569,7 @@ class _ProjectsCard extends StatelessWidget {
           Text(
             'Para medir horas por projeto, registre o projeto no momento do ponto ou em lancamentos de atividade.',
             style: AppTextStyles.bodySmall.copyWith(
-              color: AppColors.textSecondary,
+              color: context.palette.textSecondary,
             ),
           ),
         ],
@@ -599,7 +600,7 @@ class _ProjectRow extends StatelessWidget {
               project,
               overflow: TextOverflow.ellipsis,
               style: AppTextStyles.bodyMedium.copyWith(
-                color: AppColors.textPrimary,
+                color: context.palette.textPrimary,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -619,7 +620,7 @@ class _WeeklyTable extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: _panelDecoration(),
+      decoration: _panelDecoration(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -638,11 +639,12 @@ class _WeeklyTable extends StatelessWidget {
             },
             children: [
               _tableRow(
+                context,
                 ['Semana', 'Dias', 'Horas', 'Saldo'],
                 isHeader: true,
               ),
               ...report.weeklyStats.map(
-                (week) => _tableRow([
+                (week) => _tableRow(context, [
                   'S${week.weekIndex}',
                   week.days.toString(),
                   _formatDuration(week.workedMinutes),
@@ -656,10 +658,11 @@ class _WeeklyTable extends StatelessWidget {
     );
   }
 
-  TableRow _tableRow(List<String> cells, {bool isHeader = false}) {
+  TableRow _tableRow(BuildContext context, List<String> cells,
+      {bool isHeader = false}) {
     return TableRow(
       decoration: BoxDecoration(
-        color: isHeader ? AppColors.borderLight : Colors.transparent,
+        color: isHeader ? context.palette.borderLight : Colors.transparent,
       ),
       children: cells
           .map(
@@ -668,7 +671,7 @@ class _WeeklyTable extends StatelessWidget {
               child: Text(
                 cell,
                 style: AppTextStyles.bodySmall.copyWith(
-                  color: AppColors.textPrimary,
+                  color: context.palette.textPrimary,
                   fontWeight: isHeader ? FontWeight.w800 : FontWeight.w500,
                 ),
               ),
@@ -703,14 +706,14 @@ class _SectionTitle extends StatelessWidget {
               Text(
                 title,
                 style: AppTextStyles.bodyLarge.copyWith(
-                  color: AppColors.textPrimary,
+                  color: context.palette.textPrimary,
                   fontWeight: FontWeight.w800,
                 ),
               ),
               Text(
                 subtitle,
                 style: AppTextStyles.bodySmall.copyWith(
-                  color: AppColors.textSecondary,
+                  color: context.palette.textSecondary,
                 ),
               ),
             ],
@@ -744,7 +747,7 @@ class _LegendDot extends StatelessWidget {
         Text(
           label,
           style: AppTextStyles.bodySmall.copyWith(
-            color: AppColors.textSecondary,
+            color: context.palette.textSecondary,
             fontWeight: FontWeight.w700,
           ),
         ),
@@ -768,18 +771,18 @@ class _EmptyInline extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.greyLight,
+        color: context.palette.greyLight,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
         children: [
-          Icon(icon, color: AppColors.textSecondary),
+          Icon(icon, color: context.palette.textSecondary),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               text,
               style: AppTextStyles.bodySmall.copyWith(
-                color: AppColors.textSecondary,
+                color: context.palette.textSecondary,
               ),
             ),
           ),
@@ -814,7 +817,7 @@ class _ErrorState extends StatelessWidget {
               message,
               textAlign: TextAlign.center,
               style: AppTextStyles.bodyLarge.copyWith(
-                color: AppColors.textPrimary,
+                color: context.palette.textPrimary,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -823,7 +826,7 @@ class _ErrorState extends StatelessWidget {
               details,
               textAlign: TextAlign.center,
               style: AppTextStyles.bodySmall.copyWith(
-                color: AppColors.textSecondary,
+                color: context.palette.textSecondary,
               ),
             ),
             const SizedBox(height: 16),
@@ -1156,16 +1159,16 @@ class _WeekAccumulator {
   int expectedMinutes = 0;
 }
 
-BoxDecoration _panelDecoration() {
+BoxDecoration _panelDecoration(BuildContext context) {
   return BoxDecoration(
-    color: AppColors.surface,
+    color: context.palette.surface,
     borderRadius: BorderRadius.circular(8),
-    border: Border.all(color: AppColors.borderLight),
-    boxShadow: const [
+    border: Border.all(color: context.palette.borderLight),
+    boxShadow: [
       BoxShadow(
-        color: AppColors.shadow,
+        color: context.palette.shadow,
         blurRadius: 10,
-        offset: Offset(0, 2),
+        offset: const Offset(0, 2),
       ),
     ],
   );

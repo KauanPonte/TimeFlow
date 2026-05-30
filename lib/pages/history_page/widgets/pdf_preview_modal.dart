@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/theme/app_palette.dart';
 import 'package:flutter_application_appdeponto/services/pdf_service.dart';
 import 'package:flutter_application_appdeponto/services/ponto_service.dart';
 import 'package:flutter_application_appdeponto/services/server_time_service.dart';
@@ -21,6 +22,7 @@ class PdfPreviewModal {
     required String userName,
   }) async {
     if (mesResumoFuture == null) return;
+    final palette = context.palette;
     final resumo = await mesResumoFuture;
     final dailyWorkload = resumo.businessDaysTotal > 0
         ? (resumo.expectedMinutes ~/ resumo.businessDaysTotal)
@@ -35,9 +37,9 @@ class PdfPreviewModal {
     tableRows.add(
       Container(
         padding: const EdgeInsets.all(12),
-        decoration: const BoxDecoration(
-          color: AppColors.bgLight,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(8)),
+        decoration: BoxDecoration(
+          color: palette.bgLight,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
         ),
         child: Row(
           children: [
@@ -89,13 +91,13 @@ class PdfPreviewModal {
           ? AppColors.success
           : isDebito
               ? AppColors.error
-              : AppColors.textSecondary;
+              : palette.textSecondary;
 
       tableRows.add(
         Container(
           padding: const EdgeInsets.all(12),
-          decoration: const BoxDecoration(
-            border: Border(bottom: BorderSide(color: AppColors.borderLight)),
+          decoration: BoxDecoration(
+            border: Border(bottom: BorderSide(color: palette.borderLight)),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -135,9 +137,9 @@ class PdfPreviewModal {
         backgroundColor: Colors.transparent,
         builder: (ctx) => Container(
           height: MediaQuery.of(context).size.height * 0.85,
-          decoration: const BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          decoration: BoxDecoration(
+            color: context.palette.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           ),
           child: Column(
             children: [
@@ -146,7 +148,7 @@ class PdfPreviewModal {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppColors.borderLight,
+                  color: context.palette.borderLight,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -168,7 +170,7 @@ class PdfPreviewModal {
                                 .replaceFirstMapped(RegExp(r'^([a-z])'),
                                     (m) => m[1]!.toUpperCase()),
                             style: AppTextStyles.bodySmall.copyWith(
-                              color: AppColors.textSecondary,
+                              color: context.palette.textSecondary,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -191,13 +193,13 @@ class PdfPreviewModal {
               ),
               Container(
                 padding: const EdgeInsets.all(20),
-                decoration: const BoxDecoration(
-                  color: AppColors.surface,
+                decoration: BoxDecoration(
+                  color: context.palette.surface,
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.shadow,
+                      color: context.palette.shadow,
                       blurRadius: 8,
-                      offset: Offset(0, -4),
+                      offset: const Offset(0, -4),
                     )
                   ],
                 ),

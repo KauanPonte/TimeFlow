@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/theme/app_palette.dart';
 import 'package:flutter_application_appdeponto/widgets/instant_page_route.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
@@ -15,10 +16,10 @@ class SettingsHubPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
-        backgroundColor: AppColors.surface,
+        backgroundColor: context.palette.surface,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
+          icon: Icon(Icons.arrow_back, color: context.palette.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
         title: Row(
@@ -38,7 +39,7 @@ class SettingsHubPage extends StatelessWidget {
             const SizedBox(width: 12),
             Text(
               'Configurações',
-              style: AppTextStyles.h3.copyWith(color: AppColors.textPrimary),
+              style: AppTextStyles.h3.copyWith(color: context.palette.textPrimary),
             ),
           ],
         ),
@@ -54,7 +55,7 @@ class SettingsHubPage extends StatelessWidget {
             child: Text(
               'Gerencie as configurações globais do sistema e regras do ambiente de trabalho para todos os usuários.',
               style: AppTextStyles.bodyMedium.copyWith(
-                color: AppColors.textSecondary,
+                color: context.palette.textSecondary,
               ),
             ),
           ),
@@ -113,7 +114,7 @@ class _SettingsMenuItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: AppColors.surface,
+      color: context.palette.surface,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         onTap: onTap,
@@ -122,7 +123,7 @@ class _SettingsMenuItem extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.borderLight),
+            border: Border.all(color: context.palette.borderLight),
           ),
           child: Row(
             children: [
@@ -149,15 +150,15 @@ class _SettingsMenuItem extends StatelessWidget {
                     Text(
                       subtitle,
                       style: AppTextStyles.bodySmall.copyWith(
-                        color: AppColors.textSecondary,
+                        color: context.palette.textSecondary,
                       ),
                     ),
                   ],
                 ),
               ),
-              const Icon(
+              Icon(
                 Icons.chevron_right,
-                color: AppColors.textSecondary,
+                color: context.palette.textSecondary,
                 size: 20,
               ),
             ],

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/theme/app_palette.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/create_user/create_user_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/create_user/create_user_event.dart';
@@ -185,10 +186,10 @@ class _CreateUserViewState extends State<CreateUserView> {
         return Scaffold(
           backgroundColor: Colors.transparent,
           appBar: AppBar(
-            backgroundColor: AppColors.surface,
+            backgroundColor: context.palette.surface,
             elevation: 0,
             leading: IconButton(
-              icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
+              icon: Icon(Icons.arrow_back, color: context.palette.textPrimary),
               onPressed: () => Navigator.pop(context),
             ),
             title: Row(
@@ -209,7 +210,7 @@ class _CreateUserViewState extends State<CreateUserView> {
                 Text(
                   'Cadastrar Usuário',
                   style: AppTextStyles.h3.copyWith(
-                    color: AppColors.textPrimary,
+                    color: context.palette.textPrimary,
                     fontSize: 20,
                   ),
                 ),
@@ -286,7 +287,7 @@ class _CreateUserViewState extends State<CreateUserView> {
                         _obscurePassword
                             ? Icons.visibility_outlined
                             : Icons.visibility_off_outlined,
-                        color: AppColors.textSecondary,
+                        color: context.palette.textSecondary,
                       ),
                       onPressed: () {
                         setState(() {
@@ -317,7 +318,7 @@ class _CreateUserViewState extends State<CreateUserView> {
                         _obscureConfirmPassword
                             ? Icons.visibility_outlined
                             : Icons.visibility_off_outlined,
-                        color: AppColors.textSecondary,
+                        color: context.palette.textSecondary,
                       ),
                       onPressed: () {
                         setState(() {
@@ -351,7 +352,7 @@ class _CreateUserViewState extends State<CreateUserView> {
                     child: Text(
                       'Ex: 8 ou 8:30 ',
                       style: AppTextStyles.bodySmall.copyWith(
-                        color: AppColors.textSecondary,
+                        color: context.palette.textSecondary,
                         fontStyle: FontStyle.italic,
                       ),
                     ),
@@ -377,7 +378,7 @@ class _CreateUserViewState extends State<CreateUserView> {
                     child: Text(
                       'Ex: Funcionário, Gerente, Administrador',
                       style: AppTextStyles.bodySmall.copyWith(
-                        color: AppColors.textSecondary,
+                        color: context.palette.textSecondary,
                         fontStyle: FontStyle.italic,
                       ),
                     ),
@@ -388,7 +389,7 @@ class _CreateUserViewState extends State<CreateUserView> {
                     'Tipo de Contrato',
                     style: AppTextStyles.bodyMedium.copyWith(
                       fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
+                      color: context.palette.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -458,7 +459,7 @@ class _CreateUserViewState extends State<CreateUserView> {
                       'Carga horária bolsista',
                       style: AppTextStyles.bodyMedium.copyWith(
                         fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
+                        color: context.palette.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -496,7 +497,7 @@ class _CreateUserViewState extends State<CreateUserView> {
                       'Dias de trabalho',
                       style: AppTextStyles.bodyMedium.copyWith(
                         fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
+                        color: context.palette.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -529,7 +530,7 @@ class _CreateUserViewState extends State<CreateUserView> {
                         child: Text(
                           _getSelectedSchedule(),
                           style: AppTextStyles.bodySmall.copyWith(
-                            color: AppColors.textSecondary,
+                            color: context.palette.textSecondary,
                             fontStyle: FontStyle.italic,
                           ),
                         ),
@@ -552,7 +553,7 @@ class _CreateUserViewState extends State<CreateUserView> {
                       'Projetos',
                       style: AppTextStyles.bodyMedium.copyWith(
                         fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
+                        color: context.palette.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -607,7 +608,7 @@ class _CreateUserViewState extends State<CreateUserView> {
                     child: Text(
                       'Ex: Funcionário, Gerente, Administrador',
                       style: AppTextStyles.bodySmall.copyWith(
-                        color: AppColors.textSecondary,
+                        color: context.palette.textSecondary,
                         fontStyle: FontStyle.italic,
                       ),
                     ),

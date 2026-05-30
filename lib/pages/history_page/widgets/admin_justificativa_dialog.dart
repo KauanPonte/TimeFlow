@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/theme/app_palette.dart';
 import 'package:flutter_application_appdeponto/repositories/justificativa_repository.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
@@ -42,7 +43,7 @@ class AdminJustificativaDialog {
               Text(
                 'A justificativa será salva diretamente sem necessidade de aprovação.',
                 style: AppTextStyles.bodySmall
-                    .copyWith(color: AppColors.textSecondary),
+                    .copyWith(color: context.palette.textSecondary),
               ),
               const SizedBox(height: 12),
               TextField(
@@ -53,16 +54,16 @@ class AdminJustificativaDialog {
                 decoration: InputDecoration(
                   hintText: 'Descreva a justificativa...',
                   hintStyle: AppTextStyles.bodySmall
-                      .copyWith(color: AppColors.textSecondary),
+                      .copyWith(color: context.palette.textSecondary),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
                     borderSide:
-                        const BorderSide(color: AppColors.borderLight),
+                        BorderSide(color: context.palette.borderLight),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
                     borderSide:
-                        const BorderSide(color: AppColors.borderLight),
+                        BorderSide(color: context.palette.borderLight),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),

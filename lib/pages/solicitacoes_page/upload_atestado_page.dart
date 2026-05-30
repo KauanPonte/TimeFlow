@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/theme/app_palette.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:intl/intl.dart';
@@ -94,13 +95,13 @@ class _UploadAtestadoPageState extends State<UploadAtestadoPage> {
       lastDate: DateTime.now().add(const Duration(days: 365)),
       builder: (context, child) {
         return Theme(
-          data: ThemeData.light().copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: AppColors.primary,
-              onPrimary: Colors.white,
-              surface: Colors.white,
-              onSurface: AppColors.textPrimary,
-            ),
+          data: Theme.of(context).copyWith(
+            colorScheme: Theme.of(context).colorScheme.copyWith(
+                  primary: AppColors.primary,
+                  onPrimary: Colors.white,
+                  surface: context.palette.surface,
+                  onSurface: context.palette.textPrimary,
+                ),
           ),
           child: child!,
         );
@@ -163,12 +164,12 @@ class _UploadAtestadoPageState extends State<UploadAtestadoPage> {
         backgroundColor: Colors.transparent,
         appBar: AppBar(
           titleSpacing: 0,
-          backgroundColor: AppColors.surface,
+          backgroundColor: context.palette.surface,
           elevation: 0,
           scrolledUnderElevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new_rounded,
-                color: AppColors.textPrimary, size: 20),
+            icon: Icon(Icons.arrow_back_ios_new_rounded,
+                color: context.palette.textPrimary, size: 20),
             onPressed: () => Navigator.pop(context),
           ),
           title: Row(
@@ -188,7 +189,7 @@ class _UploadAtestadoPageState extends State<UploadAtestadoPage> {
               const SizedBox(width: 12),
               Text(
                 _isAdmin ? 'Atestados' : 'Novo Atestado',
-                style: AppTextStyles.h3.copyWith(color: AppColors.textPrimary),
+                style: AppTextStyles.h3.copyWith(color: context.palette.textPrimary),
               ),
             ],
           ),
@@ -272,7 +273,7 @@ class _UploadAtestadoPageState extends State<UploadAtestadoPage> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
                       foregroundColor: Colors.white,
-                      disabledBackgroundColor: AppColors.border,
+                      disabledBackgroundColor: context.palette.border,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
@@ -300,7 +301,7 @@ class _UploadAtestadoPageState extends State<UploadAtestadoPage> {
                   child: Text(
                     'O arquivo será revisado pela administração.',
                     style: AppTextStyles.bodySmall
-                        .copyWith(color: AppColors.textSecondary),
+                        .copyWith(color: context.palette.textSecondary),
                   ),
                 ),
               ],
@@ -366,9 +367,9 @@ class _AdminAtestadoCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.palette.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.borderLight),
+        border: Border.all(color: context.palette.borderLight),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -384,8 +385,8 @@ class _AdminAtestadoCard extends StatelessWidget {
             const SizedBox(height: 8),
             Row(
               children: [
-                const Icon(Icons.date_range_outlined,
-                    size: 16, color: AppColors.textSecondary),
+                Icon(Icons.date_range_outlined,
+                    size: 16, color: context.palette.textSecondary),
                 const SizedBox(width: 6),
                 Text(
                   mesmodia ? inicio : '$inicio – $fim',
@@ -396,14 +397,14 @@ class _AdminAtestadoCard extends StatelessWidget {
             const SizedBox(height: 6),
             Row(
               children: [
-                const Icon(Icons.picture_as_pdf_outlined,
-                    size: 16, color: AppColors.textSecondary),
+                Icon(Icons.picture_as_pdf_outlined,
+                    size: 16, color: context.palette.textSecondary),
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
                     atestado.fileName,
                     style: AppTextStyles.bodySmall.copyWith(
-                      color: AppColors.textSecondary,
+                      color: context.palette.textSecondary,
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -463,7 +464,7 @@ class _SectionLabel extends StatelessWidget {
         label.toUpperCase(),
         style: AppTextStyles.bodySmall.copyWith(
           fontWeight: FontWeight.w800,
-          color: AppColors.textPrimary,
+          color: context.palette.textPrimary,
           fontSize: 11,
           letterSpacing: 0.8,
         ),
@@ -489,12 +490,12 @@ class _DateField extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.palette.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: hasValue
               ? AppColors.primary.withValues(alpha: 0.3)
-              : AppColors.border,
+              : context.palette.border,
         ),
       ),
       child: Material(
@@ -510,7 +511,7 @@ class _DateField extends StatelessWidget {
                 Text(
                   label,
                   style: AppTextStyles.bodySmall.copyWith(
-                    color: AppColors.textSecondary,
+                    color: context.palette.textSecondary,
                     fontSize: 10,
                   ),
                 ),
@@ -522,7 +523,7 @@ class _DateField extends StatelessWidget {
                       size: 16,
                       color: hasValue
                           ? AppColors.primary
-                          : AppColors.textSecondary,
+                          : context.palette.textSecondary,
                     ),
                     const SizedBox(width: 8),
                     Expanded(
@@ -530,8 +531,8 @@ class _DateField extends StatelessWidget {
                         value ?? 'Clique aqui',
                         style: AppTextStyles.bodyMedium.copyWith(
                           color: hasValue
-                              ? AppColors.textPrimary
-                              : AppColors.textSecondary.withValues(alpha: 0.5),
+                              ? context.palette.textPrimary
+                              : context.palette.textSecondary.withValues(alpha: 0.5),
                           fontWeight:
                               hasValue ? FontWeight.bold : FontWeight.normal,
                           fontSize: 13,
@@ -570,12 +571,12 @@ class _FilePickerBox extends StatelessWidget {
       decoration: BoxDecoration(
         color: hasFile
             ? AppColors.primary.withValues(alpha: 0.02)
-            : AppColors.surface,
+            : context.palette.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: hasFile
               ? AppColors.primary.withValues(alpha: 0.3)
-              : AppColors.border,
+              : context.palette.border,
           style: hasFile
               ? BorderStyle.solid
               : BorderStyle.solid, // Could use dashed if package available
@@ -607,7 +608,7 @@ class _FilePickerBox extends StatelessWidget {
                   Text(
                     'Clique para buscar no dispositivo',
                     style: AppTextStyles.bodySmall
-                        .copyWith(color: AppColors.textSecondary),
+                        .copyWith(color: context.palette.textSecondary),
                   ),
                 ] else ...[
                   Row(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/theme/app_palette.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
 
@@ -27,13 +28,13 @@ class DayEditActions extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: 12),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
-                side: const BorderSide(color: AppColors.borderLight),
+                side: BorderSide(color: context.palette.borderLight),
               ),
             ),
             child: Text(
               'Cancelar',
               style: AppTextStyles.bodyMedium
-                  .copyWith(color: AppColors.textSecondary),
+                  .copyWith(color: context.palette.textSecondary),
             ),
           ),
         ),

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/theme/app_palette.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_application_appdeponto/services/ponto_service.dart';
 import 'package:flutter_application_appdeponto/services/server_time_service.dart';
@@ -215,7 +216,7 @@ class _PontoPageState extends State<PontoPage> {
               color: isSelected ? AppColors.primary : Colors.white,
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
-                color: isSelected ? AppColors.primary : AppColors.borderLight,
+                color: isSelected ? AppColors.primary : context.palette.borderLight,
               ),
             ),
             child: Row(
@@ -224,7 +225,7 @@ class _PontoPageState extends State<PontoPage> {
                 if (locked && isSelected) ...[
                   Icon(Icons.lock,
                       size: 14,
-                      color: isSelected ? Colors.white : AppColors.textPrimary),
+                      color: isSelected ? Colors.white : context.palette.textPrimary),
                   const SizedBox(width: 6),
                 ],
                 if (_validatingLocation && label == 'Presencial') ...[
@@ -233,7 +234,7 @@ class _PontoPageState extends State<PontoPage> {
                     height: 14,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      color: isSelected ? Colors.white : AppColors.textPrimary,
+                      color: isSelected ? Colors.white : context.palette.textPrimary,
                     ),
                   ),
                   const SizedBox(width: 6),
@@ -242,7 +243,7 @@ class _PontoPageState extends State<PontoPage> {
                   label,
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    color: isSelected ? Colors.white : AppColors.textPrimary,
+                    color: isSelected ? Colors.white : context.palette.textPrimary,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -271,10 +272,10 @@ class _PontoPageState extends State<PontoPage> {
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
-        backgroundColor: AppColors.surface,
+        backgroundColor: context.palette.surface,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
+          icon: Icon(Icons.arrow_back, color: context.palette.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
         title: Row(
@@ -290,7 +291,7 @@ class _PontoPageState extends State<PontoPage> {
             ),
             const SizedBox(width: 12),
             Text('Bater Ponto',
-                style: AppTextStyles.h3.copyWith(color: AppColors.textPrimary)),
+                style: AppTextStyles.h3.copyWith(color: context.palette.textPrimary)),
           ],
         ),
       ),
@@ -341,7 +342,7 @@ class _PontoPageState extends State<PontoPage> {
                       style: AppTextStyles.bodyLarge.copyWith(
                         fontWeight: FontWeight.w600,
                         color: isPanelAccessible
-                            ? AppColors.textPrimary
+                            ? context.palette.textPrimary
                             : Colors.grey,
                       ),
                     ),
@@ -353,14 +354,14 @@ class _PontoPageState extends State<PontoPage> {
                         absorbing: !isPanelAccessible,
                         child: Container(
                           decoration: BoxDecoration(
-                            color: AppColors.surface,
+                            color: context.palette.surface,
                             borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: AppColors.borderLight),
-                            boxShadow: const [
+                            border: Border.all(color: context.palette.borderLight),
+                            boxShadow: [
                               BoxShadow(
-                                  color: AppColors.shadow,
+                                  color: context.palette.shadow,
                                   blurRadius: 8,
-                                  offset: Offset(0, 2)),
+                                  offset: const Offset(0, 2)),
                             ],
                           ),
                           child: Column(
@@ -421,7 +422,7 @@ class _PontoPageState extends State<PontoPage> {
                         'Registros de hoje',
                         style: AppTextStyles.bodyLarge.copyWith(
                             fontWeight: FontWeight.w600,
-                            color: AppColors.textPrimary),
+                            color: context.palette.textPrimary),
                       ),
                       const SizedBox(height: 12),
                       TodayTimeline(eventos: pontoState.eventosHojeFormatados),

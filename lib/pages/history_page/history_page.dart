@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/theme/app_palette.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_application_appdeponto/blocs/ponto_history/ponto_history_bloc.dart';
@@ -405,12 +406,12 @@ class _HistoryViewState extends State<_HistoryView> {
           Text(
             label,
             style: AppTextStyles.bodyMedium
-                .copyWith(color: AppColors.textSecondary),
+                .copyWith(color: context.palette.textSecondary),
           ),
           Text(
             value,
             style:
-                AppTextStyles.bodyMedium.copyWith(color: AppColors.textPrimary),
+                AppTextStyles.bodyMedium.copyWith(color: context.palette.textPrimary),
           ),
         ],
       ),
@@ -429,14 +430,14 @@ class _HistoryViewState extends State<_HistoryView> {
           Text(
             label,
             style: AppTextStyles.bodySmall.copyWith(
-              color: AppColors.textSecondary,
+              color: context.palette.textSecondary,
             ),
           ),
           const SizedBox(height: 8),
           Text(
             value,
             style: AppTextStyles.bodyLarge.copyWith(
-              color: valueColor ?? AppColors.textPrimary,
+              color: valueColor ?? context.palette.textPrimary,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -537,13 +538,13 @@ class _HistoryViewState extends State<_HistoryView> {
           if (widget.targetName != null)
             Container(
               decoration: BoxDecoration(
-                color: AppColors.surface,
+                color: context.palette.surface,
                 borderRadius: BorderRadius.circular(20),
-                boxShadow: const [
+                boxShadow: [
                   BoxShadow(
-                    color: AppColors.shadow,
+                    color: context.palette.shadow,
                     blurRadius: 12,
-                    offset: Offset(0, 6),
+                    offset: const Offset(0, 6),
                   ),
                 ],
               ),
@@ -575,14 +576,14 @@ class _HistoryViewState extends State<_HistoryView> {
                           widget.targetName!,
                           style: AppTextStyles.bodyLarge.copyWith(
                             fontWeight: FontWeight.w700,
-                            color: AppColors.textPrimary,
+                            color: context.palette.textPrimary,
                           ),
                         ),
                         const SizedBox(height: 6),
                         Text(
                           'Espelho Mensal',
                           style: AppTextStyles.bodyMedium.copyWith(
-                            color: AppColors.textSecondary,
+                            color: context.palette.textSecondary,
                           ),
                         ),
                       ],
@@ -594,13 +595,13 @@ class _HistoryViewState extends State<_HistoryView> {
           if (widget.targetName != null) const SizedBox(height: 20),
           Container(
             decoration: BoxDecoration(
-              color: AppColors.surface,
+              color: context.palette.surface,
               borderRadius: BorderRadius.circular(20),
-              boxShadow: const [
+              boxShadow: [
                 BoxShadow(
-                  color: AppColors.shadow,
+                  color: context.palette.shadow,
                   blurRadius: 12,
-                  offset: Offset(0, 6),
+                  offset: const Offset(0, 6),
                 ),
               ],
             ),
@@ -616,7 +617,7 @@ class _HistoryViewState extends State<_HistoryView> {
                   return Text(
                     'Não foi possível carregar o espelho mensal.',
                     style: AppTextStyles.bodyLarge.copyWith(
-                      color: AppColors.textSecondary,
+                      color: context.palette.textSecondary,
                     ),
                   );
                 }
@@ -691,12 +692,12 @@ class _HistoryViewState extends State<_HistoryView> {
               ? PreferredSize(
                   preferredSize: const Size.fromHeight(48),
                   child: Material(
-                    color: AppColors.surface,
-                    child: const TabBar(
+                    color: context.palette.surface,
+                    child: TabBar(
                       indicatorColor: AppColors.primary,
                       labelColor: AppColors.primary,
-                      unselectedLabelColor: AppColors.textSecondary,
-                      tabs: [
+                      unselectedLabelColor: context.palette.textSecondary,
+                      tabs: const [
                         Tab(text: 'Espelho de Ponto'),
                         Tab(text: 'Espelho Mensal'),
                       ],

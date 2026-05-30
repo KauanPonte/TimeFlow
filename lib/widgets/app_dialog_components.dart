@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/theme/app_palette.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
 
@@ -66,7 +67,7 @@ class AppDialogScaffold extends StatelessWidget {
                         Text(
                           subtitle!,
                           style: AppTextStyles.bodySmall.copyWith(
-                            color: AppColors.textSecondary,
+                            color: context.palette.textSecondary,
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -74,9 +75,9 @@ class AppDialogScaffold extends StatelessWidget {
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.close,
-                    color: AppColors.textSecondary,
+                    color: context.palette.textSecondary,
                     size: 20,
                   ),
                   onPressed: cancelAction,
@@ -86,7 +87,7 @@ class AppDialogScaffold extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 24),
-            const Divider(height: 1, color: AppColors.borderLight),
+            Divider(height: 1, color: context.palette.borderLight),
             const SizedBox(height: 20),
             ...children,
             const SizedBox(height: 24),
@@ -97,7 +98,7 @@ class AppDialogScaffold extends StatelessWidget {
                     onPressed: cancelAction,
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      side: const BorderSide(color: AppColors.borderLight),
+                      side: BorderSide(color: context.palette.borderLight),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -105,7 +106,7 @@ class AppDialogScaffold extends StatelessWidget {
                     child: Text(
                       cancelLabel,
                       style: AppTextStyles.bodyMedium
-                          .copyWith(color: AppColors.textSecondary),
+                          .copyWith(color: context.palette.textSecondary),
                     ),
                   ),
                 ),
@@ -165,7 +166,7 @@ class AppDialogField extends StatelessWidget {
           label,
           style: AppTextStyles.bodySmall.copyWith(
             fontWeight: FontWeight.w600,
-            color: AppColors.textSecondary,
+            color: context.palette.textSecondary,
           ),
         ),
         const SizedBox(height: 6),
@@ -181,7 +182,7 @@ class AppDialogField extends StatelessWidget {
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.borderLight),
+              borderSide: BorderSide(color: context.palette.borderLight),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),

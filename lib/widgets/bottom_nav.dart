@@ -1,5 +1,6 @@
 // lib/widgets/bottom_nav.dart
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/theme/app_palette.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 
 class BottomNav extends StatelessWidget {
@@ -26,8 +27,8 @@ class BottomNav extends StatelessWidget {
       return BottomNavigationBar(
         currentIndex: index,
         selectedItemColor: AppColors.primary,
-        unselectedItemColor: AppColors.textSecondary,
-        backgroundColor: AppColors.surface,
+        unselectedItemColor: context.palette.textSecondary,
+        backgroundColor: context.palette.surface,
         type: BottomNavigationBarType.fixed,
         onTap: (i) {
           if (i == index) return;
@@ -69,8 +70,8 @@ class BottomNav extends StatelessWidget {
     return BottomNavigationBar(
       currentIndex: index,
       selectedItemColor: AppColors.primary,
-      unselectedItemColor: AppColors.textSecondary,
-      backgroundColor: AppColors.surface,
+      unselectedItemColor: context.palette.textSecondary,
+      backgroundColor: context.palette.surface,
       type: BottomNavigationBarType.fixed,
       onTap: (i) {
         if (i == index) return;

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/theme/app_palette.dart';
 import 'package:flutter_application_appdeponto/models/solicitation_model.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
@@ -190,7 +191,7 @@ class _SolicitationItemRow extends StatelessWidget {
               labelForTipo(item.tipo),
               style: AppTextStyles.bodySmall.copyWith(
                 fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
+                color: context.palette.textPrimary,
                 fontSize: 12,
               ),
             ),
@@ -202,14 +203,14 @@ class _SolicitationItemRow extends StatelessWidget {
               DateFormat('HH:mm').format(item.oldHorario!),
               style: AppTextStyles.bodySmall.copyWith(
                 fontSize: 11,
-                color: AppColors.textSecondary,
+                color: context.palette.textSecondary,
                 decoration: TextDecoration.lineThrough,
               ),
             ),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 4),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
               child: Icon(Icons.arrow_forward_rounded,
-                  size: 10, color: AppColors.textSecondary),
+                  size: 10, color: context.palette.textSecondary),
             ),
             Text(
               horaStr,

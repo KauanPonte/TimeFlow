@@ -25,7 +25,7 @@ class AppLogo extends StatelessWidget {
         ),
         Text(
           'TimeFlow',
-          style: AppTextStyles.h1.copyWith(color: AppColors.surface),
+          style: AppTextStyles.h1.copyWith(color: AppColors.white),
         ),
         Text(
           'Controle de Ponto Simplificado',

@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/theme/app_palette.dart';
 import 'package:flutter_application_appdeponto/services/server_time_service.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
@@ -202,15 +203,15 @@ class _CalendarPageState extends State<CalendarPage> {
                               intl.DateFormat('dd/MM/yyyy')
                                   .format(_selectedDay!),
                               style: AppTextStyles.bodySmall.copyWith(
-                                color: AppColors.textSecondary,
+                                color: context.palette.textSecondary,
                               ),
                             ),
                           ],
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.close,
-                            color: AppColors.textSecondary, size: 20),
+                        icon: Icon(Icons.close,
+                            color: context.palette.textSecondary, size: 20),
                         onPressed: () => Navigator.pop(dialogCtx),
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(),
@@ -218,7 +219,7 @@ class _CalendarPageState extends State<CalendarPage> {
                     ],
                   ),
                   const SizedBox(height: 24),
-                  const Divider(height: 1, color: AppColors.borderLight),
+                  Divider(height: 1, color: context.palette.borderLight),
                   const SizedBox(height: 20),
 
                   // Campo título
@@ -226,7 +227,7 @@ class _CalendarPageState extends State<CalendarPage> {
                     'Nome do evento',
                     style: AppTextStyles.bodySmall.copyWith(
                       fontWeight: FontWeight.w600,
-                      color: AppColors.textSecondary,
+                      color: context.palette.textSecondary,
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -236,7 +237,7 @@ class _CalendarPageState extends State<CalendarPage> {
                     decoration: InputDecoration(
                       hintText: 'Ex: Natal, Recesso de Janeiro...',
                       hintStyle: AppTextStyles.bodySmall
-                          .copyWith(color: AppColors.textSecondary),
+                          .copyWith(color: context.palette.textSecondary),
                       prefixIcon: const Icon(Icons.title,
                           color: AppColors.primary, size: 20),
                       border: OutlineInputBorder(
@@ -244,7 +245,7 @@ class _CalendarPageState extends State<CalendarPage> {
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide:
-                            const BorderSide(color: AppColors.borderLight),
+                            BorderSide(color: context.palette.borderLight),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -262,7 +263,7 @@ class _CalendarPageState extends State<CalendarPage> {
                     'Tipo do evento',
                     style: AppTextStyles.bodySmall.copyWith(
                       fontWeight: FontWeight.w600,
-                      color: AppColors.textSecondary,
+                      color: context.palette.textSecondary,
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -300,7 +301,7 @@ class _CalendarPageState extends State<CalendarPage> {
                   Container(
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppColors.borderLight),
+                      border: Border.all(color: context.palette.borderLight),
                     ),
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     child: DropdownButtonHideUnderline(
@@ -324,7 +325,7 @@ class _CalendarPageState extends State<CalendarPage> {
                                 const SizedBox(width: 10),
                                 Text(opt.label,
                                     style: AppTextStyles.bodyMedium.copyWith(
-                                        color: AppColors.textPrimary)),
+                                        color: context.palette.textPrimary)),
                                 if (_blocksRegistration(opt.type)) ...[
                                   const SizedBox(width: 6),
                                   const Icon(Icons.lock_outline,
@@ -351,7 +352,7 @@ class _CalendarPageState extends State<CalendarPage> {
                           style: OutlinedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             side:
-                                const BorderSide(color: AppColors.borderLight),
+                                BorderSide(color: context.palette.borderLight),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
@@ -359,7 +360,7 @@ class _CalendarPageState extends State<CalendarPage> {
                           child: Text(
                             'Cancelar',
                             style: AppTextStyles.bodyMedium
-                                .copyWith(color: AppColors.textSecondary),
+                                .copyWith(color: context.palette.textSecondary),
                           ),
                         ),
                       ),
@@ -448,11 +449,11 @@ class _CalendarPageState extends State<CalendarPage> {
         return Scaffold(
           backgroundColor: Colors.transparent,
           appBar: AppBar(
-            backgroundColor: AppColors.surface,
+            backgroundColor: context.palette.surface,
             elevation: 0,
             scrolledUnderElevation: 0,
             leading: IconButton(
-              icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
+              icon: Icon(Icons.arrow_back, color: context.palette.textPrimary),
               onPressed: () => Navigator.pop(context),
             ),
             title: Row(
@@ -478,14 +479,14 @@ class _CalendarPageState extends State<CalendarPage> {
                         'Calendário',
                         style: AppTextStyles.bodyLarge.copyWith(
                           fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
+                          color: context.palette.textPrimary,
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
                       Text(
                         'Feriados e eventos',
                         style: AppTextStyles.bodySmall.copyWith(
-                          color: AppColors.textSecondary,
+                          color: context.palette.textSecondary,
                         ),
                       ),
                     ],
@@ -533,14 +534,14 @@ class _CalendarPageState extends State<CalendarPage> {
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.palette.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.borderLight),
-        boxShadow: const [
+        border: Border.all(color: context.palette.borderLight),
+        boxShadow: [
           BoxShadow(
-            color: AppColors.shadow,
+            color: context.palette.shadow,
             blurRadius: 4,
-            offset: Offset(0, 2),
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -560,7 +561,7 @@ class _CalendarPageState extends State<CalendarPage> {
           titleCentered: true,
           titleTextStyle: AppTextStyles.bodyLarge.copyWith(
             fontWeight: FontWeight.w600,
-            color: AppColors.textPrimary,
+            color: context.palette.textPrimary,
           ),
           leftChevronIcon:
               const Icon(Icons.chevron_left, color: AppColors.primary),
@@ -627,7 +628,7 @@ class _CalendarPageState extends State<CalendarPage> {
                     isToday || isSelected ? FontWeight.bold : FontWeight.normal,
                 fontSize: 12,
                 color:
-                    day.weekday == 7 ? AppColors.error : AppColors.textPrimary,
+                    day.weekday == 7 ? AppColors.error : context.palette.textPrimary,
               ),
             ),
           ),
@@ -701,14 +702,14 @@ class _CalendarPageState extends State<CalendarPage> {
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.palette.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.borderLight),
-        boxShadow: const [
+        border: Border.all(color: context.palette.borderLight),
+        boxShadow: [
           BoxShadow(
-            color: AppColors.shadow,
+            color: context.palette.shadow,
             blurRadius: 4,
-            offset: Offset(0, 2),
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -719,7 +720,7 @@ class _CalendarPageState extends State<CalendarPage> {
             'Legenda',
             style: AppTextStyles.bodyMedium.copyWith(
               fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary,
+              color: context.palette.textPrimary,
             ),
           ),
           const SizedBox(height: 12),
@@ -734,7 +735,7 @@ class _CalendarPageState extends State<CalendarPage> {
             ],
           ),
           if (_isAdmin) ...[
-            const Divider(height: 24, color: AppColors.borderLight),
+            Divider(height: 24, color: context.palette.borderLight),
             Row(
               children: [
                 const Icon(Icons.info_outline,
@@ -744,7 +745,7 @@ class _CalendarPageState extends State<CalendarPage> {
                   child: Text(
                     'Segure pressionado sobre um evento para excluí-lo.',
                     style: AppTextStyles.bodySmall.copyWith(
-                      color: AppColors.textSecondary,
+                      color: context.palette.textSecondary,
                       fontSize: 12,
                     ),
                   ),
@@ -773,7 +774,7 @@ class _CalendarPageState extends State<CalendarPage> {
         Text(
           label,
           style: AppTextStyles.bodySmall.copyWith(
-            color: AppColors.textSecondary,
+            color: context.palette.textSecondary,
           ),
         ),
       ],

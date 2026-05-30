@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/theme/app_palette.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
 
@@ -48,14 +49,14 @@ class SettingsBottomCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.palette.surface,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.borderLight),
-        boxShadow: const [
+        border: Border.all(color: context.palette.borderLight),
+        boxShadow: [
           BoxShadow(
-            color: AppColors.shadow,
+            color: context.palette.shadow,
             blurRadius: 10,
-            offset: Offset(0, 4),
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -85,7 +86,7 @@ class SettingsBottomCard extends StatelessWidget {
                     Text(
                       'Locais salvos: $savedLocationsCount',
                       style: AppTextStyles.bodySmall.copyWith(
-                        color: AppColors.textSecondary,
+                        color: context.palette.textSecondary,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -93,7 +94,7 @@ class SettingsBottomCard extends StatelessWidget {
                     Text(
                       addressLabel,
                       style: AppTextStyles.bodyMedium.copyWith(
-                        color: AppColors.textPrimary,
+                        color: context.palette.textPrimary,
                         fontWeight: FontWeight.w600,
                         height: 1.3,
                       ),
@@ -107,7 +108,7 @@ class SettingsBottomCard extends StatelessWidget {
           Text(
             description,
             style: AppTextStyles.bodySmall.copyWith(
-              color: AppColors.textSecondary,
+              color: context.palette.textSecondary,
             ),
           ),
           if (savedLocations.isNotEmpty) ...[
@@ -115,7 +116,7 @@ class SettingsBottomCard extends StatelessWidget {
             Text(
               'Locais cadastrados',
               style: AppTextStyles.bodySmall.copyWith(
-                color: AppColors.textSecondary,
+                color: context.palette.textSecondary,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -124,17 +125,17 @@ class SettingsBottomCard extends StatelessWidget {
               constraints: const BoxConstraints(maxHeight: 96),
               child: Container(
                 decoration: BoxDecoration(
-                  color: AppColors.bgLight,
+                  color: context.palette.bgLight,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.borderLight),
+                  border: Border.all(color: context.palette.borderLight),
                 ),
                 child: ListView.separated(
                   padding: const EdgeInsets.symmetric(vertical: 4),
                   itemCount: savedLocations.length,
                   shrinkWrap: true,
-                  separatorBuilder: (_, __) => const Divider(
+                  separatorBuilder: (_, __) => Divider(
                     height: 1,
-                    color: AppColors.borderLight,
+                    color: context.palette.borderLight,
                   ),
                   itemBuilder: (context, index) {
                     final location = savedLocations[index];
@@ -151,7 +152,7 @@ class SettingsBottomCard extends StatelessWidget {
                       title: Text(
                         location.title,
                         style: AppTextStyles.bodySmall.copyWith(
-                          color: AppColors.textPrimary,
+                          color: context.palette.textPrimary,
                           fontWeight: FontWeight.w600,
                         ),
                         maxLines: 1,
@@ -162,7 +163,7 @@ class SettingsBottomCard extends StatelessWidget {
                           ? Text(
                               location.subtitle!,
                               style: AppTextStyles.bodySmall.copyWith(
-                                color: AppColors.textSecondary,
+                                color: context.palette.textSecondary,
                                 fontSize: 11,
                               ),
                               maxLines: 1,
@@ -201,12 +202,12 @@ class SettingsBottomCard extends StatelessWidget {
                 elevation: 0,
               ),
               icon: saving
-                  ? const SizedBox(
+                  ? SizedBox(
                       width: 18,
                       height: 18,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        color: AppColors.textSecondary,
+                        color: context.palette.textSecondary,
                       ),
                     )
                   : const Icon(Icons.check_circle_outline),

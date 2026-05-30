@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
+import 'package:flutter_application_appdeponto/theme/app_palette.dart';
 import 'package:flutter_application_appdeponto/services/server_time_service.dart';
 import 'package:table_calendar/table_calendar.dart';
 import '../card/widgets/day_card_helpers.dart';
@@ -106,17 +107,20 @@ class CalendarDayStatusHelper {
     return CalendarBuilders<Map<String, dynamic>>(
       markerBuilder: (context, day, _) => const SizedBox.shrink(),
       defaultBuilder: (context, day, _) => _buildDayCell(
+        context: context,
         day: day,
         status: statusForDay(day),
         isHoliday: isHoliday(day),
       ),
       todayBuilder: (context, day, _) => _buildDayCell(
+        context: context,
         day: day,
         status: statusForDay(day),
         isToday: true,
         isHoliday: isHoliday(day),
       ),
       selectedBuilder: (context, day, _) => _buildDayCell(
+        context: context,
         day: day,
         status: statusForDay(day),
         isSelected: isSameDay(day, selectedDay),
@@ -126,6 +130,7 @@ class CalendarDayStatusHelper {
   }
 
   Widget _buildDayCell({
+    required BuildContext context,
     required DateTime day,
     required CalendarDayStatus status,
     bool isToday = false,
@@ -179,11 +184,11 @@ class CalendarDayStatusHelper {
             ? _justifiedColor
             : isWarning
                 ? AppColors.warning
-                : Colors.black;
+                : context.palette.textPrimary;
 
     // Se for futuro e não for feriado, acinzenta
     if (isFuture) {
-      textColor = AppColors.textSecondary.withValues(alpha: 0.4);
+      textColor = context.palette.textSecondary.withValues(alpha: 0.4);
     }
 
     return Column(

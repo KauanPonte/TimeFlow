@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/theme/app_palette.dart';
 import 'package:flutter_application_appdeponto/widgets/instant_page_route.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/admin_home/admin_home_bloc.dart';
@@ -239,7 +240,7 @@ class _HomeAdminViewState extends State<HomeAdminView> {
                     child: Text(
                       'Ações Rápidas',
                       style: AppTextStyles.h3.copyWith(
-                        color: AppColors.textPrimary,
+                        color: context.palette.textPrimary,
                         fontSize: 20,
                       ),
                     ),

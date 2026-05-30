@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/theme/app_palette.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_application_appdeponto/blocs/atestado/atestado_bloc.dart';
@@ -34,7 +35,7 @@ class _AtestadoReviewPageState extends State<AtestadoReviewPage> {
       backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: const Text('Atestados'),
-        backgroundColor: AppColors.surface,
+        backgroundColor: context.palette.surface,
         elevation: 0,
       ),
       body: BlocConsumer<AtestadoBloc, AtestadoState>(
@@ -75,7 +76,7 @@ class _AtestadoReviewPageState extends State<AtestadoReviewPage> {
                   Text(
                     'Nenhum atestado para revisar',
                     style: AppTextStyles.bodyLarge.copyWith(
-                      color: AppColors.textSecondary,
+                      color: context.palette.textSecondary,
                     ),
                   ),
                 ],
@@ -194,12 +195,12 @@ class _AtestadoReviewCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.borderLight),
-        boxShadow: const [
+        border: Border.all(color: context.palette.borderLight),
+        boxShadow: [
           BoxShadow(
-            color: AppColors.shadow,
+            color: context.palette.shadow,
             blurRadius: 6,
-            offset: Offset(0, 2),
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -223,7 +224,7 @@ class _AtestadoReviewCard extends StatelessWidget {
               Text(
                 DateFormat('dd/MM/yy').format(atestado.createdAt),
                 style: AppTextStyles.bodySmall.copyWith(
-                  color: AppColors.textSecondary,
+                  color: context.palette.textSecondary,
                 ),
               ),
             ],
@@ -258,8 +259,8 @@ class _AtestadoReviewCard extends StatelessWidget {
           // Período
           Row(
             children: [
-              const Icon(Icons.date_range_outlined,
-                  size: 16, color: AppColors.textSecondary),
+              Icon(Icons.date_range_outlined,
+                  size: 16, color: context.palette.textSecondary),
               const SizedBox(width: 6),
               Text(
                 mesmodia ? inicio : '$inicio – $fim',
@@ -287,14 +288,14 @@ class _AtestadoReviewCard extends StatelessWidget {
           // Arquivo
           Row(
             children: [
-              const Icon(Icons.picture_as_pdf,
-                  size: 16, color: AppColors.textSecondary),
+              Icon(Icons.picture_as_pdf,
+                  size: 16, color: context.palette.textSecondary),
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
                   atestado.fileName,
                   style: AppTextStyles.bodySmall.copyWith(
-                    color: AppColors.textSecondary,
+                    color: context.palette.textSecondary,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -348,7 +349,7 @@ class _AtestadoReviewCard extends StatelessWidget {
             Text(
               'Motivo da recusa anterior',
               style: AppTextStyles.bodySmall.copyWith(
-                color: AppColors.textSecondary,
+                color: context.palette.textSecondary,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -356,7 +357,7 @@ class _AtestadoReviewCard extends StatelessWidget {
             Text(
               atestado.reason!,
               style: AppTextStyles.bodySmall.copyWith(
-                color: AppColors.textSecondary,
+                color: context.palette.textSecondary,
                 fontStyle: FontStyle.italic,
               ),
             ),

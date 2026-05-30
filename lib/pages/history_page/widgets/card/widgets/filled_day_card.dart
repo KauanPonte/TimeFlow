@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/theme/app_palette.dart';
 import 'package:flutter_application_appdeponto/models/justificativa_model.dart';
 import 'package:flutter_application_appdeponto/models/solicitation_model.dart';
 import 'package:flutter_application_appdeponto/services/server_time_service.dart';
@@ -74,29 +75,29 @@ class _FilledDayCardState extends State<FilledDayCard> {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.palette.surface,
         borderRadius: BorderRadius.circular(14),
       ),
       child: Container(
         decoration: BoxDecoration(
           color: disabledStyle
-              ? AppColors.surface
+              ? context.palette.surface
               : (incomplete
                   ? AppColors.warning.withValues(alpha: 0.05)
-                  : AppColors.surface),
+                  : context.palette.surface),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: disabledStyle
-                ? AppColors.borderLight.withValues(alpha: 0.7)
+                ? context.palette.borderLight.withValues(alpha: 0.7)
                 : (incomplete
                     ? AppColors.warningLight30
-                    : AppColors.borderLight),
+                    : context.palette.borderLight),
           ),
-          boxShadow: const [
+          boxShadow: [
             BoxShadow(
-              color: AppColors.shadow,
+              color: context.palette.shadow,
               blurRadius: 8,
-              offset: Offset(0, 2),
+              offset: const Offset(0, 2),
             ),
           ],
         ),
@@ -117,13 +118,13 @@ class _FilledDayCardState extends State<FilledDayCard> {
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
                     color: disabledStyle
-                        ? AppColors.borderLight.withValues(alpha: 0.4)
+                        ? context.palette.borderLight.withValues(alpha: 0.4)
                         : (incomplete
                             ? AppColors.warning.withValues(alpha: 0.05)
                             : AppColors.primaryLight10),
                     border: Border.all(
                       color: disabledStyle
-                          ? AppColors.borderLight.withValues(alpha: 0.7)
+                          ? context.palette.borderLight.withValues(alpha: 0.7)
                           : (incomplete
                               ? AppColors.warningLight30
                               : AppColors.primary.withValues(alpha: 0.3)),
@@ -135,7 +136,7 @@ class _FilledDayCardState extends State<FilledDayCard> {
                         ? Icons.warning_amber_rounded
                         : Icons.calendar_today,
                     color: disabledStyle
-                        ? AppColors.textSecondary
+                        ? context.palette.textSecondary
                         : (incomplete ? AppColors.warning : AppColors.primary),
                     size: 20,
                   ),
@@ -145,8 +146,8 @@ class _FilledDayCardState extends State<FilledDayCard> {
                   style: AppTextStyles.bodyLarge.copyWith(
                     fontWeight: FontWeight.w600,
                     color: disabledStyle
-                        ? AppColors.textSecondary
-                        : AppColors.textPrimary,
+                        ? context.palette.textSecondary
+                        : context.palette.textPrimary,
                   ),
                 ),
                 trailing: Row(
@@ -174,9 +175,9 @@ class _FilledDayCardState extends State<FilledDayCard> {
                     AnimatedRotation(
                       turns: _isExpanded ? 0.5 : 0,
                       duration: const Duration(milliseconds: 250),
-                      child: const Icon(
+                      child: Icon(
                         Icons.expand_more,
-                        color: AppColors.textSecondary,
+                        color: context.palette.textSecondary,
                         size: 22,
                       ),
                     ),
@@ -222,13 +223,13 @@ class _FilledDayCardState extends State<FilledDayCard> {
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.timer_outlined,
-                size: 14, color: AppColors.textSecondary),
+            Icon(Icons.timer_outlined,
+                size: 14, color: context.palette.textSecondary),
             const SizedBox(width: 4),
             Text(
               computeWorked(widget.eventos),
               style: AppTextStyles.bodySmall
-                  .copyWith(color: AppColors.textSecondary),
+                  .copyWith(color: context.palette.textSecondary),
             ),
           ],
         ),
@@ -446,7 +447,7 @@ class _FilledDayCardState extends State<FilledDayCard> {
               left: BorderSide(
                 color: incomplete
                     ? AppColors.warning.withValues(alpha: 0.45)
-                    : AppColors.borderLight,
+                    : context.palette.borderLight,
                 width: 3,
               ),
             ),
@@ -491,7 +492,7 @@ class _FilledDayCardState extends State<FilledDayCard> {
       case 'remoto':
         return AppColors.primary;
       default:
-        return AppColors.textSecondary;
+        return context.palette.textSecondary;
     }
   }
 
@@ -537,7 +538,7 @@ class _FilledDayCardState extends State<FilledDayCard> {
                   labelForTipo(tipo),
                   style: AppTextStyles.bodyMedium.copyWith(
                     fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
+                    color: context.palette.textPrimary,
                   ),
                 ),
                 Row(
@@ -546,7 +547,7 @@ class _FilledDayCardState extends State<FilledDayCard> {
                     Text(
                       formatTime(at),
                       style: AppTextStyles.bodySmall
-                          .copyWith(color: AppColors.textSecondary),
+                          .copyWith(color: context.palette.textSecondary),
                     ),
                     const SizedBox(width: 8),
                     Container(

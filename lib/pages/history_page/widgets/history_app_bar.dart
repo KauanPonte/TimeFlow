@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/theme/app_palette.dart';
 import 'package:flutter_application_appdeponto/repositories/history_view_preference_repository.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
@@ -32,11 +33,11 @@ class HistoryAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return AppBar(
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.palette.surface,
       elevation: 0,
       scrolledUnderElevation: 0,
       leading: IconButton(
-        icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
+        icon: Icon(Icons.arrow_back, color: context.palette.textPrimary),
         onPressed: () => Navigator.pop(context),
       ),
       title: Row(
@@ -68,7 +69,7 @@ class HistoryAppBar extends StatelessWidget implements PreferredSizeWidget {
                   title,
                   style: AppTextStyles.bodyLarge.copyWith(
                     fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
+                    color: context.palette.textPrimary,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -76,7 +77,7 @@ class HistoryAppBar extends StatelessWidget implements PreferredSizeWidget {
                   Text(
                     subTitle!,
                     style: AppTextStyles.bodySmall
-                        .copyWith(color: AppColors.textSecondary),
+                        .copyWith(color: context.palette.textSecondary),
                   ),
               ],
             ),

@@ -21,7 +21,7 @@ class AuthButton extends StatelessWidget {
       child: isPrimary
           ? ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.surface,
+                backgroundColor: AppColors.white,
                 foregroundColor: AppColors.primary,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
@@ -40,8 +40,8 @@ class AuthButton extends StatelessWidget {
             )
           : OutlinedButton(
               style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.surface,
-                side: const BorderSide(color: AppColors.surface, width: 2),
+                foregroundColor: AppColors.white,
+                side: const BorderSide(color: AppColors.white, width: 2),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),

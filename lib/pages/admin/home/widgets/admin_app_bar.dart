@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/theme/app_palette.dart';
 import 'package:flutter_application_appdeponto/widgets/instant_page_route.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
@@ -20,7 +21,7 @@ class AdminAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return AppBar(
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.palette.surface,
       elevation: 0,
       automaticallyImplyLeading: false,
       title: Row(
@@ -30,11 +31,11 @@ class AdminAppBar extends StatelessWidget implements PreferredSizeWidget {
             decoration: BoxDecoration(
               color: AppColors.primary,
               borderRadius: BorderRadius.circular(12),
-              boxShadow: const [
+              boxShadow: [
                 BoxShadow(
-                  color: AppColors.shadow,
+                  color: context.palette.shadow,
                   blurRadius: 8,
-                  offset: Offset(0, 2),
+                  offset: const Offset(0, 2),
                 ),
               ],
             ),
@@ -63,7 +64,7 @@ class AdminAppBar extends StatelessWidget implements PreferredSizeWidget {
               Text(
                 'Painel Admin',
                 style: AppTextStyles.bodySmall.copyWith(
-                  color: AppColors.textSecondary,
+                  color: context.palette.textSecondary,
                 ),
               ),
             ],
@@ -110,7 +111,7 @@ class AdminAppBar extends StatelessWidget implements PreferredSizeWidget {
                   Text(
                     'Perfil',
                     style: AppTextStyles.bodyMedium.copyWith(
-                      color: AppColors.textPrimary,
+                      color: context.palette.textPrimary,
                     ),
                   ),
                 ],
@@ -129,7 +130,7 @@ class AdminAppBar extends StatelessWidget implements PreferredSizeWidget {
                   Text(
                     'Configurações',
                     style: AppTextStyles.bodyMedium.copyWith(
-                      color: AppColors.textPrimary,
+                      color: context.palette.textPrimary,
                     ),
                   ),
                 ],

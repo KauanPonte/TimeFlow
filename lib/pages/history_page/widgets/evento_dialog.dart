@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/theme/app_palette.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_application_appdeponto/widgets/time_picker.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
@@ -124,13 +125,13 @@ class _EventoDialogState extends State<EventoDialog> {
               padding: const EdgeInsets.only(left: 2),
               child: Row(
                 children: [
-                  const Icon(Icons.calendar_today_rounded,
-                      size: 13, color: AppColors.textSecondary),
+                  Icon(Icons.calendar_today_rounded,
+                      size: 13, color: context.palette.textSecondary),
                   const SizedBox(width: 5),
                   Text(
                     dateStr[0].toUpperCase() + dateStr.substring(1),
                     style: AppTextStyles.bodySmall
-                        .copyWith(color: AppColors.textSecondary),
+                        .copyWith(color: context.palette.textSecondary),
                   ),
                 ],
               ),
@@ -142,7 +143,7 @@ class _EventoDialogState extends State<EventoDialog> {
             Text(
               'Tipo de registro',
               style: AppTextStyles.bodySmall.copyWith(
-                color: AppColors.textSecondary,
+                color: context.palette.textSecondary,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -162,10 +163,10 @@ class _EventoDialogState extends State<EventoDialog> {
                         decoration: BoxDecoration(
                           color: isSelected
                               ? color.withValues(alpha: 0.12)
-                              : AppColors.bgLight,
+                              : context.palette.bgLight,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: isSelected ? color : AppColors.borderLight,
+                            color: isSelected ? color : context.palette.borderLight,
                             width: isSelected ? 1.5 : 1,
                           ),
                         ),
@@ -176,7 +177,7 @@ class _EventoDialogState extends State<EventoDialog> {
                               _iconForTipo(t),
                               size: 18,
                               color:
-                                  isSelected ? color : AppColors.textSecondary,
+                                  isSelected ? color : context.palette.textSecondary,
                             ),
                             const SizedBox(height: 4),
                             Text(
@@ -188,7 +189,7 @@ class _EventoDialogState extends State<EventoDialog> {
                                     : FontWeight.w400,
                                 color: isSelected
                                     ? color
-                                    : AppColors.textSecondary,
+                                    : context.palette.textSecondary,
                               ),
                               textAlign: TextAlign.center,
                             ),
@@ -207,7 +208,7 @@ class _EventoDialogState extends State<EventoDialog> {
             Text(
               'Horário',
               style: AppTextStyles.bodySmall.copyWith(
-                color: AppColors.textSecondary,
+                color: context.palette.textSecondary,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -256,13 +257,13 @@ class _EventoDialogState extends State<EventoDialog> {
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
-                        side: const BorderSide(color: AppColors.borderLight),
+                        side: BorderSide(color: context.palette.borderLight),
                       ),
                     ),
                     child: Text(
                       'Cancelar',
                       style: AppTextStyles.bodyMedium
-                          .copyWith(color: AppColors.textSecondary),
+                          .copyWith(color: context.palette.textSecondary),
                     ),
                   ),
                 ),

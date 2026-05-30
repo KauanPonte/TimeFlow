@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/theme/app_palette.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
 
@@ -19,14 +20,14 @@ class AdminStatCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.palette.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.borderLight),
-        boxShadow: const [
+        border: Border.all(color: context.palette.borderLight),
+        boxShadow: [
           BoxShadow(
-            color: AppColors.shadow,
+            color: context.palette.shadow,
             blurRadius: 8,
-            offset: Offset(0, 2),
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -51,7 +52,7 @@ class AdminStatCard extends StatelessWidget {
               ),
               child: Icon(
                 icon,
-                color: AppColors.surface,
+                color: AppColors.white,
                 size: 24,
               ),
             ),
@@ -59,7 +60,7 @@ class AdminStatCard extends StatelessWidget {
             Text(
               value,
               style: AppTextStyles.h1.copyWith(
-                color: AppColors.textPrimary,
+                color: context.palette.textPrimary,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -67,7 +68,7 @@ class AdminStatCard extends StatelessWidget {
             Text(
               label,
               style: AppTextStyles.bodyMedium.copyWith(
-                color: AppColors.textSecondary,
+                color: context.palette.textSecondary,
                 fontWeight: FontWeight.w500,
               ),
             ),

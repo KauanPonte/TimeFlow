@@ -1,5 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/theme/theme_controller.dart';
+import 'package:flutter_application_appdeponto/theme/app_palette.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:image_cropper/image_cropper.dart';
@@ -91,7 +93,7 @@ class _ProfilePageViewState extends State<_ProfilePageView> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: AppColors.borderLight,
+                    color: context.palette.borderLight,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -353,14 +355,14 @@ class _ProfilePageViewState extends State<_ProfilePageView> {
 
               Container(
                 decoration: BoxDecoration(
-                  color: AppColors.surface,
+                  color: context.palette.surface,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.borderLight),
-                  boxShadow: const [
+                  border: Border.all(color: context.palette.borderLight),
+                  boxShadow: [
                     BoxShadow(
-                      color: AppColors.shadow,
+                      color: context.palette.shadow,
                       blurRadius: 8,
-                      offset: Offset(0, 2),
+                      offset: const Offset(0, 2),
                     ),
                   ],
                 ),
@@ -385,20 +387,108 @@ class _ProfilePageViewState extends State<_ProfilePageView> {
                     'Lembretes personalizados',
                     style: AppTextStyles.bodyLarge.copyWith(
                       fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
+                      color: context.palette.textPrimary,
                     ),
                   ),
                   subtitle: Text(
                     'Entrada, pausa, volta e saída',
                     style: AppTextStyles.bodyMedium.copyWith(
-                      color: AppColors.textSecondary,
+                      color: context.palette.textSecondary,
                     ),
                   ),
-                  trailing: const Icon(
+                  trailing: Icon(
                     Icons.chevron_right_rounded,
-                    color: AppColors.textSecondary,
+                    color: context.palette.textSecondary,
                   ),
                   onTap: () => ScheduledRemindersModal.show(context),
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // Aparência — tema claro / escuro / sistema
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: context.palette.surface,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: context.palette.borderLight),
+                  boxShadow: [
+                    BoxShadow(
+                      color: context.palette.shadow,
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryLight10,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(
+                            Icons.dark_mode_rounded,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Aparência',
+                                style: AppTextStyles.bodyLarge.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  color: context.palette.textPrimary,
+                                ),
+                              ),
+                              Text(
+                                'Tema do aplicativo',
+                                style: AppTextStyles.bodyMedium.copyWith(
+                                  color: context.palette.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ListenableBuilder(
+                        listenable: themeController,
+                        builder: (context, _) => SegmentedButton<ThemeMode>(
+                          segments: const [
+                            ButtonSegment(
+                              value: ThemeMode.light,
+                              label: Text('Claro'),
+                            ),
+                            ButtonSegment(
+                              value: ThemeMode.dark,
+                              label: Text('Escuro'),
+                            ),
+                            ButtonSegment(
+                              value: ThemeMode.system,
+                              label: Text('Sistema'),
+                            ),
+                          ],
+                          selected: {themeController.mode},
+                          showSelectedIcon: false,
+                          onSelectionChanged: (s) =>
+                              themeController.setMode(s.first),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],

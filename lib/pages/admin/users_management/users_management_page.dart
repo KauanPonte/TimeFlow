@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/theme/app_palette.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/user_management/user_management_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/user_management/user_management_state.dart';
@@ -49,11 +50,11 @@ class UsersManagementPage extends StatelessWidget {
         child: Scaffold(
           backgroundColor: Colors.transparent,
           appBar: AppBar(
-            backgroundColor: AppColors.surface,
+            backgroundColor: context.palette.surface,
             elevation: 0,
             scrolledUnderElevation: 0,
             leading: IconButton(
-              icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
+              icon: Icon(Icons.arrow_back, color: context.palette.textPrimary),
               onPressed: () => Navigator.pop(context),
             ),
             title: Row(
@@ -76,7 +77,7 @@ class UsersManagementPage extends StatelessWidget {
                 Text(
                   isEmployeesMode ? 'Funcionários' : 'Relatórios',
                   style:
-                      AppTextStyles.h3.copyWith(color: AppColors.textPrimary),
+                      AppTextStyles.h3.copyWith(color: context.palette.textPrimary),
                 ),
               ],
             ),

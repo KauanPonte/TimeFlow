@@ -11,6 +11,7 @@ import 'package:flutter_application_appdeponto/services/internet_reachability_st
     as internet_reachability;
 
 import '../models/scheduled_reminder.dart';
+import '../theme/app_colors.dart';
 
 class NotificationService {
   static const String _usersCollection = 'usuarios';
@@ -73,6 +74,7 @@ class NotificationService {
       'Notificações Instantâneas',
       importance: Importance.max,
       priority: Priority.high,
+      color: AppColors.primary,
     );
 
     const details = NotificationDetails(android: androidDetails);

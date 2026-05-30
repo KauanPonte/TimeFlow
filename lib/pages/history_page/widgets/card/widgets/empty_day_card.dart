@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/theme/app_palette.dart';
 import 'package:flutter_application_appdeponto/models/justificativa_model.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
@@ -60,14 +61,14 @@ class EmptyDayCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: (_isAbsentDay && justificativa != null)
             ? _absentColor.withValues(alpha: 0.04)
-            : AppColors.surface,
+            : context.palette.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: (_isAbsentDay && justificativa != null)
               ? _absentColor.withValues(alpha: 0.3)
               : disabled
-                  ? AppColors.borderLight.withValues(alpha: 0.7)
-                  : AppColors.borderLight,
+                  ? context.palette.borderLight.withValues(alpha: 0.7)
+                  : context.palette.borderLight,
         ),
       ),
       child: Column(
@@ -80,18 +81,18 @@ class EmptyDayCard extends StatelessWidget {
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
                 color: disabled
-                    ? AppColors.borderLight.withValues(alpha: 0.4)
-                    : AppColors.borderLight.withValues(alpha: 0.5),
+                    ? context.palette.borderLight.withValues(alpha: 0.4)
+                    : context.palette.borderLight.withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
                   color: disabled
-                      ? AppColors.borderLight.withValues(alpha: 0.7)
-                      : AppColors.borderLight,
+                      ? context.palette.borderLight.withValues(alpha: 0.7)
+                      : context.palette.borderLight,
                 ),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.calendar_today,
-                color: AppColors.textSecondary,
+                color: context.palette.textSecondary,
                 size: 20,
               ),
             ),
@@ -100,7 +101,7 @@ class EmptyDayCard extends StatelessWidget {
               style: AppTextStyles.bodyMedium.copyWith(
                 color: (_isAbsentDay && justificativa != null)
                     ? _absentColor
-                    : AppColors.textSecondary,
+                    : context.palette.textSecondary,
                 fontWeight: (_isAbsentDay && justificativa != null)
                     ? FontWeight.w600
                     : FontWeight.normal,
@@ -117,7 +118,7 @@ class EmptyDayCard extends StatelessWidget {
                     style: AppTextStyles.bodySmall.copyWith(
                       color: (_isAbsentDay && justificativa != null)
                           ? _absentColor.withValues(alpha: 0.7)
-                          : AppColors.textSecondary.withValues(alpha: 0.6),
+                          : context.palette.textSecondary.withValues(alpha: 0.6),
                       fontSize: 11,
                     ),
                   ),
@@ -325,8 +326,8 @@ class EmptyDayCard extends StatelessWidget {
                   if (onDeleteJustificativa != null || (isAdmin && onJustify != null)) ...[
                     const Spacer(),
                     if (isAdmin && onJustify != null)
-                      const Icon(Icons.edit_outlined,
-                          size: 12, color: AppColors.textSecondary),
+                      Icon(Icons.edit_outlined,
+                          size: 12, color: context.palette.textSecondary),
                     if (onDeleteJustificativa != null) ...[
                       if (isAdmin && onJustify != null) const SizedBox(width: 6),
                       GestureDetector(
@@ -342,7 +343,7 @@ class EmptyDayCard extends StatelessWidget {
               Text(
                 justificativa!.justificativa,
                 style: AppTextStyles.bodySmall.copyWith(
-                  color: AppColors.textPrimary,
+                  color: context.palette.textPrimary,
                   fontSize: 11,
                 ),
                 maxLines: 2,
@@ -355,7 +356,7 @@ class EmptyDayCard extends StatelessWidget {
                 Text(
                   'Motivo: ${justificativa!.reason}',
                   style: AppTextStyles.bodySmall.copyWith(
-                    color: AppColors.textSecondary,
+                    color: context.palette.textSecondary,
                     fontSize: 10,
                     fontStyle: FontStyle.italic,
                   ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/theme/app_palette.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
 
@@ -11,10 +12,10 @@ class SettingsAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return AppBar(
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.palette.surface,
       elevation: 0,
       leading: IconButton(
-        icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
+        icon: Icon(Icons.arrow_back, color: context.palette.textPrimary),
         onPressed: () => Navigator.pop(context),
       ),
       title: Row(
@@ -31,7 +32,7 @@ class SettingsAppBar extends StatelessWidget implements PreferredSizeWidget {
           const SizedBox(width: 12),
           Text(
             'Configuracoes',
-            style: AppTextStyles.h3.copyWith(color: AppColors.textPrimary),
+            style: AppTextStyles.h3.copyWith(color: context.palette.textPrimary),
           ),
         ],
       ),

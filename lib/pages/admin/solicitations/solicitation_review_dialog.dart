@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/theme/app_palette.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_application_appdeponto/models/solicitation_model.dart';
 import 'package:flutter_application_appdeponto/services/ponto_validator.dart';
@@ -247,12 +248,12 @@ class _SolicitationReviewDialogState extends State<SolicitationReviewDialog> {
               const SizedBox(height: 4),
               Row(
                 children: [
-                  const Icon(Icons.calendar_today_rounded,
-                      size: 13, color: AppColors.textSecondary),
+                  Icon(Icons.calendar_today_rounded,
+                      size: 13, color: context.palette.textSecondary),
                   const SizedBox(width: 5),
                   Text(formattedDate,
                       style: AppTextStyles.bodySmall
-                          .copyWith(color: AppColors.textSecondary)),
+                          .copyWith(color: context.palette.textSecondary)),
                 ],
               ),
 
@@ -261,20 +262,20 @@ class _SolicitationReviewDialogState extends State<SolicitationReviewDialog> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: AppColors.bgLight,
+                    color: context.palette.bgLight,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppColors.borderLight),
+                    border: Border.all(color: context.palette.borderLight),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.comment_outlined,
-                          size: 14, color: AppColors.textSecondary),
+                      Icon(Icons.comment_outlined,
+                          size: 14, color: context.palette.textSecondary),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           sol.reason!,
                           style: AppTextStyles.bodySmall
-                              .copyWith(color: AppColors.textSecondary),
+                              .copyWith(color: context.palette.textSecondary),
                         ),
                       ),
                     ],
@@ -305,7 +306,7 @@ class _SolicitationReviewDialogState extends State<SolicitationReviewDialog> {
                   Text(
                     '$acceptedCount aceito(s), $rejectedCount rejeitado(s)',
                     style: AppTextStyles.bodySmall.copyWith(
-                      color: AppColors.textSecondary,
+                      color: context.palette.textSecondary,
                       fontSize: 11,
                     ),
                   ),
@@ -341,16 +342,16 @@ class _SolicitationReviewDialogState extends State<SolicitationReviewDialog> {
                 decoration: InputDecoration(
                   hintText: 'Observação do admin (opcional)',
                   hintStyle: AppTextStyles.bodySmall
-                      .copyWith(color: AppColors.textSecondary),
+                      .copyWith(color: context.palette.textSecondary),
                   contentPadding:
                       const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
-                    borderSide: const BorderSide(color: AppColors.borderLight),
+                    borderSide: BorderSide(color: context.palette.borderLight),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
-                    borderSide: const BorderSide(color: AppColors.borderLight),
+                    borderSide: BorderSide(color: context.palette.borderLight),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
@@ -372,13 +373,13 @@ class _SolicitationReviewDialogState extends State<SolicitationReviewDialog> {
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
-                          side: const BorderSide(color: AppColors.borderLight),
+                          side: BorderSide(color: context.palette.borderLight),
                         ),
                       ),
                       child: Text(
                         'Voltar',
                         style: AppTextStyles.bodyMedium
-                            .copyWith(color: AppColors.textSecondary),
+                            .copyWith(color: context.palette.textSecondary),
                       ),
                     ),
                   ),

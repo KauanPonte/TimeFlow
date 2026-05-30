@@ -50,6 +50,8 @@ import 'pages/profile_page/profile_page.dart';
 import 'pages/history_page/history_page.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
+import 'package:flutter_application_appdeponto/theme/app_palette.dart';
+import 'package:flutter_application_appdeponto/theme/theme_controller.dart';
 import 'package:flutter_application_appdeponto/widgets/instant_page_route.dart';
 
 void main() async {
@@ -86,6 +88,7 @@ void main() async {
   try {
     await NotificationService.scheduleForLastLoggedUser();
   } catch (_) {}
+  await themeController.load();
   // Pré-carrega a animação de engrenagens da home para aparecer instantânea.
   StatusCard.precacheGears();
   runApp(const TimeFlow());
@@ -104,6 +107,48 @@ class _NoTransitionBuilder extends PageTransitionsBuilder {
     Widget child,
   ) =>
       child;
+}
+
+/// Constrói o ThemeData para um brilho (claro/escuro), registrando a paleta
+/// neutra correspondente como ThemeExtension (lida via `context.palette`).
+ThemeData _appTheme(Brightness brightness, AppPalette palette) {
+  return ThemeData(
+    useMaterial3: true,
+    brightness: brightness,
+    colorScheme: ColorScheme.fromSeed(
+      seedColor: AppColors.primary,
+      primary: AppColors.primary,
+      secondary: AppColors.accent,
+      brightness: brightness,
+      surface: palette.surface,
+      onSurface: palette.textPrimary,
+    ),
+    scaffoldBackgroundColor: Colors.transparent,
+    progressIndicatorTheme:
+        const ProgressIndicatorThemeData(color: AppColors.primary),
+    textSelectionTheme: const TextSelectionThemeData(
+      cursorColor: AppColors.primary,
+      selectionColor: Color(0x3362C1B1),
+      selectionHandleColor: AppColors.primary,
+    ),
+    extensions: [palette],
+    canvasColor: palette.surface,
+    cardColor: palette.surface,
+    dialogTheme: DialogThemeData(backgroundColor: palette.surface),
+    datePickerTheme: DatePickerThemeData(backgroundColor: palette.surface),
+    timePickerTheme: TimePickerThemeData(backgroundColor: palette.surface),
+    bottomSheetTheme: BottomSheetThemeData(backgroundColor: palette.surface),
+    popupMenuTheme: PopupMenuThemeData(color: palette.surface),
+    pageTransitionsTheme: const PageTransitionsTheme(
+      builders: {
+        TargetPlatform.android: _NoTransitionBuilder(),
+        TargetPlatform.iOS: _NoTransitionBuilder(),
+        TargetPlatform.windows: _NoTransitionBuilder(),
+        TargetPlatform.linux: _NoTransitionBuilder(),
+        TargetPlatform.macOS: _NoTransitionBuilder(),
+      },
+    ),
+  );
 }
 
 class TimeFlow extends StatelessWidget {
@@ -164,7 +209,9 @@ class TimeFlow extends StatelessWidget {
           ),
         ),
       ],
-      child: MaterialApp(
+      child: ListenableBuilder(
+        listenable: themeController,
+        builder: (context, _) => MaterialApp(
         title: 'Seu App',
         debugShowCheckedModeBanner: false,
         // Adicione estas linhas:
@@ -248,37 +295,13 @@ class TimeFlow extends StatelessWidget {
           // Degradê de fundo global (bege → verde → teal) pintado atrás de
           // todas as telas; os scaffolds são transparentes para deixá-lo visível.
           return Container(
-            decoration: const BoxDecoration(gradient: AppColors.appBackground),
+            decoration: BoxDecoration(gradient: context.palette.appBackground),
             child: ConnectivityGuard(child: appShell),
           );
         },
-        theme: ThemeData(
-          useMaterial3: true,
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: AppColors.primary,
-            primary: AppColors.primary,
-            secondary: AppColors.accent,
-            brightness: Brightness.light,
-          ),
-          scaffoldBackgroundColor: Colors.transparent,
-          progressIndicatorTheme: const ProgressIndicatorThemeData(
-            color: AppColors.primary,
-          ),
-          textSelectionTheme: const TextSelectionThemeData(
-            cursorColor: AppColors.primary,
-            selectionColor: Color(0x3362C1B1),
-            selectionHandleColor: AppColors.primary,
-          ),
-          pageTransitionsTheme: const PageTransitionsTheme(
-            builders: {
-              TargetPlatform.android: _NoTransitionBuilder(),
-              TargetPlatform.iOS: _NoTransitionBuilder(),
-              TargetPlatform.windows: _NoTransitionBuilder(),
-              TargetPlatform.linux: _NoTransitionBuilder(),
-              TargetPlatform.macOS: _NoTransitionBuilder(),
-            },
-          ),
-        ),
+        theme: _appTheme(Brightness.light, AppPalette.light),
+        darkTheme: _appTheme(Brightness.dark, AppPalette.dark),
+        themeMode: themeController.mode,
         navigatorObservers: [
           FirebaseAnalyticsObserver(analytics: FirebaseAnalytics.instance),
         ],
@@ -341,6 +364,7 @@ class TimeFlow extends StatelessWidget {
           }
           return null;
         },
+        ),
       ),
     );
   }

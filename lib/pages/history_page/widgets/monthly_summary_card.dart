@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/theme/app_palette.dart';
 import 'package:flutter_application_appdeponto/services/ponto_service.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
@@ -18,7 +19,7 @@ class MonthlySummaryCard extends StatelessWidget {
     if (mesResumoFuture == null && !isLoading) return const SizedBox.shrink();
 
     if (isLoading) {
-      return _buildLoadingCard();
+      return _buildLoadingCard(context);
     }
 
     return FutureBuilder<MesResumo>(
@@ -26,7 +27,7 @@ class MonthlySummaryCard extends StatelessWidget {
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting ||
             snapshot.connectionState == ConnectionState.active) {
-          return _buildLoadingCard();
+          return _buildLoadingCard(context);
         }
         if (!snapshot.hasData) return const SizedBox.shrink();
         final r = snapshot.data!;
@@ -42,14 +43,14 @@ class MonthlySummaryCard extends StatelessWidget {
           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: context.palette.surface,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.borderLight),
-            boxShadow: const [
+            border: Border.all(color: context.palette.borderLight),
+            boxShadow: [
               BoxShadow(
-                color: AppColors.shadow,
+                color: context.palette.shadow,
                 blurRadius: 4,
-                offset: Offset(0, 2),
+                offset: const Offset(0, 2),
               )
             ],
           ),
@@ -59,12 +60,12 @@ class MonthlySummaryCard extends StatelessWidget {
               _buildMiniStat(
                 'Trabalhado',
                 '${h}h ${m.toString().padLeft(2, '0')}m',
-                AppColors.textPrimary,
+                context.palette.textPrimary,
               ),
               _buildMiniStat(
                 'Esperado',
                 '${eH}h ${eM.toString().padLeft(2, '0')}m',
-                AppColors.textSecondary,
+                context.palette.textSecondary,
               ),
               _buildMiniStat(
                 'Saldo',
@@ -96,19 +97,19 @@ class MonthlySummaryCard extends StatelessWidget {
     );
   }
 
-  Widget _buildLoadingCard() {
+  Widget _buildLoadingCard(BuildContext context) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.palette.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.borderLight),
-        boxShadow: const [
+        border: Border.all(color: context.palette.borderLight),
+        boxShadow: [
           BoxShadow(
-            color: AppColors.shadow,
+            color: context.palette.shadow,
             blurRadius: 4,
-            offset: Offset(0, 2),
+            offset: const Offset(0, 2),
           )
         ],
       ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/theme/app_palette.dart';
 import 'package:flutter_application_appdeponto/widgets/instant_page_route.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -122,8 +123,8 @@ class _RegisteredUsersTabState extends State<RegisteredUsersTab>
                       const Icon(Icons.search, color: AppColors.primary),
                   suffixIcon: searchQuery.isNotEmpty
                       ? IconButton(
-                          icon: const Icon(Icons.clear,
-                              color: AppColors.textSecondary),
+                          icon: Icon(Icons.clear,
+                              color: context.palette.textSecondary),
                           onPressed: () {
                             _searchController.clear();
                             context
@@ -134,11 +135,11 @@ class _RegisteredUsersTabState extends State<RegisteredUsersTab>
                       : null,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
-                    borderSide: const BorderSide(color: AppColors.borderLight),
+                    borderSide: BorderSide(color: context.palette.borderLight),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
-                    borderSide: const BorderSide(color: AppColors.borderLight),
+                    borderSide: BorderSide(color: context.palette.borderLight),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
@@ -146,7 +147,7 @@ class _RegisteredUsersTabState extends State<RegisteredUsersTab>
                         const BorderSide(color: AppColors.primary, width: 2),
                   ),
                   filled: true,
-                  fillColor: AppColors.surface,
+                  fillColor: context.palette.surface,
                   contentPadding:
                       const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 ),
@@ -158,29 +159,29 @@ class _RegisteredUsersTabState extends State<RegisteredUsersTab>
               child: usersNonNull.isEmpty
                   ? const EmptyUsersState()
                   : filteredUsers.isEmpty
-                      ? const Center(
+                      ? Center(
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Icon(
                                 Icons.search_off,
                                 size: 64,
-                                color: AppColors.textSecondary,
+                                color: context.palette.textSecondary,
                               ),
-                              SizedBox(height: 16),
+                              const SizedBox(height: 16),
                               Text(
                                 'Nenhum resultado encontrado',
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.w600,
-                                  color: AppColors.textPrimary,
+                                  color: context.palette.textPrimary,
                                 ),
                               ),
-                              SizedBox(height: 8),
+                              const SizedBox(height: 8),
                               Text(
                                 'Tente buscar com outros termos',
                                 style: TextStyle(
-                                  color: AppColors.textSecondary,
+                                  color: context.palette.textSecondary,
                                 ),
                               ),
                             ],

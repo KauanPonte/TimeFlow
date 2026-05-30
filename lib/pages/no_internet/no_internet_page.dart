@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/theme/app_palette.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
 
@@ -49,14 +50,14 @@ class _NoInternetPageState extends State<NoInternetPage>
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              AppColors.bgLight,
-              Color(0xFFDDEFEA),
-              Color(0xFFCDE9E1),
+              context.palette.bgLight,
+              const Color(0xFFDDEFEA),
+              const Color(0xFFCDE9E1),
             ],
           ),
         ),
@@ -100,11 +101,11 @@ class _NoInternetPageState extends State<NoInternetPage>
                         color: AppColors.surface90,
                         borderRadius: BorderRadius.circular(28),
                         border: Border.all(color: AppColors.primaryLight20),
-                        boxShadow: const [
+                        boxShadow: [
                           BoxShadow(
-                            color: AppColors.shadowMedium,
+                            color: context.palette.shadowMedium,
                             blurRadius: 24,
-                            offset: Offset(0, 12),
+                            offset: const Offset(0, 12),
                           ),
                         ],
                       ),
@@ -155,7 +156,7 @@ class _NoInternetPageState extends State<NoInternetPage>
                               'Sua sessão permanece ativa. Assim que a conexão voltar, o TimeFlow retoma automaticamente.',
                               textAlign: TextAlign.center,
                               style: AppTextStyles.bodyMedium.copyWith(
-                                color: AppColors.textSecondary,
+                                color: context.palette.textSecondary,
                                 height: 1.35,
                               ),
                             ),
@@ -212,7 +213,7 @@ class _NoInternetPageState extends State<NoInternetPage>
                               'Dica: confira Wi-Fi ou dados móveis.',
                               textAlign: TextAlign.center,
                               style: AppTextStyles.bodySmall.copyWith(
-                                color: AppColors.textSecondary,
+                                color: context.palette.textSecondary,
                               ),
                             ),
                           ],

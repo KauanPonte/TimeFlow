@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/theme/app_palette.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_application_appdeponto/models/solicitation_model.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
@@ -145,7 +146,7 @@ class BeforeAfterChip extends StatelessWidget {
             '$label: ',
             style: AppTextStyles.bodySmall.copyWith(
               fontSize: 10,
-              color: AppColors.textSecondary,
+              color: context.palette.textSecondary,
             ),
           ),
           Text(

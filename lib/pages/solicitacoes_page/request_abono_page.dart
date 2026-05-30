@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/theme/app_palette.dart';
 import 'package:flutter_application_appdeponto/widgets/instant_page_route.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
@@ -95,12 +96,12 @@ class _RequestAbonoPageState extends State<RequestAbonoPage> {
         backgroundColor: Colors.transparent,
         appBar: AppBar(
           titleSpacing: 0,
-          backgroundColor: AppColors.surface,
+          backgroundColor: context.palette.surface,
           elevation: 0,
           scrolledUnderElevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new_rounded,
-                color: AppColors.textPrimary, size: 20),
+            icon: Icon(Icons.arrow_back_ios_new_rounded,
+                color: context.palette.textPrimary, size: 20),
             onPressed: () => Navigator.pop(context),
           ),
           title: Row(
@@ -120,7 +121,7 @@ class _RequestAbonoPageState extends State<RequestAbonoPage> {
               const SizedBox(width: 12),
               Text(
                 'Solicitar Abono',
-                style: AppTextStyles.h3.copyWith(color: AppColors.textPrimary),
+                style: AppTextStyles.h3.copyWith(color: context.palette.textPrimary),
               ),
             ],
           ),
@@ -132,7 +133,7 @@ class _RequestAbonoPageState extends State<RequestAbonoPage> {
               Text(
                 'Motivo do Abono',
                 style: AppTextStyles.titleSmall.copyWith(
-                  color: AppColors.textPrimary,
+                  color: context.palette.textPrimary,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -189,7 +190,7 @@ class _RequestAbonoPageState extends State<RequestAbonoPage> {
                 Text(
                   'Qual outro motivo?',
                   style: AppTextStyles.titleSmall.copyWith(
-                    color: AppColors.textPrimary,
+                    color: context.palette.textPrimary,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -204,7 +205,7 @@ class _RequestAbonoPageState extends State<RequestAbonoPage> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     filled: true,
-                    fillColor: AppColors.surface,
+                    fillColor: context.palette.surface,
                     contentPadding: const EdgeInsets.symmetric(
                         horizontal: 16, vertical: 14),
                   ),
@@ -216,7 +217,7 @@ class _RequestAbonoPageState extends State<RequestAbonoPage> {
                 onPressed: _canSubmit ? _submit : null,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
-                  disabledBackgroundColor: AppColors.borderLight,
+                  disabledBackgroundColor: context.palette.borderLight,
                   minimumSize: const Size.fromHeight(54),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14),
@@ -225,7 +226,7 @@ class _RequestAbonoPageState extends State<RequestAbonoPage> {
                 child: Text(
                   'Enviar solicitação',
                   style: AppTextStyles.bodyLarge.copyWith(
-                    color: AppColors.surface,
+                    color: context.palette.surface,
                     fontWeight: FontWeight.w700,
                   ),
                 ),

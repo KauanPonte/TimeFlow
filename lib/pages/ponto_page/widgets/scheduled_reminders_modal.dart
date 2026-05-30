@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/theme/app_palette.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../models/scheduled_reminder.dart';
@@ -126,7 +127,7 @@ class _ScheduledRemindersModalState extends State<ScheduledRemindersModal> {
           Text(
             'Deseja remover o lembrete de ${reminder.category.label} às ${reminder.formattedTime}?',
             style: AppTextStyles.bodyMedium.copyWith(
-              color: AppColors.textPrimary,
+              color: context.palette.textPrimary,
             ),
           ),
         ],
@@ -179,9 +180,9 @@ class _ScheduledRemindersModalState extends State<ScheduledRemindersModal> {
       constraints: BoxConstraints(
         maxHeight: MediaQuery.of(context).size.height * 0.85,
       ),
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      decoration: BoxDecoration(
+        color: context.palette.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -211,7 +212,7 @@ class _ScheduledRemindersModalState extends State<ScheduledRemindersModal> {
       width: 40,
       height: 4,
       decoration: BoxDecoration(
-        color: AppColors.border,
+        color: context.palette.border,
         borderRadius: BorderRadius.circular(2),
       ),
     );
@@ -243,13 +244,13 @@ class _ScheduledRemindersModalState extends State<ScheduledRemindersModal> {
                   'Lembretes Agendados',
                   style: AppTextStyles.bodyLarge.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
+                    color: context.palette.textPrimary,
                   ),
                 ),
                 Text(
                   '${_reminders.where((r) => r.enabled).length} ativo(s)',
                   style: AppTextStyles.bodySmall.copyWith(
-                    color: AppColors.textSecondary,
+                    color: context.palette.textSecondary,
                   ),
                 ),
               ],
@@ -258,7 +259,7 @@ class _ScheduledRemindersModalState extends State<ScheduledRemindersModal> {
           IconButton(
             onPressed: () => Navigator.pop(context),
             icon: const Icon(Icons.close_rounded),
-            color: AppColors.textSecondary,
+            color: context.palette.textSecondary,
           ),
         ],
       ),
@@ -275,13 +276,13 @@ class _ScheduledRemindersModalState extends State<ScheduledRemindersModal> {
             Icon(
               Icons.alarm_off_rounded,
               size: 64,
-              color: AppColors.textSecondary.withValues(alpha: 0.5),
+              color: context.palette.textSecondary.withValues(alpha: 0.5),
             ),
             const SizedBox(height: 16),
             Text(
               'Nenhum lembrete agendado',
               style: AppTextStyles.bodyLarge.copyWith(
-                color: AppColors.textSecondary,
+                color: context.palette.textSecondary,
               ),
             ),
             const SizedBox(height: 8),
@@ -289,7 +290,7 @@ class _ScheduledRemindersModalState extends State<ScheduledRemindersModal> {
               'Adicione lembretes para ser notificado\nnos horários de entrada, pausa, volta ou saída.',
               textAlign: TextAlign.center,
               style: AppTextStyles.bodySmall.copyWith(
-                color: AppColors.textSecondary,
+                color: context.palette.textSecondary,
               ),
             ),
           ],
@@ -352,12 +353,12 @@ class _ScheduledRemindersModalState extends State<ScheduledRemindersModal> {
       decoration: BoxDecoration(
         color: reminder.enabled
             ? reminder.category.color.withValues(alpha: 0.08)
-            : AppColors.greyLight,
+            : context.palette.greyLight,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: reminder.enabled
               ? reminder.category.color.withValues(alpha: 0.3)
-              : AppColors.border,
+              : context.palette.border,
         ),
       ),
       child: ListTile(
@@ -367,7 +368,7 @@ class _ScheduledRemindersModalState extends State<ScheduledRemindersModal> {
           style: AppTextStyles.h3.copyWith(
             color: reminder.enabled
                 ? reminder.category.color
-                : AppColors.textSecondary,
+                : context.palette.textSecondary,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -375,8 +376,8 @@ class _ScheduledRemindersModalState extends State<ScheduledRemindersModal> {
           reminder.label ?? reminder.category.notificationTitle,
           style: AppTextStyles.bodyMedium.copyWith(
             color: reminder.enabled
-                ? AppColors.textPrimary
-                : AppColors.textSecondary,
+                ? context.palette.textPrimary
+                : context.palette.textSecondary,
           ),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
@@ -385,7 +386,7 @@ class _ScheduledRemindersModalState extends State<ScheduledRemindersModal> {
             ? Text(
                 reminder.category.label,
                 style: AppTextStyles.bodySmall.copyWith(
-                  color: AppColors.textSecondary,
+                  color: context.palette.textSecondary,
                 ),
               )
             : null,
@@ -398,7 +399,7 @@ class _ScheduledRemindersModalState extends State<ScheduledRemindersModal> {
               activeColor: reminder.category.color,
             ),
             PopupMenuButton<String>(
-              icon: const Icon(Icons.more_vert, color: AppColors.textSecondary),
+              icon: Icon(Icons.more_vert, color: context.palette.textSecondary),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
@@ -550,7 +551,7 @@ class _AddEditReminderDialogState extends State<_AddEditReminderDialog> {
           'Categoria',
           style: AppTextStyles.bodySmall.copyWith(
             fontWeight: FontWeight.w600,
-            color: AppColors.textSecondary,
+            color: context.palette.textSecondary,
           ),
         ),
         const SizedBox(height: 8),
@@ -576,7 +577,7 @@ class _AddEditReminderDialogState extends State<_AddEditReminderDialog> {
               selectedColor: cat.color,
               backgroundColor: cat.color.withValues(alpha: 0.1),
               side: BorderSide(
-                color: isSelected ? cat.color : AppColors.borderLight,
+                color: isSelected ? cat.color : context.palette.borderLight,
               ),
               labelStyle: TextStyle(
                 color: isSelected ? Colors.white : cat.color,
@@ -593,7 +594,7 @@ class _AddEditReminderDialogState extends State<_AddEditReminderDialog> {
           'Horário',
           style: AppTextStyles.bodySmall.copyWith(
             fontWeight: FontWeight.w600,
-            color: AppColors.textSecondary,
+            color: context.palette.textSecondary,
           ),
         ),
         const SizedBox(height: 8),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/theme/app_palette.dart';
 import 'package:flutter_application_appdeponto/widgets/instant_page_route.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
@@ -15,12 +16,12 @@ class CadastrosPage extends StatelessWidget {
       backgroundColor: Colors.transparent,
       appBar: AppBar(
         titleSpacing: 0,
-        backgroundColor: AppColors.surface,
+        backgroundColor: context.palette.surface,
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded,
-              color: AppColors.textPrimary, size: 20),
+          icon: Icon(Icons.arrow_back_ios_new_rounded,
+              color: context.palette.textPrimary, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
         title: Row(
@@ -40,7 +41,7 @@ class CadastrosPage extends StatelessWidget {
             const SizedBox(width: 12),
             Text(
               'Cadastros',
-              style: AppTextStyles.h3.copyWith(color: AppColors.textPrimary),
+              style: AppTextStyles.h3.copyWith(color: context.palette.textPrimary),
             ),
           ],
         ),
@@ -53,7 +54,7 @@ class CadastrosPage extends StatelessWidget {
             Text(
               'Selecione uma opção',
               style: AppTextStyles.titleSmall.copyWith(
-                color: AppColors.textPrimary,
+                color: context.palette.textPrimary,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -123,9 +124,9 @@ class _CadastroCard extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: context.palette.surface,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.borderLight, width: 1),
+            border: Border.all(color: context.palette.borderLight, width: 1),
           ),
           child: Row(
             children: [
@@ -149,7 +150,7 @@ class _CadastroCard extends StatelessWidget {
                     Text(
                       title,
                       style: AppTextStyles.bodyLarge.copyWith(
-                        color: AppColors.textPrimary,
+                        color: context.palette.textPrimary,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -157,15 +158,15 @@ class _CadastroCard extends StatelessWidget {
                     Text(
                       description,
                       style: AppTextStyles.bodySmall.copyWith(
-                        color: AppColors.textSecondary,
+                        color: context.palette.textSecondary,
                       ),
                     ),
                   ],
                 ),
               ),
-              const Icon(
+              Icon(
                 Icons.arrow_forward_ios_rounded,
-                color: AppColors.textSecondary,
+                color: context.palette.textSecondary,
                 size: 20,
               ),
             ],

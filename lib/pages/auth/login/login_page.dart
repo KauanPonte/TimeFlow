@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/theme/app_palette.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/auth/auth_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/auth/auth_event.dart';
 import 'package:flutter_application_appdeponto/models/auth_field.dart';
 import 'package:flutter_application_appdeponto/blocs/auth/auth_state.dart';
-import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
 import 'package:flutter_application_appdeponto/widgets/custom_snackbar.dart';
 import 'widgets/auth_header.dart';
@@ -75,8 +75,8 @@ class _LoginPageState extends State<LoginPage> {
           final isLoading = fieldsState.isLoading;
 
           return Container(
-            decoration: const BoxDecoration(
-              gradient: AppColors.appBackground,
+            decoration: BoxDecoration(
+              gradient: context.palette.appBackground,
             ),
             child: SafeArea(
               child: Center(
@@ -163,7 +163,7 @@ class _LoginPageState extends State<LoginPage> {
                                             AuthFields.passwordLogin] ??
                                         false)
                                     ? Colors.green
-                                    : AppColors.textSecondary,
+                                    : context.palette.textSecondary,
                           ),
                           onPressed: () {
                             setState(() {

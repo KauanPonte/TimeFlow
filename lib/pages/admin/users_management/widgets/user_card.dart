@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/theme/app_palette.dart';
 import 'package:flutter_application_appdeponto/pages/history_page/widgets/card/widgets/day_card_helpers.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
@@ -73,18 +74,18 @@ class UserCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: isCurrentUser ? AppColors.primaryLight10 : AppColors.surface,
+        color: isCurrentUser ? AppColors.primaryLight10 : context.palette.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color:
-              isCurrentUser ? AppColors.primaryLight20 : AppColors.borderLight,
+              isCurrentUser ? AppColors.primaryLight20 : context.palette.borderLight,
           width: 1.2,
         ),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
-            color: AppColors.shadow,
+            color: context.palette.shadow,
             blurRadius: 8,
-            offset: Offset(0, 2),
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -165,7 +166,7 @@ class UserCard extends StatelessWidget {
                                   user['name'],
                                   style: AppTextStyles.bodyLarge.copyWith(
                                     fontWeight: FontWeight.w600,
-                                    color: AppColors.textPrimary,
+                                    color: context.palette.textPrimary,
                                   ),
                                 ),
                               ),
@@ -196,17 +197,17 @@ class UserCard extends StatelessWidget {
                           const SizedBox(height: 4),
                           Row(
                             children: [
-                              const Icon(
+                              Icon(
                                 Icons.email_outlined,
                                 size: 14,
-                                color: AppColors.textSecondary,
+                                color: context.palette.textSecondary,
                               ),
                               const SizedBox(width: 4),
                               Expanded(
                                 child: Text(
                                   user['email'],
                                   style: AppTextStyles.bodySmall.copyWith(
-                                    color: AppColors.textSecondary,
+                                    color: context.palette.textSecondary,
                                   ),
                                   overflow: TextOverflow.ellipsis,
                                 ),
@@ -253,10 +254,10 @@ class UserCard extends StatelessWidget {
                     // Actions Menu
                     if (showActions)
                       PopupMenuButton<String>(
-                        icon: const Icon(
+                        icon: Icon(
                           Icons.more_vert,
                           size: 20,
-                          color: AppColors.textSecondary,
+                          color: context.palette.textSecondary,
                         ),
                         constraints: const BoxConstraints(),
                         style: IconButton.styleFrom(
@@ -343,7 +344,7 @@ class UserCard extends StatelessWidget {
                       ? (todayWorkMode == 'presencial'
                           ? AppColors.success
                           : AppColors.primary)
-                      : AppColors.textSecondary,
+                      : context.palette.textSecondary,
                 ),
               ),
             ),

@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/theme/app_palette.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:intl/intl.dart';
@@ -133,12 +134,12 @@ class _AbonoConsultaPageState extends State<AbonoConsultaPage> {
         backgroundColor: Colors.transparent,
         appBar: AppBar(
           titleSpacing: 0,
-          backgroundColor: AppColors.surface,
+          backgroundColor: context.palette.surface,
           elevation: 0,
           scrolledUnderElevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new_rounded,
-                color: AppColors.textPrimary, size: 20),
+            icon: Icon(Icons.arrow_back_ios_new_rounded,
+                color: context.palette.textPrimary, size: 20),
             onPressed: () => Navigator.pop(context),
           ),
           title: Row(
@@ -158,7 +159,7 @@ class _AbonoConsultaPageState extends State<AbonoConsultaPage> {
               const SizedBox(width: 12),
               Text(
                 'Abono de Consulta',
-                style: AppTextStyles.h3.copyWith(color: AppColors.textPrimary),
+                style: AppTextStyles.h3.copyWith(color: context.palette.textPrimary),
               ),
             ],
           ),
@@ -170,7 +171,7 @@ class _AbonoConsultaPageState extends State<AbonoConsultaPage> {
             Text(
               'Período de ausência',
               style: AppTextStyles.titleSmall.copyWith(
-                color: AppColors.textPrimary,
+                color: context.palette.textPrimary,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -178,7 +179,7 @@ class _AbonoConsultaPageState extends State<AbonoConsultaPage> {
             Text(
               'Informe quando saiu e, se já retornou, o horário de retorno.',
               style: AppTextStyles.bodySmall
-                  .copyWith(color: AppColors.textSecondary),
+                  .copyWith(color: context.palette.textSecondary),
             ),
             const SizedBox(height: 16),
             Row(
@@ -221,7 +222,7 @@ class _AbonoConsultaPageState extends State<AbonoConsultaPage> {
                     Text(
                       'Duração da ausência: ',
                       style: AppTextStyles.bodySmall
-                          .copyWith(color: AppColors.textSecondary),
+                          .copyWith(color: context.palette.textSecondary),
                     ),
                     Text(
                       _formatDuration(_durationMinutes!),
@@ -239,14 +240,14 @@ class _AbonoConsultaPageState extends State<AbonoConsultaPage> {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(Icons.info_outline,
-                      size: 14, color: AppColors.textSecondary),
+                  Icon(Icons.info_outline,
+                      size: 14, color: context.palette.textSecondary),
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
                       'Sem retorno informado, o abono de horas será definido pelo administrador na aprovação.',
                       style: AppTextStyles.bodySmall
-                          .copyWith(color: AppColors.textSecondary),
+                          .copyWith(color: context.palette.textSecondary),
                     ),
                   ),
                 ],
@@ -259,7 +260,7 @@ class _AbonoConsultaPageState extends State<AbonoConsultaPage> {
             Text(
               'Declaração médica (PDF)',
               style: AppTextStyles.titleSmall.copyWith(
-                color: AppColors.textPrimary,
+                color: context.palette.textPrimary,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -278,7 +279,7 @@ class _AbonoConsultaPageState extends State<AbonoConsultaPage> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
-                  disabledBackgroundColor: AppColors.border,
+                  disabledBackgroundColor: context.palette.border,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
@@ -306,7 +307,7 @@ class _AbonoConsultaPageState extends State<AbonoConsultaPage> {
               child: Text(
                 'A solicitação será revisada pela administração.',
                 style: AppTextStyles.bodySmall
-                    .copyWith(color: AppColors.textSecondary),
+                    .copyWith(color: context.palette.textSecondary),
               ),
             ),
           ],
@@ -336,10 +337,10 @@ class _TimeField extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: context.palette.surface,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: value != null ? AppColors.primary : AppColors.borderLight,
+            color: value != null ? AppColors.primary : context.palette.borderLight,
             width: value != null ? 1.5 : 1,
           ),
         ),
@@ -351,7 +352,7 @@ class _TimeField extends StatelessWidget {
                 Text(
                   label,
                   style: AppTextStyles.bodySmall.copyWith(
-                    color: AppColors.textSecondary,
+                    color: context.palette.textSecondary,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -371,8 +372,8 @@ class _TimeField extends StatelessWidget {
                     value ?? 'Selecionar',
                     style: AppTextStyles.bodyMedium.copyWith(
                       color: value != null
-                          ? AppColors.textPrimary
-                          : AppColors.textSecondary.withValues(alpha: 0.6),
+                          ? context.palette.textPrimary
+                          : context.palette.textSecondary.withValues(alpha: 0.6),
                     ),
                   ),
                 ),
@@ -380,7 +381,7 @@ class _TimeField extends StatelessWidget {
                   Icons.access_time_rounded,
                   color: value != null
                       ? AppColors.primary
-                      : AppColors.textSecondary,
+                      : context.palette.textSecondary,
                   size: 20,
                 ),
               ],
@@ -411,10 +412,10 @@ class _FilePickerBox extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: context.palette.surface,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: AppColors.borderLight,
+            color: context.palette.borderLight,
             style: BorderStyle.solid,
             width: 2,
           ),
@@ -431,7 +432,7 @@ class _FilePickerBox extends StatelessWidget {
               Text(
                 'Toque para selecionar o PDF',
                 style: AppTextStyles.bodyMedium.copyWith(
-                  color: AppColors.textPrimary,
+                  color: context.palette.textPrimary,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -439,7 +440,7 @@ class _FilePickerBox extends StatelessWidget {
               Text(
                 'Apenas arquivos PDF são aceitos',
                 style: AppTextStyles.bodySmall
-                    .copyWith(color: AppColors.textSecondary),
+                    .copyWith(color: context.palette.textSecondary),
               ),
             ] else ...[
               Row(
@@ -457,14 +458,14 @@ class _FilePickerBox extends StatelessWidget {
                         Text(
                           'Arquivo selecionado',
                           style: AppTextStyles.bodySmall.copyWith(
-                            color: AppColors.textSecondary,
+                            color: context.palette.textSecondary,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
                         Text(
                           fileName!,
                           style: AppTextStyles.bodyMedium
-                              .copyWith(color: AppColors.textPrimary),
+                              .copyWith(color: context.palette.textPrimary),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -473,9 +474,9 @@ class _FilePickerBox extends StatelessWidget {
                   ),
                   IconButton(
                     onPressed: onClear,
-                    icon: const Icon(
+                    icon: Icon(
                       Icons.close_rounded,
-                      color: AppColors.textSecondary,
+                      color: context.palette.textSecondary,
                     ),
                   ),
                 ],

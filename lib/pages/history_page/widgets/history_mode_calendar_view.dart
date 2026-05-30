@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/theme/app_palette.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'calendar/calendar_day_status_helper.dart';
@@ -50,14 +51,14 @@ class HistoryModeCalendarView extends StatelessWidget {
       Container(
         clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: context.palette.surface,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.borderLight),
-          boxShadow: const [
+          border: Border.all(color: context.palette.borderLight),
+          boxShadow: [
             BoxShadow(
-              color: AppColors.shadow,
+              color: context.palette.shadow,
               blurRadius: 8,
-              offset: Offset(0, 2),
+              offset: const Offset(0, 2),
             ),
           ],
         ),
@@ -96,8 +97,8 @@ class HistoryModeCalendarView extends StatelessWidget {
           ),
           calendarStyle: CalendarStyle(
             outsideDaysVisible: false,
-            disabledTextStyle: const TextStyle(
-              color: Colors.black,
+            disabledTextStyle: TextStyle(
+              color: context.palette.textSecondary,
             ),
             todayDecoration: BoxDecoration(
               color: AppColors.primaryLight10,

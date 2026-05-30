@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/theme/app_palette.dart';
 import 'package:flutter_application_appdeponto/widgets/instant_page_route.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
@@ -55,12 +56,12 @@ class _SolicitacoesPageState extends State<SolicitacoesPage> {
       backgroundColor: Colors.transparent,
       appBar: AppBar(
         titleSpacing: 0,
-        backgroundColor: AppColors.surface,
+        backgroundColor: context.palette.surface,
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded,
-              color: AppColors.textPrimary, size: 20),
+          icon: Icon(Icons.arrow_back_ios_new_rounded,
+              color: context.palette.textPrimary, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
         title: Row(
@@ -80,7 +81,7 @@ class _SolicitacoesPageState extends State<SolicitacoesPage> {
             const SizedBox(width: 12),
             Text(
               'Solicitações',
-              style: AppTextStyles.h3.copyWith(color: AppColors.textPrimary),
+              style: AppTextStyles.h3.copyWith(color: context.palette.textPrimary),
             ),
           ],
         ),
@@ -202,12 +203,12 @@ class _SolicitacoesPageState extends State<SolicitacoesPage> {
                       Icon(Icons.assignment_outlined,
                           size: 48,
                           color:
-                              AppColors.textSecondary.withValues(alpha: 0.3)),
+                              context.palette.textSecondary.withValues(alpha: 0.3)),
                       const SizedBox(height: 16),
                       Text(
                         'Nenhuma solicitação encontrada',
                         style: AppTextStyles.bodyMedium
-                            .copyWith(color: AppColors.textSecondary),
+                            .copyWith(color: context.palette.textSecondary),
                       ),
                     ],
                   ),
@@ -250,12 +251,12 @@ class _ActionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.palette.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.borderLight),
+        border: Border.all(color: context.palette.borderLight),
         boxShadow: [
           BoxShadow(
-            color: AppColors.shadow.withValues(alpha: 0.05),
+            color: context.palette.shadow.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -286,7 +287,7 @@ class _ActionCard extends StatelessWidget {
                       Text(
                         title,
                         style: AppTextStyles.bodyMedium.copyWith(
-                          color: AppColors.textPrimary,
+                          color: context.palette.textPrimary,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -294,14 +295,14 @@ class _ActionCard extends StatelessWidget {
                       Text(
                         subtitle,
                         style: AppTextStyles.bodySmall.copyWith(
-                          color: AppColors.textSecondary,
+                          color: context.palette.textSecondary,
                         ),
                       ),
                     ],
                   ),
                 ),
-                const Icon(Icons.arrow_forward_ios_rounded,
-                    color: AppColors.border, size: 16),
+                Icon(Icons.arrow_forward_ios_rounded,
+                    color: context.palette.border, size: 16),
               ],
             ),
           ),
@@ -373,12 +374,12 @@ class _AtestadoCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.palette.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isResolved
               ? statusColor.withValues(alpha: 0.15)
-              : AppColors.borderLight,
+              : context.palette.borderLight,
         ),
       ),
       child: Column(
@@ -418,14 +419,14 @@ class _AtestadoCard extends StatelessWidget {
                       const SizedBox(height: 2),
                       Row(
                         children: [
-                          const Icon(Icons.picture_as_pdf_outlined,
-                              size: 12, color: AppColors.textSecondary),
+                          Icon(Icons.picture_as_pdf_outlined,
+                              size: 12, color: context.palette.textSecondary),
                           const SizedBox(width: 4),
                           Expanded(
                             child: Text(
                               atestado.fileName,
                               style: AppTextStyles.bodySmall.copyWith(
-                                color: AppColors.textSecondary,
+                                color: context.palette.textSecondary,
                               ),
                               overflow: TextOverflow.ellipsis,
                             ),

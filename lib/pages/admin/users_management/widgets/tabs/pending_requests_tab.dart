@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/theme/app_palette.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_application_appdeponto/blocs/user_management/user_management_bloc.dart';
@@ -173,8 +174,8 @@ class _PendingRequestsTabState extends State<PendingRequestsTab>
                           const Icon(Icons.search, color: AppColors.primary),
                       suffixIcon: searchQuery.isNotEmpty
                           ? IconButton(
-                              icon: const Icon(Icons.clear,
-                                  color: AppColors.textSecondary),
+                              icon: Icon(Icons.clear,
+                                  color: context.palette.textSecondary),
                               onPressed: () {
                                 _searchController.clear();
                                 BlocProvider.of<UserManagementBloc>(context)
@@ -185,12 +186,12 @@ class _PendingRequestsTabState extends State<PendingRequestsTab>
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide:
-                            const BorderSide(color: AppColors.borderLight),
+                            BorderSide(color: context.palette.borderLight),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide:
-                            const BorderSide(color: AppColors.borderLight),
+                            BorderSide(color: context.palette.borderLight),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -198,7 +199,7 @@ class _PendingRequestsTabState extends State<PendingRequestsTab>
                             color: AppColors.primary, width: 2),
                       ),
                       filled: true,
-                      fillColor: AppColors.surface,
+                      fillColor: context.palette.surface,
                       contentPadding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 14),
                     ),
@@ -349,7 +350,7 @@ class _AtestadoPendingCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.borderLight),
+        border: Border.all(color: context.palette.borderLight),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -368,15 +369,15 @@ class _AtestadoPendingCard extends StatelessWidget {
               Text(
                 DateFormat('dd/MM/yy').format(atestado.createdAt),
                 style: AppTextStyles.bodySmall
-                    .copyWith(color: AppColors.textSecondary),
+                    .copyWith(color: context.palette.textSecondary),
               ),
             ],
           ),
           const SizedBox(height: 6),
           Row(
             children: [
-              const Icon(Icons.date_range_outlined,
-                  size: 14, color: AppColors.textSecondary),
+              Icon(Icons.date_range_outlined,
+                  size: 14, color: context.palette.textSecondary),
               const SizedBox(width: 6),
               Text(
                 mesmodia ? inicio : '$inicio – $fim',

@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/theme/app_palette.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:intl/intl.dart';
@@ -123,12 +124,12 @@ class _EnvioDeclaracaoPageState extends State<EnvioDeclaracaoPage> {
         backgroundColor: Colors.transparent,
         appBar: AppBar(
           titleSpacing: 0,
-          backgroundColor: AppColors.surface,
+          backgroundColor: context.palette.surface,
           elevation: 0,
           scrolledUnderElevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new_rounded,
-                color: AppColors.textPrimary, size: 20),
+            icon: Icon(Icons.arrow_back_ios_new_rounded,
+                color: context.palette.textPrimary, size: 20),
             onPressed: () => Navigator.pop(context),
           ),
           title: Row(
@@ -148,7 +149,7 @@ class _EnvioDeclaracaoPageState extends State<EnvioDeclaracaoPage> {
               const SizedBox(width: 12),
               Text(
                 'Envio de Declaração',
-                style: AppTextStyles.h3.copyWith(color: AppColors.textPrimary),
+                style: AppTextStyles.h3.copyWith(color: context.palette.textPrimary),
               ),
             ],
           ),
@@ -194,7 +195,7 @@ class _EnvioDeclaracaoPageState extends State<EnvioDeclaracaoPage> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
-                  disabledBackgroundColor: AppColors.border,
+                  disabledBackgroundColor: context.palette.border,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
@@ -222,7 +223,7 @@ class _EnvioDeclaracaoPageState extends State<EnvioDeclaracaoPage> {
               child: Text(
                 'A declaração será revisada pela administração.',
                 style: AppTextStyles.bodySmall
-                    .copyWith(color: AppColors.textSecondary),
+                    .copyWith(color: context.palette.textSecondary),
               ),
             ),
           ],
@@ -242,7 +243,7 @@ class _SectionLabel extends StatelessWidget {
     return Text(
       label,
       style: AppTextStyles.titleSmall.copyWith(
-        color: AppColors.textPrimary,
+        color: context.palette.textPrimary,
         fontWeight: FontWeight.w700,
       ),
     );
@@ -267,9 +268,9 @@ class _DateField extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: context.palette.surface,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.borderLight),
+          border: Border.all(color: context.palette.borderLight),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -277,7 +278,7 @@ class _DateField extends StatelessWidget {
             Text(
               label,
               style: AppTextStyles.bodySmall.copyWith(
-                color: AppColors.textSecondary,
+                color: context.palette.textSecondary,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -289,8 +290,8 @@ class _DateField extends StatelessWidget {
                     value ?? 'Selecionar',
                     style: AppTextStyles.bodyMedium.copyWith(
                       color: value != null
-                          ? AppColors.textPrimary
-                          : AppColors.textSecondary.withValues(alpha: 0.6),
+                          ? context.palette.textPrimary
+                          : context.palette.textSecondary.withValues(alpha: 0.6),
                     ),
                   ),
                 ),
@@ -324,10 +325,10 @@ class _FilePickerBox extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: context.palette.surface,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: AppColors.borderLight,
+            color: context.palette.borderLight,
             style: BorderStyle.solid,
             width: 2,
           ),
@@ -344,7 +345,7 @@ class _FilePickerBox extends StatelessWidget {
               Text(
                 'Toque para selecionar o PDF',
                 style: AppTextStyles.bodyMedium.copyWith(
-                  color: AppColors.textPrimary,
+                  color: context.palette.textPrimary,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -352,7 +353,7 @@ class _FilePickerBox extends StatelessWidget {
               Text(
                 'Apenas arquivos PDF são aceitos',
                 style: AppTextStyles.bodySmall.copyWith(
-                  color: AppColors.textSecondary,
+                  color: context.palette.textSecondary,
                 ),
               ),
             ] else ...[
@@ -371,14 +372,14 @@ class _FilePickerBox extends StatelessWidget {
                         Text(
                           'Arquivo selecionado',
                           style: AppTextStyles.bodySmall.copyWith(
-                            color: AppColors.textSecondary,
+                            color: context.palette.textSecondary,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
                         Text(
                           fileName!,
                           style: AppTextStyles.bodyMedium.copyWith(
-                            color: AppColors.textPrimary,
+                            color: context.palette.textPrimary,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -388,9 +389,9 @@ class _FilePickerBox extends StatelessWidget {
                   ),
                   IconButton(
                     onPressed: onClear,
-                    icon: const Icon(
+                    icon: Icon(
                       Icons.close_rounded,
-                      color: AppColors.textSecondary,
+                      color: context.palette.textSecondary,
                     ),
                   ),
                 ],

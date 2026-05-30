@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/theme/app_palette.dart';
 import 'package:flutter_application_appdeponto/models/solicitation_model.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
@@ -33,18 +34,18 @@ class PendingOnlyDayCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color: disabled ? AppColors.surface : AppColors.surface,
+        color: disabled ? context.palette.surface : context.palette.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: disabled
-              ? AppColors.borderLight.withValues(alpha: 0.7)
-              : AppColors.borderLight,
+              ? context.palette.borderLight.withValues(alpha: 0.7)
+              : context.palette.borderLight,
         ),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
-            color: AppColors.shadow,
+            color: context.palette.shadow,
             blurRadius: 8,
-            offset: Offset(0, 2),
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -63,13 +64,13 @@ class PendingOnlyDayCard extends StatelessWidget {
               leading: Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: AppColors.borderLight.withValues(alpha: 0.5),
+                  color: context.palette.borderLight.withValues(alpha: 0.5),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(Icons.calendar_today,
                     color: disabled
-                        ? AppColors.textSecondary
-                        : AppColors.textSecondary,
+                        ? context.palette.textSecondary
+                        : context.palette.textSecondary,
                     size: 20),
               ),
               title: Text(
@@ -77,8 +78,8 @@ class PendingOnlyDayCard extends StatelessWidget {
                 style: AppTextStyles.bodyLarge.copyWith(
                   fontWeight: FontWeight.w600,
                   color: disabled
-                      ? AppColors.textSecondary
-                      : AppColors.textPrimary,
+                      ? context.palette.textSecondary
+                      : context.palette.textPrimary,
                 ),
               ),
               subtitle: Row(
@@ -86,7 +87,7 @@ class PendingOnlyDayCard extends StatelessWidget {
                   Text(
                     'Sem registros',
                     style: AppTextStyles.bodySmall.copyWith(
-                      color: AppColors.textSecondary.withValues(alpha: 0.6),
+                      color: context.palette.textSecondary.withValues(alpha: 0.6),
                       fontSize: 11,
                     ),
                   ),

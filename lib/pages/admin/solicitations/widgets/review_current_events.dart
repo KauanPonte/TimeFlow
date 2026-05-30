@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/theme/app_palette.dart';
 import 'package:intl/intl.dart';
-import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
 import 'review_dialog_helpers.dart';
 
@@ -22,13 +22,13 @@ class ReviewCurrentEvents extends StatelessWidget {
       children: [
         Row(
           children: [
-            const Icon(Icons.history_rounded,
-                size: 13, color: AppColors.textSecondary),
+            Icon(Icons.history_rounded,
+                size: 13, color: context.palette.textSecondary),
             const SizedBox(width: 5),
             Text(
               'Registros atuais do dia',
               style: AppTextStyles.bodySmall.copyWith(
-                color: AppColors.textSecondary,
+                color: context.palette.textSecondary,
                 fontWeight: FontWeight.w600,
               ),
             ),

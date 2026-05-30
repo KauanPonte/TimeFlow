@@ -21,10 +21,9 @@ class AppTextStyles {
     fontWeight: FontWeight.bold,
   );
 
-  // Body text
+  // Body text — sem cor fixa: herda onSurface do tema (claro/escuro).
   static TextStyle bodyLarge = const TextStyle(
     fontSize: 16,
-    color: AppColors.textPrimary,
   );
 
   static TextStyle bodyMedium = const TextStyle(
@@ -61,9 +60,9 @@ class AppTextStyles {
     letterSpacing: 0.5,
   );
 
+  // Sem cor fixa: herda onSurface do tema (claro/escuro).
   static const TextStyle titleSmall = TextStyle(
     fontSize: 14,
     fontWeight: FontWeight.w700,
-    color: AppColors.textPrimary,
   );
 }

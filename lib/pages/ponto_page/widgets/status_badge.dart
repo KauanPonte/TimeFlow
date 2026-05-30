@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/theme/app_palette.dart';
 import '../../../theme/app_colors.dart';
 import '../../../theme/app_text_styles.dart';
 
@@ -23,12 +24,12 @@ class StatusBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.palette.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.borderLight),
-        boxShadow: const [
+        border: Border.all(color: context.palette.borderLight),
+        boxShadow: [
           BoxShadow(
-              color: AppColors.shadow, blurRadius: 8, offset: Offset(0, 2)),
+              color: context.palette.shadow, blurRadius: 8, offset: const Offset(0, 2)),
         ],
       ),
       child: Row(
@@ -48,13 +49,13 @@ class StatusBadge extends StatelessWidget {
               Text(
                 'Status atual',
                 style: AppTextStyles.bodySmall
-                    .copyWith(color: AppColors.textSecondary, fontSize: 12),
+                    .copyWith(color: context.palette.textSecondary, fontSize: 12),
               ),
               Text(
                 statusLabel,
                 style: AppTextStyles.bodyLarge.copyWith(
                   fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
+                  color: context.palette.textPrimary,
                 ),
               ),
             ],

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/theme/app_palette.dart';
 import 'package:flutter_application_appdeponto/widgets/instant_page_route.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -66,11 +67,11 @@ class _ControlePontoViewState extends State<_ControlePontoView>
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
-        backgroundColor: AppColors.surface,
+        backgroundColor: context.palette.surface,
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
+          icon: Icon(Icons.arrow_back, color: context.palette.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
         title: Row(
@@ -90,7 +91,7 @@ class _ControlePontoViewState extends State<_ControlePontoView>
             const SizedBox(width: 12),
             Text(
               'Controle de Ponto',
-              style: AppTextStyles.h3.copyWith(color: AppColors.textPrimary),
+              style: AppTextStyles.h3.copyWith(color: context.palette.textPrimary),
             ),
           ],
         ),
@@ -134,8 +135,8 @@ class _ControlePontoViewState extends State<_ControlePontoView>
                           const Icon(Icons.search, color: AppColors.primary),
                       suffixIcon: state.searchQuery.isNotEmpty
                           ? IconButton(
-                              icon: const Icon(Icons.clear,
-                                  color: AppColors.textSecondary),
+                              icon: Icon(Icons.clear,
+                                  color: context.palette.textSecondary),
                               onPressed: () {
                                 _searchController.clear();
                                 context
@@ -147,12 +148,12 @@ class _ControlePontoViewState extends State<_ControlePontoView>
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
                         borderSide:
-                            const BorderSide(color: AppColors.borderLight),
+                            BorderSide(color: context.palette.borderLight),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
                         borderSide:
-                            const BorderSide(color: AppColors.borderLight),
+                            BorderSide(color: context.palette.borderLight),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
@@ -160,7 +161,7 @@ class _ControlePontoViewState extends State<_ControlePontoView>
                             color: AppColors.primary, width: 2),
                       ),
                       filled: true,
-                      fillColor: AppColors.surface,
+                      fillColor: context.palette.surface,
                       contentPadding: const EdgeInsets.symmetric(
                           horizontal: 14, vertical: 12),
                     ),

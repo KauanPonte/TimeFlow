@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_application_appdeponto/theme/app_colors.dart';
+import 'package:flutter_application_appdeponto/theme/app_palette.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
 
 class ObservacaoField extends StatelessWidget {
@@ -15,7 +15,7 @@ class ObservacaoField extends StatelessWidget {
         Text(
           'Observação',
           style: AppTextStyles.bodySmall.copyWith(
-            color: AppColors.textSecondary,
+            color: context.palette.textSecondary,
             fontWeight: FontWeight.w700,
           ),
         ),

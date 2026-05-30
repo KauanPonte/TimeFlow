@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/theme/app_palette.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:image_cropper/image_cropper.dart';
@@ -62,7 +63,7 @@ class _ProfileImagePickerState extends State<ProfileImagePicker> {
               height: 120,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: AppColors.greyLight,
+                color: context.palette.greyLight,
                 border: Border.all(
                   color: AppColors.primary,
                   width: 3,
@@ -75,10 +76,10 @@ class _ProfileImagePickerState extends State<ProfileImagePicker> {
                     : null,
               ),
               child: selectedImage == null
-                  ? const Icon(
+                  ? Icon(
                       Icons.person,
                       size: 60,
-                      color: AppColors.textSecondary,
+                      color: context.palette.textSecondary,
                     )
                   : null,
             ),
@@ -93,12 +94,12 @@ class _ProfileImagePickerState extends State<ProfileImagePicker> {
                 decoration: BoxDecoration(
                   color: AppColors.primary,
                   shape: BoxShape.circle,
-                  border: Border.all(color: AppColors.surface, width: 2),
+                  border: Border.all(color: context.palette.surface, width: 2),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.camera_alt,
                   size: 20,
-                  color: AppColors.surface,
+                  color: context.palette.surface,
                 ),
               ),
             ),

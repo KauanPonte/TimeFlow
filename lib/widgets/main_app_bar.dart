@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/theme/app_palette.dart';
 import 'package:flutter_application_appdeponto/widgets/instant_page_route.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
@@ -154,7 +155,7 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                           width: 40,
                           height: 4,
                           decoration: BoxDecoration(
-                            color: AppColors.borderLight,
+                            color: context.palette.borderLight,
                             borderRadius: BorderRadius.circular(2),
                           ),
                         ),
@@ -195,7 +196,7 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                               Text(
                                 'Nenhuma notificação no momento.',
                                 style: AppTextStyles.bodySmall
-                                    .copyWith(color: AppColors.textSecondary),
+                                    .copyWith(color: context.palette.textSecondary),
                               ),
                               const SizedBox(height: 32),
                             ],
@@ -262,8 +263,8 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                             subtitle: Text(motivo,
                                 style: AppTextStyles.bodySmall
                                     .copyWith(color: AppColors.warning)),
-                            trailing: const Icon(Icons.chevron_right,
-                                color: AppColors.textSecondary),
+                            trailing: Icon(Icons.chevron_right,
+                                color: context.palette.textSecondary),
                             onTap: () {
                               Navigator.pop(sheetCtx);
                               if (date == null) return;
@@ -533,8 +534,8 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                             subtitle: Text(mesmodia ? inicio : '$inicio → $fim',
                                 style: AppTextStyles.bodySmall
                                     .copyWith(color: AppColors.warning)),
-                            trailing: const Icon(Icons.chevron_right,
-                                color: AppColors.textSecondary),
+                            trailing: Icon(Icons.chevron_right,
+                                color: context.palette.textSecondary),
                             onTap: () {
                               Navigator.pop(sheetCtx);
                               _openAtestadoReview(context, a);
@@ -598,8 +599,8 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                                 '$dateLabel • ${sol.items.length} alteração(ões)',
                                 style: AppTextStyles.bodySmall
                                     .copyWith(color: AppColors.primary)),
-                            trailing: const Icon(Icons.chevron_right,
-                                color: AppColors.textSecondary),
+                            trailing: Icon(Icons.chevron_right,
+                                color: context.palette.textSecondary),
                             onTap: () {
                               Navigator.pop(sheetCtx);
                               _openSolicitationReview(context, sol);
@@ -664,8 +665,8 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                             subtitle: Text(dateLabel,
                                 style: AppTextStyles.bodySmall
                                     .copyWith(color: AppColors.error)),
-                            trailing: const Icon(Icons.chevron_right,
-                                color: AppColors.textSecondary),
+                            trailing: Icon(Icons.chevron_right,
+                                color: context.palette.textSecondary),
                             onTap: () {
                               Navigator.pop(sheetCtx);
                               _openJustificativaReview(context, j);
@@ -807,8 +808,8 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                             style: AppTextStyles.bodySmall
                                 .copyWith(color: AppColors.primary),
                           ),
-                          trailing: const Icon(Icons.chevron_right,
-                              color: AppColors.textSecondary),
+                          trailing: Icon(Icons.chevron_right,
+                              color: context.palette.textSecondary),
                           onTap: () {
                             Navigator.pop(sheetCtx);
                             _showPendingUsersSheet(context);
@@ -896,7 +897,7 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                   Text(dateLabel,
                       style: AppTextStyles.bodySmall.copyWith(
                         fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
+                        color: context.palette.textPrimary,
                       )),
                   const Spacer(),
                   Container(
@@ -955,20 +956,20 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: AppColors.borderLight.withValues(alpha: 0.4),
+                    color: context.palette.borderLight.withValues(alpha: 0.4),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(Icons.comment_outlined,
-                          size: 12, color: AppColors.textSecondary),
+                      Icon(Icons.comment_outlined,
+                          size: 12, color: context.palette.textSecondary),
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(sol.reason!,
                             style: AppTextStyles.bodySmall.copyWith(
                               fontSize: 11,
-                              color: AppColors.textSecondary,
+                              color: context.palette.textSecondary,
                               fontStyle: FontStyle.italic,
                             )),
                       ),
@@ -993,13 +994,13 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                             children: [
                               Icon(Icons.check_circle,
                                   size: 12,
-                                  color: AppColors.textSecondary
+                                  color: context.palette.textSecondary
                                       .withValues(alpha: 0.5)),
                               const SizedBox(width: 4),
                               Text('Visto',
                                   style: AppTextStyles.bodySmall.copyWith(
                                     fontSize: 11,
-                                    color: AppColors.textSecondary
+                                    color: context.palette.textSecondary
                                         .withValues(alpha: 0.5),
                                   )),
                             ],
@@ -1023,7 +1024,7 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                                   size: 13,
                                   color: isPendingDismiss
                                       ? AppColors.success
-                                      : AppColors.textSecondary
+                                      : context.palette.textSecondary
                                           .withValues(alpha: 0.7),
                                 ),
                                 const SizedBox(width: 4),
@@ -1035,7 +1036,7 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                                     fontSize: 11,
                                     color: isPendingDismiss
                                         ? AppColors.success
-                                        : AppColors.textSecondary
+                                        : context.palette.textSecondary
                                             .withValues(alpha: 0.7),
                                     fontWeight: isPendingDismiss
                                         ? FontWeight.w700
@@ -1093,7 +1094,7 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                   mesmodia ? inicio : '$inicio – $fim',
                   style: AppTextStyles.bodySmall.copyWith(
                     fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
+                    color: context.palette.textPrimary,
                   ),
                 ),
                 const Spacer(),
@@ -1119,7 +1120,7 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
             Text(
               'Atestado médico',
               style: AppTextStyles.bodySmall
-                  .copyWith(color: AppColors.textSecondary),
+                  .copyWith(color: context.palette.textSecondary),
             ),
             // Motivo da recusa
             if (!isApproved &&
@@ -1129,21 +1130,21 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: AppColors.borderLight.withValues(alpha: 0.4),
+                  color: context.palette.borderLight.withValues(alpha: 0.4),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.comment_outlined,
-                        size: 12, color: AppColors.textSecondary),
+                    Icon(Icons.comment_outlined,
+                        size: 12, color: context.palette.textSecondary),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
                         atestado.reason!,
                         style: AppTextStyles.bodySmall.copyWith(
                           fontSize: 11,
-                          color: AppColors.textSecondary,
+                          color: context.palette.textSecondary,
                           fontStyle: FontStyle.italic,
                         ),
                       ),
@@ -1167,13 +1168,13 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                           children: [
                             Icon(Icons.check_circle,
                                 size: 12,
-                                color: AppColors.textSecondary
+                                color: context.palette.textSecondary
                                     .withValues(alpha: 0.5)),
                             const SizedBox(width: 4),
                             Text('Visto',
                                 style: AppTextStyles.bodySmall.copyWith(
                                   fontSize: 11,
-                                  color: AppColors.textSecondary
+                                  color: context.palette.textSecondary
                                       .withValues(alpha: 0.5),
                                 )),
                           ],
@@ -1196,7 +1197,7 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                                 size: 13,
                                 color: isPendingDismiss
                                     ? AppColors.success
-                                    : AppColors.textSecondary
+                                    : context.palette.textSecondary
                                         .withValues(alpha: 0.7),
                               ),
                               const SizedBox(width: 4),
@@ -1208,7 +1209,7 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                                   fontSize: 11,
                                   color: isPendingDismiss
                                       ? AppColors.success
-                                      : AppColors.textSecondary
+                                      : context.palette.textSecondary
                                           .withValues(alpha: 0.7),
                                   fontWeight: isPendingDismiss
                                       ? FontWeight.w700
@@ -1335,13 +1336,13 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      const Icon(Icons.calendar_today_rounded,
-                          size: 13, color: AppColors.textSecondary),
+                      Icon(Icons.calendar_today_rounded,
+                          size: 13, color: context.palette.textSecondary),
                       const SizedBox(width: 5),
                       Text(
                         'Enviado em ${DateFormat("dd/MM/yyyy").format(atestado.createdAt)}',
                         style: AppTextStyles.bodySmall
-                            .copyWith(color: AppColors.textSecondary),
+                            .copyWith(color: context.palette.textSecondary),
                       ),
                     ],
                   ),
@@ -1352,8 +1353,8 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                   // Período
                   Row(
                     children: [
-                      const Icon(Icons.date_range_outlined,
-                          size: 16, color: AppColors.textSecondary),
+                      Icon(Icons.date_range_outlined,
+                          size: 16, color: context.palette.textSecondary),
                       const SizedBox(width: 6),
                       Text(
                         mesmodia ? inicio : '$inicio – $fim',
@@ -1410,18 +1411,18 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                     decoration: InputDecoration(
                       hintText: 'Motivo de recusa (opcional)',
                       hintStyle: AppTextStyles.bodySmall
-                          .copyWith(color: AppColors.textSecondary),
+                          .copyWith(color: context.palette.textSecondary),
                       contentPadding: const EdgeInsets.symmetric(
                           horizontal: 12, vertical: 10),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
                         borderSide:
-                            const BorderSide(color: AppColors.borderLight),
+                            BorderSide(color: context.palette.borderLight),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
                         borderSide:
-                            const BorderSide(color: AppColors.borderLight),
+                            BorderSide(color: context.palette.borderLight),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
@@ -1443,14 +1444,14 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                             padding: const EdgeInsets.symmetric(vertical: 12),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10),
-                              side: const BorderSide(
-                                  color: AppColors.borderLight),
+                              side: BorderSide(
+                                  color: context.palette.borderLight),
                             ),
                           ),
                           child: Text(
                             'Voltar',
                             style: AppTextStyles.bodyMedium
-                                .copyWith(color: AppColors.textSecondary),
+                                .copyWith(color: context.palette.textSecondary),
                           ),
                         ),
                       ),
@@ -1563,13 +1564,13 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      const Icon(Icons.calendar_today_rounded,
-                          size: 13, color: AppColors.textSecondary),
+                      Icon(Icons.calendar_today_rounded,
+                          size: 13, color: context.palette.textSecondary),
                       const SizedBox(width: 5),
                       Text(
                         'Dia de falta: $dateLabel',
                         style: AppTextStyles.bodySmall
-                            .copyWith(color: AppColors.textSecondary),
+                            .copyWith(color: context.palette.textSecondary),
                       ),
                     ],
                   ),
@@ -1582,9 +1583,9 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                     width: double.infinity,
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: AppColors.bgLight,
+                      color: context.palette.bgLight,
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: AppColors.borderLight),
+                      border: Border.all(color: context.palette.borderLight),
                     ),
                     child: Text(
                       just.justificativa,
@@ -1607,7 +1608,7 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                           Text(
                             'Período de ausência',
                             style: AppTextStyles.bodySmall.copyWith(
-                              color: AppColors.textSecondary,
+                              color: context.palette.textSecondary,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -1619,7 +1620,7 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                               const SizedBox(width: 6),
                               Text('Saída: ${just.dataInicio}',
                                   style: AppTextStyles.bodySmall.copyWith(
-                                      color: AppColors.textPrimary)),
+                                      color: context.palette.textPrimary)),
                               const SizedBox(width: 16),
                               const Icon(Icons.logout_rounded,
                                   size: 14, color: AppColors.primary),
@@ -1630,8 +1631,8 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                                     : 'Retorno: não informado',
                                 style: AppTextStyles.bodySmall.copyWith(
                                   color: just.dataFim != null
-                                      ? AppColors.textPrimary
-                                      : AppColors.textSecondary,
+                                      ? context.palette.textPrimary
+                                      : context.palette.textSecondary,
                                 ),
                               ),
                             ],
@@ -1690,16 +1691,16 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                     decoration: InputDecoration(
                       hintText: 'Observação (opcional, para recusa)',
                       hintStyle: AppTextStyles.bodySmall
-                          .copyWith(color: AppColors.textSecondary),
+                          .copyWith(color: context.palette.textSecondary),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
                         borderSide:
-                            const BorderSide(color: AppColors.borderLight),
+                            BorderSide(color: context.palette.borderLight),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
                         borderSide:
-                            const BorderSide(color: AppColors.borderLight),
+                            BorderSide(color: context.palette.borderLight),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
@@ -1720,14 +1721,14 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                             padding: const EdgeInsets.symmetric(vertical: 12),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10),
-                              side: const BorderSide(
-                                  color: AppColors.borderLight),
+                              side: BorderSide(
+                                  color: context.palette.borderLight),
                             ),
                           ),
                           child: Text(
                             'Voltar',
                             style: AppTextStyles.bodyMedium
-                                .copyWith(color: AppColors.textSecondary),
+                                .copyWith(color: context.palette.textSecondary),
                           ),
                         ),
                       ),
@@ -1809,7 +1810,7 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
               Text(dateLabel,
                   style: AppTextStyles.bodySmall.copyWith(
                     fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
+                    color: context.palette.textPrimary,
                   )),
               const Spacer(),
               Container(
@@ -1830,26 +1831,26 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
           const SizedBox(height: 8),
           Text(j.justificativa,
               style: AppTextStyles.bodySmall
-                  .copyWith(color: AppColors.textPrimary)),
+                  .copyWith(color: context.palette.textPrimary)),
           if (j.reason != null && j.reason!.isNotEmpty) ...[
             const SizedBox(height: 6),
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: AppColors.borderLight.withValues(alpha: 0.4),
+                color: context.palette.borderLight.withValues(alpha: 0.4),
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(Icons.comment_outlined,
-                      size: 12, color: AppColors.textSecondary),
+                  Icon(Icons.comment_outlined,
+                      size: 12, color: context.palette.textSecondary),
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(j.reason!,
                         style: AppTextStyles.bodySmall.copyWith(
                           fontSize: 11,
-                          color: AppColors.textSecondary,
+                          color: context.palette.textSecondary,
                           fontStyle: FontStyle.italic,
                         )),
                   ),
@@ -1931,7 +1932,7 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
     final isAdmin = _resolveIsAdmin(context);
 
     return AppBar(
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.palette.surface,
       elevation: 0,
       scrolledUnderElevation: 0,
       automaticallyImplyLeading: false,
@@ -1942,11 +1943,11 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
             decoration: BoxDecoration(
               color: AppColors.primary,
               borderRadius: BorderRadius.circular(12),
-              boxShadow: const [
+              boxShadow: [
                 BoxShadow(
-                  color: AppColors.shadow,
+                  color: context.palette.shadow,
                   blurRadius: 8,
-                  offset: Offset(0, 2),
+                  offset: const Offset(0, 2),
                 ),
               ],
             ),
@@ -1975,7 +1976,7 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
               Text(
                 subtitle,
                 style: AppTextStyles.bodySmall.copyWith(
-                  color: AppColors.textSecondary,
+                  color: context.palette.textSecondary,
                 ),
               ),
             ],
@@ -2156,7 +2157,7 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                   const SizedBox(width: 12),
                   Text('Configurações',
                       style: AppTextStyles.bodyMedium
-                          .copyWith(color: AppColors.textPrimary)),
+                          .copyWith(color: context.palette.textPrimary)),
                 ]),
               ),
               const PopupMenuDivider(),
@@ -2175,7 +2176,7 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                     Text(
                       'Solicitações',
                       style: AppTextStyles.bodyMedium.copyWith(
-                        color: AppColors.textPrimary,
+                        color: context.palette.textPrimary,
                       ),
                     ),
                   ],

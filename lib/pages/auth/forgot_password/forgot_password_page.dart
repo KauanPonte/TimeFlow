@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/theme/app_palette.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/auth/auth_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/auth/auth_event.dart';
@@ -69,8 +70,8 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
           final isEmailSent = state is PasswordResetEmailSent;
 
           return Container(
-            decoration: const BoxDecoration(
-              gradient: AppColors.appBackground,
+            decoration: BoxDecoration(
+              gradient: context.palette.appBackground,
             ),
             child: SafeArea(
               child: Center(

@@ -2,6 +2,7 @@ import 'dart:math';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/theme/app_palette.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 
@@ -309,7 +310,7 @@ class _TimePickerDialogState extends State<_TimePickerDialog> {
         children: [
           TextButton(
             style: TextButton.styleFrom(
-              foregroundColor: AppColors.textSecondary,
+              foregroundColor: context.palette.textSecondary,
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10)),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -675,6 +676,7 @@ class _ClockDialState extends State<_ClockDial> with TickerProviderStateMixin {
             final handAngle = _handFrom +
                 (_handTo - _handFrom) *
                     Curves.easeOut.transform(_handCtrl.value);
+            final dark = Theme.of(context).brightness == Brightness.dark;
             return CustomPaint(
               size: const Size(_kSize, _kSize),
               painter: _ClockPainter(
@@ -684,6 +686,11 @@ class _ClockDialState extends State<_ClockDial> with TickerProviderStateMixin {
                 handAngle: handAngle,
                 ringT: _ringCtrl.value,
                 contentAlpha: Curves.easeInOut.transform(_modeCtrl.value),
+                faceColor:
+                    dark ? const Color(0xFF202A27) : const Color(0xFFEAF6F2),
+                ringColor:
+                    dark ? const Color(0xFF2E3A36) : const Color(0xFFD3EDE7),
+                numberColor: dark ? Colors.white70 : Colors.black87,
               ),
             );
           },
@@ -715,11 +722,15 @@ class _ClockPainter extends CustomPainter {
     required this.selectingHour,
     required this.handAngle,
     required this.ringT,
+    required this.faceColor,
+    required this.ringColor,
+    required this.numberColor,
     this.contentAlpha = 1.0,
   });
 
-  static const _bgColor = Color(0xFFEAF6F2);
-  static const _ringColor = Color(0xFFD3EDE7);
+  final Color faceColor;
+  final Color ringColor;
+  final Color numberColor;
   static const _tickMinor = Color(0xFFBDBDBD);
   static const _tickMajor = Color(0xFF9E9E9E);
 
@@ -760,14 +771,14 @@ class _ClockPainter extends CustomPainter {
     canvas.drawCircle(center.translate(0, 3), radius - 1, shadow);
 
     // Fundo
-    canvas.drawCircle(center, radius - 1, Paint()..color = _bgColor);
+    canvas.drawCircle(center, radius - 1, Paint()..color = faceColor);
 
     // Aro externo
     canvas.drawCircle(
       center,
       radius - 1,
       Paint()
-        ..color = _ringColor
+        ..color = ringColor
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.5,
     );
@@ -974,7 +985,7 @@ class _ClockPainter extends CustomPainter {
     // Cor do texto: selecionado = branco (por cima da bolinha do ponteiro)
     final textColor = selected
         ? Colors.white.withValues(alpha: contentAlpha)
-        : Colors.black87.withValues(alpha: ringAlpha);
+        : numberColor.withValues(alpha: ringAlpha);
 
     final tp = TextPainter(
       text: TextSpan(
@@ -1002,5 +1013,7 @@ class _ClockPainter extends CustomPainter {
       selectingHour != old.selectingHour ||
       handAngle != old.handAngle ||
       ringT != old.ringT ||
+      faceColor != old.faceColor ||
+      numberColor != old.numberColor ||
       contentAlpha != old.contentAlpha;
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/theme/app_palette.dart';
 import 'package:flutter/services.dart'; // Necessário para TextInputFormatter
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 
@@ -49,7 +50,7 @@ class CustomTextField extends StatelessWidget {
         ? Colors.red
         : isValid
             ? Colors.green
-            : AppColors.border;
+            : context.palette.border;
 
     return TextField(
       controller: controller,
@@ -67,7 +68,7 @@ class CustomTextField extends StatelessWidget {
           prefixIcon,
           color: (errorText != null || isValid)
               ? stateColor
-              : AppColors.textSecondary,
+              : context.palette.textSecondary,
         ),
         suffixIcon: suffixIcon ??
             ((isValid && errorText == null)
@@ -75,7 +76,7 @@ class CustomTextField extends StatelessWidget {
                 : null),
         errorText: errorText,
         filled: true,
-        fillColor: AppColors.surface,
+        fillColor: context.palette.surface,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
         ),

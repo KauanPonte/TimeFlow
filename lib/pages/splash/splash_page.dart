@@ -495,7 +495,7 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
                       height: 320,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: AppColors.surface.withValues(alpha: 0.08),
+                        color: AppColors.white.withValues(alpha: 0.08),
                       ),
                     ),
                   ),
@@ -507,7 +507,7 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
                       height: 380,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: AppColors.surface.withValues(alpha: 0.06),
+                        color: AppColors.white.withValues(alpha: 0.06),
                       ),
                     ),
                   ),
@@ -549,7 +549,7 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
                                             decoration: BoxDecoration(
                                               shape: BoxShape.circle,
                                               border: Border.all(
-                                                color: AppColors.surface
+                                                color: AppColors.white
                                                     .withValues(alpha: 0.24),
                                                 width: 1.8,
                                               ),
@@ -564,9 +564,9 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
                                             gradient: RadialGradient(
                                               radius: 0.92,
                                               colors: [
-                                                AppColors.surface
+                                                AppColors.white
                                                     .withValues(alpha: 0.26),
-                                                AppColors.surface
+                                                AppColors.white
                                                     .withValues(alpha: 0.06),
                                               ],
                                             ),
@@ -598,7 +598,7 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
                                             height: 14,
                                             decoration: BoxDecoration(
                                               shape: BoxShape.circle,
-                                              color: AppColors.surface
+                                              color: AppColors.white
                                                   .withValues(alpha: 0.54),
                                             ),
                                           ),
@@ -660,7 +660,7 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
                                 child: Text(
                                   'TimeFlow',
                                   style: AppTextStyles.h1.copyWith(
-                                    color: AppColors.surface,
+                                    color: AppColors.white,
                                     letterSpacing: 1.2,
                                     height: 1.0,
                                   ),

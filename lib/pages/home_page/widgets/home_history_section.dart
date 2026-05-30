@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/theme/app_palette.dart';
 import 'package:flutter_application_appdeponto/widgets/instant_page_route.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_application_appdeponto/services/ponto_service.dart';
@@ -340,7 +341,7 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
               const SizedBox(width: 12),
               Text(
                 'Meu Histórico',
-                style: AppTextStyles.h3.copyWith(color: AppColors.textPrimary),
+                style: AppTextStyles.h3.copyWith(color: context.palette.textPrimary),
               ),
               const Spacer(),
               HistoryViewModeIconButton(
@@ -428,7 +429,7 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
                         child: Text(
                           'Nenhum dia para exibir',
                           style: AppTextStyles.bodyMedium
-                              .copyWith(color: AppColors.textSecondary),
+                              .copyWith(color: context.palette.textSecondary),
                         ),
                       ),
                     ),
@@ -734,7 +735,7 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
       context: context,
       builder: (_) {
         return Dialog(
-          backgroundColor: Colors.white,
+          backgroundColor: context.palette.surface,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(24),
           ),
@@ -743,7 +744,7 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
+                const Text(
                   'Ações do Dia',
                   style: AppTextStyles.h3,
                 ),
