@@ -40,14 +40,8 @@ class AdminStatCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    AppColors.primary,
-            AppColors.primaryLight,
-                  ],
-                ),
+                gradient:
+                    AppColors.brandGradientFor(Theme.of(context).brightness),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(

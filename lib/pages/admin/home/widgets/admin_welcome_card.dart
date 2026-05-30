@@ -16,14 +16,7 @@ class AdminWelcomeCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            AppColors.primary,
-            AppColors.primaryLight,
-          ],
-        ),
+        gradient: AppColors.brandGradientFor(Theme.of(context).brightness),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(

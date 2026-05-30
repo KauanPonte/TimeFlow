@@ -15,6 +15,19 @@ class AppColors {
 
   static const Color primary = Color(0xFF178573); // teal aprofundado (texto branco)
   static const Color primaryLight = Color(0xFF62C1B1); // teal da paleta
+  static const Color primaryDark = Color(0xFF0E5045); // teal escuro (degradês)
+
+  /// Degradê teal de marca (banners/ícones). No claro vai para [primaryLight];
+  /// no escuro escurece para [primaryDark].
+  static LinearGradient brandGradientFor(Brightness brightness) =>
+      LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [
+          primary,
+          brightness == Brightness.dark ? primaryDark : primaryLight,
+        ],
+      );
   static const Color accent = Color(0xFFFA8D57); // laranja da paleta
 
   static const Color bgLight = Color(0xFFF4FAE6); // lavagem lime bem suave
