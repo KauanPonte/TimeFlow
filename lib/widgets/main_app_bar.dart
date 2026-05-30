@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_appdeponto/widgets/instant_page_route.dart';
 import 'package:flutter_application_appdeponto/theme/app_palette.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
@@ -2382,13 +2383,13 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
             if (value == 'settings') {
               Navigator.push(
                   context,
-                  MaterialPageRoute(
+                  InstantPageRoute(
                       builder: (context) => const SettingsHubPage()));
             } else if (value == 'solicitacoes') {
               final isAdmin = _resolveIsAdmin(context);
               Navigator.push(
                 context,
-                MaterialPageRoute(
+                InstantPageRoute(
                   builder: (context) => const SolicitacoesPage(),
                 ),
               ).then((_) {
