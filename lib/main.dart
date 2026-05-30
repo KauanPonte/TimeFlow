@@ -28,6 +28,10 @@ import 'package:flutter_application_appdeponto/blocs/justificativa/justificativa
 import 'package:flutter_application_appdeponto/blocs/justificativa/justificativa_event.dart';
 import 'package:flutter_application_appdeponto/blocs/justificativa/justificativa_state.dart';
 import 'package:flutter_application_appdeponto/repositories/justificativa_repository.dart';
+import 'package:flutter_application_appdeponto/blocs/abono/abono_bloc.dart';
+import 'package:flutter_application_appdeponto/blocs/abono/abono_event.dart';
+import 'package:flutter_application_appdeponto/blocs/abono/abono_state.dart';
+import 'package:flutter_application_appdeponto/repositories/abono_repository.dart';
 import 'package:flutter_application_appdeponto/repositories/auth_repository.dart';
 import 'package:flutter_application_appdeponto/repositories/history_view_preference_repository.dart';
 import 'package:flutter_application_appdeponto/repositories/ponto_history_repository.dart';
@@ -208,6 +212,12 @@ class TimeFlow extends StatelessWidget {
             globalLoading: context.read<GlobalLoadingCubit>(),
           ),
         ),
+        BlocProvider<AbonoBloc>(
+          create: (context) => AbonoBloc(
+            repository: AbonoRepository(),
+            globalLoading: context.read<GlobalLoadingCubit>(),
+          ),
+        ),
       ],
       child: ListenableBuilder(
         listenable: themeController,
@@ -238,6 +248,7 @@ class TimeFlow extends StatelessWidget {
               context.read<SolicitationBloc>().reset();
               context.read<AtestadoBloc>().reset();
               context.read<JustificativaBloc>().reset();
+              context.read<AbonoBloc>().reset();
               HistoryViewPreferenceRepository.clearCache();
             },
             child: BlocListener<AuthBloc, AuthState>(
@@ -262,7 +273,7 @@ class TimeFlow extends StatelessWidget {
                       .read<SolicitationBloc>()
                       .add(LoadSolicitationsEvent(isAdmin: isAdmin));
                 }
-                // Carrega atestados para funcionários (para notificações de resultado)
+                // Carrega atestados, justificativas e abonos para funcionários
                 if (!isAdmin) {
                   final atestadoState = context.read<AtestadoBloc>().state;
                   if (atestadoState is! AtestadoLoaded &&
@@ -277,6 +288,12 @@ class TimeFlow extends StatelessWidget {
                     context
                         .read<JustificativaBloc>()
                         .add(const LoadJustificativasEvent(isAdmin: false));
+                  }
+                  final abonoState = context.read<AbonoBloc>().state;
+                  if (abonoState is! AbonoLoaded && abonoState is! AbonoLoading) {
+                    context
+                        .read<AbonoBloc>()
+                        .add(const LoadAbonosEvent(isAdmin: false));
                   }
                 }
               },

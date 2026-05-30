@@ -26,6 +26,9 @@ import 'package:flutter_application_appdeponto/blocs/atestado/atestado_state.dar
 import 'package:flutter_application_appdeponto/blocs/justificativa/justificativa_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/justificativa/justificativa_event.dart';
 import 'package:flutter_application_appdeponto/blocs/justificativa/justificativa_state.dart';
+import 'package:flutter_application_appdeponto/blocs/abono/abono_bloc.dart';
+import 'package:flutter_application_appdeponto/blocs/abono/abono_event.dart';
+import 'package:flutter_application_appdeponto/blocs/abono/abono_state.dart';
 import 'package:flutter_application_appdeponto/repositories/history_view_preference_repository.dart';
 import 'package:flutter_application_appdeponto/services/notification_service.dart';
 import 'package:flutter_application_appdeponto/services/server_time_service.dart';
@@ -239,6 +242,7 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
     final solicitationBloc = context.read<SolicitationBloc>();
     final atestadoBloc = context.read<AtestadoBloc>();
     final justificativaBloc = context.read<JustificativaBloc>();
+    final abonoBloc = context.read<AbonoBloc>();
     final adminHomeBloc = context.read<AdminHomeBloc>();
 
     _setLoadingProgress(0.08);
@@ -293,7 +297,16 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
           (s) => s is JustificativaLoaded || s is JustificativaError,
           _preloadTimeout,
         ),
-        0.12,
+        0.06,
+      ),
+      _trackProgress(
+        _waitForState<AbonoState>(
+          abonoBloc.stream,
+          abonoBloc.state,
+          (s) => s is AbonoLoaded || s is AbonoError,
+          _preloadTimeout,
+        ),
+        0.06,
       ),
     ];
 
@@ -303,10 +316,11 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
     solicitationBloc.add(LoadSolicitationsEvent(isAdmin: isAdmin));
     atestadoBloc.add(LoadAtestadosEvent(isAdmin: isAdmin));
     if (isAdmin) {
-      // Admin usa stream em tempo real — novos pedidos aparecem instantaneamente.
       justificativaBloc.add(const SubscribeAdminJustificativasEvent());
+      abonoBloc.add(const SubscribeAdminAbonosEvent());
     } else {
       justificativaBloc.add(const LoadJustificativasEvent(isAdmin: false));
+      abonoBloc.add(const LoadAbonosEvent(isAdmin: false));
     }
 
     if (isAdmin) {

@@ -4,9 +4,9 @@ import 'package:flutter_application_appdeponto/theme/app_palette.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:intl/intl.dart';
-import 'package:flutter_application_appdeponto/blocs/justificativa/justificativa_bloc.dart';
-import 'package:flutter_application_appdeponto/blocs/justificativa/justificativa_event.dart';
-import 'package:flutter_application_appdeponto/blocs/justificativa/justificativa_state.dart';
+import 'package:flutter_application_appdeponto/blocs/abono/abono_bloc.dart';
+import 'package:flutter_application_appdeponto/blocs/abono/abono_event.dart';
+import 'package:flutter_application_appdeponto/blocs/abono/abono_state.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
 import 'package:flutter_application_appdeponto/widgets/custom_snackbar.dart';
@@ -97,10 +97,10 @@ class _EnvioDeclaracaoPageState extends State<EnvioDeclaracaoPage> {
 
     const justificativa = 'Consulta médica - Declaração anexada';
 
-    context.read<JustificativaBloc>().add(
-          SubmitJustificativaEvent(
+    context.read<AbonoBloc>().add(
+          SubmitAbonoEvent(
             diaId: _fmtId.format(date),
-            justificativa: justificativa,
+            observacao: justificativa,
             fileName: _fileName!,
             fileBytes: _fileBytes!,
             dataInicio: _formatTime(_horaInicio!),
@@ -111,12 +111,12 @@ class _EnvioDeclaracaoPageState extends State<EnvioDeclaracaoPage> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocListener<JustificativaBloc, JustificativaState>(
+    return BlocListener<AbonoBloc, AbonoState>(
       listener: (context, state) {
-        if (state is JustificativaActionSuccess) {
+        if (state is AbonoActionSuccess) {
           CustomSnackbar.showSuccess(context, state.message);
           if (mounted) Navigator.pop(context);
-        } else if (state is JustificativaError) {
+        } else if (state is AbonoError) {
           CustomSnackbar.showError(context, state.message);
         }
       },
