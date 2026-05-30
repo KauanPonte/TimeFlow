@@ -213,7 +213,7 @@ class _PontoPageState extends State<PontoPage> {
           child: Container(
             padding: const EdgeInsets.symmetric(vertical: 12),
             decoration: BoxDecoration(
-              color: isSelected ? AppColors.primary : Colors.white,
+              color: isSelected ? AppColors.primary : context.palette.surface,
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
                 color: isSelected ? AppColors.primary : context.palette.borderLight,

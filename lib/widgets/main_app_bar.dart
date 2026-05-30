@@ -217,9 +217,13 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                             const Icon(Icons.warning_amber_rounded,
                                 color: AppColors.warning),
                             const SizedBox(width: 10),
-                            const Text('Registros Incompletos',
-                                style: AppTextStyles.h3),
-                            const Spacer(),
+                            const Expanded(
+                              child: Text('Registros Incompletos',
+                                  style: AppTextStyles.h3,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis),
+                            ),
+                            const SizedBox(width: 8),
                             Container(
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 8, vertical: 3),
@@ -490,9 +494,13 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                             const Icon(Icons.assignment_ind_rounded,
                                 color: AppColors.warning),
                             const SizedBox(width: 10),
-                            const Text('Atestados Pendentes',
-                                style: AppTextStyles.h3),
-                            const Spacer(),
+                            const Expanded(
+                              child: Text('Atestados Pendentes',
+                                  style: AppTextStyles.h3,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis),
+                            ),
+                            const SizedBox(width: 8),
                             Container(
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 8, vertical: 3),
@@ -558,9 +566,13 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                             const Icon(Icons.rate_review_rounded,
                                 color: AppColors.primary),
                             const SizedBox(width: 10),
-                            const Text('Solicitações de Ponto',
-                                style: AppTextStyles.h3),
-                            const Spacer(),
+                            const Expanded(
+                              child: Text('Solicitações de Ponto',
+                                  style: AppTextStyles.h3,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis),
+                            ),
+                            const SizedBox(width: 8),
                             Container(
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 8, vertical: 3),
@@ -626,9 +638,13 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                             const Icon(Icons.assignment_late_outlined,
                                 color: AppColors.error),
                             const SizedBox(width: 10),
-                            const Text('Justificativas de Falta',
-                                style: AppTextStyles.h3),
-                            const Spacer(),
+                            const Expanded(
+                              child: Text('Justificativas de Falta',
+                                  style: AppTextStyles.h3,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis),
+                            ),
+                            const SizedBox(width: 8),
                             Container(
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 8, vertical: 3),
@@ -693,9 +709,13 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                             const Icon(Icons.verified_outlined,
                                 color: AppColors.primary),
                             const SizedBox(width: 10),
-                            const Text('Solicitações de Abono',
-                                style: AppTextStyles.h3),
-                            const Spacer(),
+                            const Expanded(
+                              child: Text('Solicitações de Abono',
+                                  style: AppTextStyles.h3,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis),
+                            ),
+                            const SizedBox(width: 8),
                             Container(
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 8, vertical: 3),
@@ -842,9 +862,13 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                             const Icon(Icons.person_add_rounded,
                                 color: AppColors.primary),
                             const SizedBox(width: 10),
-                            const Text('Contas Aguardando Aprovação',
-                                style: AppTextStyles.h3),
-                            const Spacer(),
+                            const Expanded(
+                              child: Text('Contas Aguardando Aprovação',
+                                  style: AppTextStyles.h3,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis),
+                            ),
+                            const SizedBox(width: 8),
                             Container(
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 8, vertical: 3),
@@ -2564,8 +2588,12 @@ class _PendingUsersSheetState extends State<_PendingUsersSheet> {
                         color: AppColors.primary, size: 20),
                   ),
                   const SizedBox(width: 12),
-                  const Text('Contas Aguardando Aprovação',
-                      style: AppTextStyles.h3),
+                  const Expanded(
+                    child: Text('Contas Aguardando Aprovação',
+                        style: AppTextStyles.h3,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis),
+                  ),
                 ],
               ),
               const SizedBox(height: 16),

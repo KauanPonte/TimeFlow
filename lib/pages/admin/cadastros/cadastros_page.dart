@@ -20,8 +20,7 @@ class CadastrosPage extends StatelessWidget {
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new_rounded,
-              color: context.palette.textPrimary, size: 20),
+          icon: Icon(Icons.arrow_back, color: context.palette.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
         title: Row(
@@ -41,7 +40,8 @@ class CadastrosPage extends StatelessWidget {
             const SizedBox(width: 12),
             Text(
               'Cadastros',
-              style: AppTextStyles.h3.copyWith(color: context.palette.textPrimary),
+              style:
+                  AppTextStyles.h3.copyWith(color: context.palette.textPrimary),
             ),
           ],
         ),
