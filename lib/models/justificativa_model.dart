@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_application_appdeponto/services/server_time_service.dart';
 
@@ -8,20 +7,16 @@ class JustificativaModel {
   final String id;
   final String uid;
   final String employeeName;
-  final String diaId; // 'yyyy-MM-dd'
-  final String justificativa; // texto da justificativa
+  final String diaId;
+  final String justificativa;
   final JustificativaStatus status;
   final DateTime createdAt;
   final DateTime? resolvedAt;
-  final String? resolvedBy; // uid do admin
-  final String? reason; // observação do admin ao recusar
+  final String? resolvedBy;
+  final String? reason;
   final bool seenByEmployee;
   final String? fileName;
-  final Uint8List? fileBytes;
-  final String? dataInicio;
-  final String? dataFim;
-  final int? abonoMinutes;
-  final bool isFullDayAbono;
+  final String? fileUrl;
 
   const JustificativaModel({
     required this.id,
@@ -36,11 +31,7 @@ class JustificativaModel {
     this.reason,
     this.seenByEmployee = false,
     this.fileName,
-    this.fileBytes,
-    this.dataInicio,
-    this.dataFim,
-    this.abonoMinutes,
-    this.isFullDayAbono = false,
+    this.fileUrl,
   });
 
   Map<String, dynamic> toMap() => {
@@ -56,11 +47,7 @@ class JustificativaModel {
         'reason': reason,
         'seenByEmployee': seenByEmployee,
         'fileName': fileName,
-        'fileBytes': fileBytes,
-        'dataInicio': dataInicio,
-        'dataFim': dataFim,
-        'abonoMinutes': abonoMinutes,
-        'isFullDayAbono': isFullDayAbono,
+        'fileUrl': fileUrl,
       };
 
   factory JustificativaModel.fromDoc(
@@ -82,11 +69,7 @@ class JustificativaModel {
       reason: data['reason'] as String?,
       seenByEmployee: (data['seenByEmployee'] as bool?) ?? false,
       fileName: data['fileName'] as String?,
-      fileBytes: data['fileBytes'] as Uint8List?,
-      dataInicio: data['dataInicio'] as String?,
-      dataFim: data['dataFim'] as String?,
-      abonoMinutes: data['abonoMinutes'] as int?,
-      isFullDayAbono: (data['isFullDayAbono'] as bool?) ?? false,
+      fileUrl: data['fileUrl'] as String?,
     );
   }
 
@@ -103,11 +86,7 @@ class JustificativaModel {
     String? reason,
     bool? seenByEmployee,
     String? fileName,
-    Uint8List? fileBytes,
-    String? dataInicio,
-    String? dataFim,
-    int? abonoMinutes,
-    bool? isFullDayAbono,
+    String? fileUrl,
   }) {
     return JustificativaModel(
       id: id ?? this.id,
@@ -122,11 +101,7 @@ class JustificativaModel {
       reason: reason ?? this.reason,
       seenByEmployee: seenByEmployee ?? this.seenByEmployee,
       fileName: fileName ?? this.fileName,
-      fileBytes: fileBytes ?? this.fileBytes,
-      dataInicio: dataInicio ?? this.dataInicio,
-      dataFim: dataFim ?? this.dataFim,
-      abonoMinutes: abonoMinutes ?? this.abonoMinutes,
-      isFullDayAbono: isFullDayAbono ?? this.isFullDayAbono,
+      fileUrl: fileUrl ?? this.fileUrl,
     );
   }
 }

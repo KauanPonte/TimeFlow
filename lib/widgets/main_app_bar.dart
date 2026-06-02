@@ -22,6 +22,10 @@ import 'package:flutter_application_appdeponto/blocs/justificativa/justificativa
 import 'package:flutter_application_appdeponto/blocs/justificativa/justificativa_event.dart';
 import 'package:flutter_application_appdeponto/blocs/justificativa/justificativa_state.dart';
 import 'package:flutter_application_appdeponto/models/justificativa_model.dart';
+import 'package:flutter_application_appdeponto/blocs/abono/abono_bloc.dart';
+import 'package:flutter_application_appdeponto/blocs/abono/abono_event.dart';
+import 'package:flutter_application_appdeponto/blocs/abono/abono_state.dart';
+import 'package:flutter_application_appdeponto/models/abono_model.dart';
 import 'package:flutter_application_appdeponto/pages/admin/solicitations/solicitation_review_dialog.dart';
 import 'package:flutter_application_appdeponto/repositories/solicitation_repository.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
@@ -96,6 +100,7 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
     List<AtestadoModel> reviewedAtestados = const [],
     List<JustificativaModel> pendingJustificativas = const [],
     List<JustificativaModel> reviewedJustificativas = const [],
+    List<AbonoModel> pendingAbonos = const [],
     int pendingUsers = 0,
   }) {
     // Obtém solicitações pendentes para admin
@@ -168,6 +173,7 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                           reviewedAtestados.isEmpty &&
                           pendingJustificativas.isEmpty &&
                           reviewedJustificativas.isEmpty &&
+                          pendingAbonos.isEmpty &&
                           pendingUsers == 0) ...[
                         const SizedBox(height: 32),
                         Center(
@@ -678,7 +684,7 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                             ),
                             onTap: () {
                               Navigator.pop(sheetCtx);
-                              _openJustificativaReview(context, j);
+                              _openAbonoReview(context, a);
                             },
                           );
                         }),
@@ -1618,8 +1624,8 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                       style: AppTextStyles.bodyMedium,
                     ),
                   ),
-                  // Horários de ausência (abono de consulta)
-                  if (just.dataInicio != null) ...[
+                  // Link para o documento PDF (se enviado)
+                  if (just.fileUrl != null) ...[
                     const SizedBox(height: 10),
                     Container(
                       width: double.infinity,
@@ -1775,6 +1781,240 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                             context.read<JustificativaBloc>().add(
                                   ApproveJustificativaEvent(just.id),
                                 );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            backgroundColor: AppColors.success,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10)),
+                          ),
+                          child: const Text('Aprovar'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          );
+        });
+      },
+    );
+  }
+
+  void _openAbonoReview(BuildContext context, AbonoModel abono) {
+    final date = DateTime.tryParse(abono.diaId);
+    final dateLabel = date != null
+        ? DateFormat('dd/MM/yyyy', 'pt_BR').format(date)
+        : abono.diaId;
+    final rejectController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (dialogCtx) {
+        return StatefulBuilder(builder: (_, setState) {
+          return Dialog(
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            insetPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.verified_outlined,
+                            color: AppColors.primary, size: 20),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('Revisar Abono', style: AppTextStyles.h3),
+                            Text(
+                              abono.employeeName,
+                              style: AppTextStyles.bodySmall.copyWith(
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      const Icon(Icons.calendar_today_rounded,
+                          size: 13, color: AppColors.textSecondary),
+                      const SizedBox(width: 5),
+                      Text(
+                        'Data: $dateLabel',
+                        style: AppTextStyles.bodySmall
+                            .copyWith(color: AppColors.textSecondary),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  const Divider(height: 1),
+                  const SizedBox(height: 12),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.bgLight,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: AppColors.borderLight),
+                    ),
+                    child: Text(abono.observacao, style: AppTextStyles.bodyMedium),
+                  ),
+                  if (abono.abonoMinutes > 0) ...[
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        const Icon(Icons.schedule_rounded,
+                            size: 14, color: AppColors.primary),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Tempo a abonar: ',
+                          style: AppTextStyles.bodySmall
+                              .copyWith(color: AppColors.textSecondary),
+                        ),
+                        Text(
+                          () {
+                            final h = abono.abonoMinutes ~/ 60;
+                            final m = abono.abonoMinutes % 60;
+                            if (h == 0) return '${m}min';
+                            if (m == 0) return '${h}h';
+                            return '${h}h ${m}min';
+                          }(),
+                          style: AppTextStyles.bodySmall.copyWith(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                  if (abono.dataInicio != null && abono.dataFim != null) ...[
+                    const SizedBox(height: 8),
+                    Builder(builder: (_) {
+                      final p1 = abono.dataInicio!.split(':');
+                      final p2 = abono.dataFim!.split(':');
+                      final startMin = p1.length == 2
+                          ? (int.tryParse(p1[0]) ?? 0) * 60 +
+                              (int.tryParse(p1[1]) ?? 0)
+                          : 0;
+                      final endMin = p2.length == 2
+                          ? (int.tryParse(p2[0]) ?? 0) * 60 +
+                              (int.tryParse(p2[1]) ?? 0)
+                          : 0;
+                      final diff = (endMin - startMin).clamp(0, 1440);
+                      final h = diff ~/ 60;
+                      final m = diff % 60;
+                      final label = h > 0 && m > 0
+                          ? '${h}h ${m}min'
+                          : h > 0
+                              ? '${h}h'
+                              : '${m}min';
+                      return Row(
+                        children: [
+                          const Icon(Icons.schedule_rounded,
+                              size: 13, color: AppColors.textSecondary),
+                          const SizedBox(width: 5),
+                          Text(
+                            '$label a abonar',
+                            style: AppTextStyles.bodySmall
+                                .copyWith(color: AppColors.textSecondary),
+                          ),
+                        ],
+                      );
+                    }),
+                  ],
+                  if (abono.fileUrl != null) ...[
+                    const SizedBox(height: 10),
+                    OutlinedButton.icon(
+                      onPressed: () async {
+                        try {
+                          await launchUrl(Uri.parse(abono.fileUrl!),
+                              mode: LaunchMode.externalApplication);
+                        } catch (_) {}
+                      },
+                      icon: const Icon(Icons.picture_as_pdf_outlined, size: 16),
+                      label: const Text('Ver documento'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.primary,
+                        side: const BorderSide(color: AppColors.primary),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 14),
+                  TextField(
+                    controller: rejectController,
+                    maxLines: 2,
+                    decoration: InputDecoration(
+                      hintText: 'Observação (opcional, para recusa)',
+                      hintStyle: AppTextStyles.bodySmall
+                          .copyWith(color: AppColors.textSecondary),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide:
+                              const BorderSide(color: AppColors.borderLight)),
+                      enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide:
+                              const BorderSide(color: AppColors.borderLight)),
+                      focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: const BorderSide(color: AppColors.primary)),
+                    ),
+                    style: AppTextStyles.bodySmall,
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () {
+                            final reason = rejectController.text.trim();
+                            Navigator.pop(dialogCtx);
+                            context.read<AbonoBloc>().add(
+                                  RejectAbonoEvent(abono.id,
+                                      reason: reason.isNotEmpty ? reason : null),
+                                );
+                          },
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            foregroundColor: AppColors.error,
+                            side: const BorderSide(color: AppColors.error),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10)),
+                          ),
+                          child: const Text('Recusar'),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.pop(dialogCtx);
+                            context
+                                .read<AbonoBloc>()
+                                .add(ApproveAbonoEvent(abono.id));
                           },
                           style: ElevatedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 12),
@@ -2015,12 +2255,14 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
             final solState = context.watch<SolicitationBloc>().state;
             final atestadoState = context.watch<AtestadoBloc>().state;
             final justState = context.watch<JustificativaBloc>().state;
+            final abonoState = context.watch<AbonoBloc>().state;
             int solCount = 0;
             List<SolicitationModel> reviewedSolicitations = [];
             List<AtestadoModel> pendingAtestados = [];
             List<AtestadoModel> reviewedAtestados = [];
             List<JustificativaModel> pendingJustificativas = [];
             List<JustificativaModel> reviewedJustificativas = [];
+            List<AbonoModel> pendingAbonos = [];
 
             if (isAdmin) {
               if (solState is SolicitationLoaded) {
@@ -2037,6 +2279,15 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                 pendingJustificativas = justState.justificativas;
               } else if (justState is JustificativaActionSuccess) {
                 pendingJustificativas = justState.justificativas;
+              }
+              if (abonoState is AbonoLoaded && abonoState.isAdmin) {
+                pendingAbonos = abonoState.abonos
+                    .where((a) => a.status == AbonoStatus.pending)
+                    .toList();
+              } else if (abonoState is AbonoActionSuccess) {
+                pendingAbonos = abonoState.abonos
+                    .where((a) => a.status == AbonoStatus.pending)
+                    .toList();
               }
             } else {
               if (solState is SolicitationLoaded) {
@@ -2090,6 +2341,7 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                 reviewedAtestados.length +
                 pendingJustificativas.length +
                 reviewedJustificativas.length +
+                pendingAbonos.length +
                 pendingUsers;
             final hasNotification = totalCount > 0;
             final badgeColor = isAdmin
@@ -2130,6 +2382,7 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                   reviewedAtestados: reviewedAtestados,
                   pendingJustificativas: pendingJustificativas,
                   reviewedJustificativas: reviewedJustificativas,
+                  pendingAbonos: pendingAbonos,
                   pendingUsers: pendingUsers,
                 ),
               ),

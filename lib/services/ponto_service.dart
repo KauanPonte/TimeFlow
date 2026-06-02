@@ -195,10 +195,11 @@ class PontoService {
           ? _computeWorkedMinutesFromEventosFechado(updatedCache)
           : (diaData?['workedMinutes'] as int?) ?? 0;
       final bool isExcused = (diaData?['isExcused'] as bool?) ?? false;
+      final int abonoMinutes = (diaData?['abonoMinutes'] as int?) ?? 0;
       final int workloadMinutes = await _getWorkloadMinutesCacheFirst(uid);
       final int deltaMinutes = isExcused
           ? workedMinutes
-          : (diaFechado ? (workedMinutes - workloadMinutes) : 0);
+          : (diaFechado ? (workedMinutes + abonoMinutes - workloadMinutes) : 0);
       final int oldDelta = (diaData?['deltaMinutes'] as int?) ?? 0;
       final int balanceDiff = deltaMinutes - oldDelta;
 
@@ -577,6 +578,7 @@ class PontoService {
 
     final diaSnapPre = await refDia.get();
     final bool isExcused = (diaSnapPre.data()?['isExcused'] as bool?) ?? false;
+    final int abonoMinutes = (diaSnapPre.data()?['abonoMinutes'] as int?) ?? 0;
 
     final String? ultimoTipoEvento =
         eventos.isNotEmpty ? (eventos.last['tipo'] ?? '').toString() : null;
@@ -601,7 +603,7 @@ class PontoService {
         ? workedMinutes
         : (falta
             ? -workloadMinutes
-            : (diaFechado ? (workedMinutes - workloadMinutes) : 0));
+            : (diaFechado ? (workedMinutes + abonoMinutes - workloadMinutes) : 0));
 
     // Função interna corrigida usando workloadMinutes
     Future<void> applyUpdate(int oldDelta, int oldBalance) async {
@@ -870,7 +872,7 @@ class PontoService {
         .collection('dias')
         .where('date', isGreaterThanOrEqualTo: '$prefix-01')
         .where('date', isLessThanOrEqualTo: '$prefix-31')
-        .get();
+        .get(const GetOptions(source: Source.server));
 
     // Monta mapa para acesso rápido por diaId
     final Map<String, Map<String, dynamic>> dayDataMap = {
@@ -906,11 +908,12 @@ class PontoService {
       }
     }
 
-    // Soma as horas reais trabalhadas, excluindo hoje se o dia ainda não foi fechado
+    // Soma horas trabalhadas + abono aprovado, excluindo hoje se ainda não fechado
     int workedMinutes = 0;
     for (final entry in dayDataMap.entries) {
       if (isCurrentMonth && !todayIsClosed && entry.key == todayId) continue;
       workedMinutes += (entry.value['workedMinutes'] as int?) ?? 0;
+      workedMinutes += (entry.value['abonoMinutes'] as int?) ?? 0;
     }
 
     // "subtrai isso (expectativa) pelo q realmente tem trabalhado e ent temos os saldo"

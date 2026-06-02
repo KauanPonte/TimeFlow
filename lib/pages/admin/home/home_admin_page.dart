@@ -12,7 +12,6 @@ import 'package:flutter_application_appdeponto/blocs/atestado/atestado_event.dar
 import 'package:flutter_application_appdeponto/blocs/atestado/atestado_state.dart';
 import 'package:flutter_application_appdeponto/models/atestado_model.dart';
 import 'package:flutter_application_appdeponto/blocs/justificativa/justificativa_bloc.dart';
-import 'package:flutter_application_appdeponto/blocs/justificativa/justificativa_event.dart';
 import 'package:flutter_application_appdeponto/blocs/justificativa/justificativa_state.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
@@ -78,19 +77,14 @@ class _HomeAdminViewState extends State<HomeAdminView> {
           const SilentReloadSolicitationsEvent(isAdmin: true),
         );
     context.read<AtestadoBloc>().add(const SilentLoadAtestadosEvent());
-    context
-        .read<JustificativaBloc>()
-        .add(const SilentLoadJustificativasEvent());
-    // Atualização periódica a cada 2 minutos.
+    // Justificativas usam stream em tempo real (ativado no splash) — sem polling.
+    // Atualização periódica a cada 2 minutos para solicitações e atestados.
     _solTimer = Timer.periodic(const Duration(minutes: 2), (_) {
       if (mounted) {
         context.read<SolicitationBloc>().add(
               const SilentReloadSolicitationsEvent(isAdmin: true),
             );
         context.read<AtestadoBloc>().add(const SilentLoadAtestadosEvent());
-        context
-            .read<JustificativaBloc>()
-            .add(const SilentLoadJustificativasEvent());
       }
     });
   }

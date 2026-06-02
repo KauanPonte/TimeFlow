@@ -30,6 +30,11 @@ import '../../history_page/widgets/history_view_mode_icon_button.dart';
 import '../../history_page/widgets/month_selector.dart';
 import '../../history_page/widgets/monthly_summary_card.dart';
 import '../../history_page/widgets/dialogs/day_edit_dialog.dart';
+import 'package:flutter_application_appdeponto/blocs/abono/abono_bloc.dart';
+import 'package:flutter_application_appdeponto/blocs/abono/abono_event.dart';
+import 'package:flutter_application_appdeponto/blocs/abono/abono_state.dart';
+import 'package:flutter_application_appdeponto/models/abono_model.dart';
+import 'package:flutter_application_appdeponto/repositories/abono_repository.dart';
 import 'package:flutter_application_appdeponto/pages/solicitacoes_page/request_abono_page.dart';
 import 'package:flutter_application_appdeponto/pages/solicitacoes_page/upload_atestado_page.dart';
 
@@ -77,16 +82,28 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
 
   Future<MesResumo>? _mesResumoFuture;
 
+  Map<String, AbonoModel> _myAbonos = {};
+  final _abonoRepository = AbonoRepository();
+
   @override
   void initState() {
     super.initState();
     _selectedCalendarDay =
         HistorySharedUtils.defaultSelectedDayForMonth(widget.currentMonth);
 
-    // 2. Chama o carregamento dos feriados ao iniciar
     _loadCalendarEvents();
     _loadExcusedDays();
     _loadMesResumo();
+    _loadMyAbonos();
+  }
+
+  Future<void> _loadMyAbonos() async {
+    try {
+      final uid = widget.uid ?? FirebaseAuth.instance.currentUser?.uid;
+      if (uid == null) return;
+      final list = await _abonoRepository.getMyAbonos();
+      if (mounted) setState(() => _myAbonos = {for (final a in list) a.diaId: a});
+    } catch (_) {}
   }
 
   Future<void> _loadExcusedDays() async {
@@ -478,6 +495,9 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
                 justificativasMap = {};
               }
 
+              // Abonos: usa mapa local (recarregado após ações do AbonoBloc)
+              final abonosMap = _myAbonos;
+
               DayCard buildDayCard(String diaId) {
                 final eventos = daysMap[diaId] ?? [];
                 final daySolicitations = widget.isAdmin
@@ -517,6 +537,12 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
                   holidayName: holidayName,
                   pendingSolicitations: daySolicitations,
                   justificativa: justificativasMap[diaId],
+                  abono: abonosMap[diaId],
+                  onDeleteAbono: abonosMap[diaId] != null
+                      ? () => context
+                          .read<AbonoBloc>()
+                          .add(DeleteAbonoEvent(abonosMap[diaId]!.id))
+                      : null,
                   onBatchEdit: canEdit
                       ? (d, evs) => showBatchEditDayDialog(
                             context: context,
@@ -604,6 +630,7 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
             },
           ),
         ],
+        ),
       ),
     );
   }
