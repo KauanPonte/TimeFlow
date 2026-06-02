@@ -248,9 +248,7 @@ class PdfService {
       }
       return {"registros": "Sem registros", "obs": "Falta", "modalidade": "-"};
     }
-    bool isHomeOffice = eventos.any((e) => e['homeOffice'] == true);
-
-    String modalidade = isHomeOffice ? "Home Office" : "Presencial";
+    String modalidade = _resolveModalidade(eventos);
     String registros = eventos.map((e) {
       final DateTime? at = e['at'];
       String tipo = (e['tipo'] ?? e['type'] ?? '').toString().toUpperCase();
@@ -277,6 +275,36 @@ class PdfService {
       }
     }
     return {"registros": registros, "obs": obs, "modalidade": modalidade};
+  }
+
+  static String _resolveModalidade(List<Map<String, dynamic>> eventos) {
+    bool hasPresencial = false;
+    bool hasHomeOffice = false;
+
+    for (final evento in eventos) {
+      final workMode = (evento['workMode'] ??
+              evento['work_mode'] ??
+              evento['modoTrabalho'] ??
+              evento['modalidade'] ??
+              '')
+          .toString()
+          .toLowerCase()
+          .replaceAll(RegExp(r'[\s_-]+'), '');
+      if (workMode == 'presencial') {
+        hasPresencial = true;
+      } else if (workMode == 'remoto' ||
+          workMode == 'remote' ||
+          workMode == 'homeoffice') {
+        hasHomeOffice = true;
+      } else if (evento['homeOffice'] == true) {
+        hasHomeOffice = true;
+      }
+    }
+
+    if (hasPresencial && hasHomeOffice) return 'Híbrido';
+    if (hasHomeOffice) return 'Home Office';
+    if (hasPresencial) return 'Presencial';
+    return eventos.isEmpty ? '-' : 'Presencial';
   }
 
   static pw.Widget assinaturaComImagem({

@@ -32,7 +32,7 @@ class PrimaryButton extends StatelessWidget {
             // This gets the current text color given by ElevatedButton
             // (e.g. white when active, greyish when disabled)
             final color = DefaultTextStyle.of(context).style.color;
-            
+
             return isLoading
                 ? Row(
                     mainAxisAlignment: MainAxisAlignment.center,

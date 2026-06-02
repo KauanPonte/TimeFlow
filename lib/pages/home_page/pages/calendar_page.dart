@@ -202,7 +202,10 @@ class _CalendarPageState extends State<CalendarPage> {
                               intl.DateFormat('dd/MM/yyyy')
                                   .format(_selectedDay!),
                               style: AppTextStyles.bodySmall.copyWith(
-                                color: AppColors.textSecondary,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurface
+                                    .withValues(alpha: 0.68),
                               ),
                             ),
                           ],
@@ -235,8 +238,11 @@ class _CalendarPageState extends State<CalendarPage> {
                     autofocus: true,
                     decoration: InputDecoration(
                       hintText: 'Ex: Natal, Recesso de Janeiro...',
-                      hintStyle: AppTextStyles.bodySmall
-                          .copyWith(color: AppColors.textSecondary),
+                      hintStyle: AppTextStyles.bodySmall.copyWith(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withValues(alpha: 0.68)),
                       prefixIcon: const Icon(Icons.title,
                           color: AppColors.primary, size: 20),
                       border: OutlineInputBorder(
@@ -358,8 +364,11 @@ class _CalendarPageState extends State<CalendarPage> {
                           ),
                           child: Text(
                             'Cancelar',
-                            style: AppTextStyles.bodyMedium
-                                .copyWith(color: AppColors.textSecondary),
+                            style: AppTextStyles.bodyMedium.copyWith(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurface
+                                    .withValues(alpha: 0.68)),
                           ),
                         ),
                       ),
@@ -446,13 +455,14 @@ class _CalendarPageState extends State<CalendarPage> {
         });
 
         return Scaffold(
-          backgroundColor: AppColors.bgLight,
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           appBar: AppBar(
-            backgroundColor: AppColors.surface,
+            backgroundColor: Theme.of(context).colorScheme.surface,
             elevation: 0,
             scrolledUnderElevation: 0,
             leading: IconButton(
-              icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
+              icon: Icon(Icons.arrow_back,
+                  color: Theme.of(context).colorScheme.onSurface),
               onPressed: () => Navigator.pop(context),
             ),
             title: Row(
@@ -478,14 +488,17 @@ class _CalendarPageState extends State<CalendarPage> {
                         'Calendário',
                         style: AppTextStyles.bodyLarge.copyWith(
                           fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
                       Text(
                         'Feriados e eventos',
                         style: AppTextStyles.bodySmall.copyWith(
-                          color: AppColors.textSecondary,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withValues(alpha: 0.68),
                         ),
                       ),
                     ],
@@ -529,13 +542,18 @@ class _CalendarPageState extends State<CalendarPage> {
   Widget _buildCalendarCard(
     Map<DateTime, List<Map<String, dynamic>>> eventsMap,
   ) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.borderLight),
+        border: Border.all(
+          color: isDark ? AppColors.primaryLight30 : AppColors.borderLight,
+        ),
         boxShadow: const [
           BoxShadow(
             color: AppColors.shadow,
@@ -555,22 +573,42 @@ class _CalendarPageState extends State<CalendarPage> {
         },
         calendarFormat: _calendarFormat,
         rowHeight: 60,
+        daysOfWeekStyle: DaysOfWeekStyle(
+          weekdayStyle: AppTextStyles.bodySmall.copyWith(
+            color: colorScheme.onSurface.withValues(alpha: 0.72),
+            fontWeight: FontWeight.w700,
+          ),
+          weekendStyle: AppTextStyles.bodySmall.copyWith(
+            color: AppColors.error.withValues(alpha: isDark ? 0.95 : 0.8),
+            fontWeight: FontWeight.w700,
+          ),
+        ),
         headerStyle: HeaderStyle(
           formatButtonVisible: false,
           titleCentered: true,
           titleTextStyle: AppTextStyles.bodyLarge.copyWith(
             fontWeight: FontWeight.w600,
-            color: AppColors.textPrimary,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
-          leftChevronIcon:
-              const Icon(Icons.chevron_left, color: AppColors.primary),
-          rightChevronIcon:
-              const Icon(Icons.chevron_right, color: AppColors.primary),
+          leftChevronIcon: Icon(
+            Icons.chevron_left,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Theme.of(context).colorScheme.onSurface
+                : AppColors.primary,
+          ),
+          rightChevronIcon: Icon(
+            Icons.chevron_right,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Theme.of(context).colorScheme.onSurface
+                : AppColors.primary,
+          ),
         ),
         calendarBuilders: CalendarBuilders(
           markerBuilder: (context, day, events) => const SizedBox.shrink(),
           defaultBuilder: (context, day, focusedDay) =>
               _buildDayCell(day, false, eventsMap: eventsMap),
+          outsideBuilder: (context, day, focusedDay) =>
+              _buildDayCell(day, false, isOutside: true, eventsMap: eventsMap),
           todayBuilder: (context, day, focusedDay) =>
               _buildDayCell(day, false, isToday: true, eventsMap: eventsMap),
           selectedBuilder: (context, day, focusedDay) =>
@@ -592,10 +630,17 @@ class _CalendarPageState extends State<CalendarPage> {
     bool highlight, {
     bool isToday = false,
     bool isSelected = false,
+    bool isOutside = false,
     required Map<DateTime, List<Map<String, dynamic>>> eventsMap,
   }) {
     final dateOnly = _normalizeDate(day);
     final events = eventsMap[dateOnly] ?? [];
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isSunday = day.weekday == DateTime.sunday;
+    final dayTextColor = isSunday
+        ? AppColors.error.withValues(alpha: isOutside ? 0.55 : 1.0)
+        : colorScheme.onSurface.withValues(alpha: isOutside ? 0.42 : 0.95);
 
     return Container(
       margin: const EdgeInsets.all(2.0),
@@ -626,8 +671,7 @@ class _CalendarPageState extends State<CalendarPage> {
                 fontWeight:
                     isToday || isSelected ? FontWeight.bold : FontWeight.normal,
                 fontSize: 12,
-                color:
-                    day.weekday == 7 ? AppColors.error : AppColors.textPrimary,
+                color: dayTextColor,
               ),
             ),
           ),
@@ -697,13 +741,18 @@ class _CalendarPageState extends State<CalendarPage> {
   // Legenda
 
   Widget _buildLegendCard() {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.borderLight),
+        border: Border.all(
+          color: isDark ? AppColors.primaryLight30 : AppColors.borderLight,
+        ),
         boxShadow: const [
           BoxShadow(
             color: AppColors.shadow,
@@ -719,7 +768,7 @@ class _CalendarPageState extends State<CalendarPage> {
             'Legenda',
             style: AppTextStyles.bodyMedium.copyWith(
               fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary,
+              color: colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 12),
@@ -744,7 +793,10 @@ class _CalendarPageState extends State<CalendarPage> {
                   child: Text(
                     'Segure pressionado sobre um evento para excluí-lo.',
                     style: AppTextStyles.bodySmall.copyWith(
-                      color: AppColors.textSecondary,
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withValues(alpha: 0.68),
                       fontSize: 12,
                     ),
                   ),
@@ -773,7 +825,8 @@ class _CalendarPageState extends State<CalendarPage> {
         Text(
           label,
           style: AppTextStyles.bodySmall.copyWith(
-            color: AppColors.textSecondary,
+            color:
+                Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.68),
           ),
         ),
       ],

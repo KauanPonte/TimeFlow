@@ -655,7 +655,10 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
                                 child: Text(
                                   'TimeFlow',
                                   style: AppTextStyles.h1.copyWith(
-                                    color: AppColors.surface,
+                                    color: Theme.of(context).brightness ==
+                                            Brightness.dark
+                                        ? Colors.white
+                                        : Theme.of(context).colorScheme.surface,
                                     letterSpacing: 1.2,
                                     height: 1.0,
                                   ),

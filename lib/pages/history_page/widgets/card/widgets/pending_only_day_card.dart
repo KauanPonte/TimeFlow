@@ -29,16 +29,18 @@ class PendingOnlyDayCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final count = pendingSolicitations.length;
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color: disabled ? AppColors.surface : AppColors.surface,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: disabled
-              ? AppColors.borderLight.withValues(alpha: 0.7)
-              : AppColors.borderLight,
+              ? colorScheme.onSurface.withValues(alpha: 0.14)
+              : (isDark ? AppColors.primaryLight30 : AppColors.borderLight),
         ),
         boxShadow: const [
           BoxShadow(
@@ -63,13 +65,13 @@ class PendingOnlyDayCard extends StatelessWidget {
               leading: Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: AppColors.borderLight.withValues(alpha: 0.5),
+                  color: colorScheme.onSurface.withValues(alpha: 0.10),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(Icons.calendar_today,
                     color: disabled
-                        ? AppColors.textSecondary
-                        : AppColors.textSecondary,
+                        ? colorScheme.onSurface.withValues(alpha: 0.45)
+                        : colorScheme.onSurface.withValues(alpha: 0.68),
                     size: 20),
               ),
               title: Text(
@@ -77,8 +79,8 @@ class PendingOnlyDayCard extends StatelessWidget {
                 style: AppTextStyles.bodyLarge.copyWith(
                   fontWeight: FontWeight.w600,
                   color: disabled
-                      ? AppColors.textSecondary
-                      : AppColors.textPrimary,
+                      ? colorScheme.onSurface.withValues(alpha: 0.45)
+                      : colorScheme.onSurface,
                 ),
               ),
               subtitle: Row(
@@ -86,7 +88,7 @@ class PendingOnlyDayCard extends StatelessWidget {
                   Text(
                     'Sem registros',
                     style: AppTextStyles.bodySmall.copyWith(
-                      color: AppColors.textSecondary.withValues(alpha: 0.6),
+                      color: colorScheme.onSurface.withValues(alpha: 0.60),
                       fontSize: 11,
                     ),
                   ),

@@ -404,13 +404,16 @@ class _HistoryViewState extends State<_HistoryView> {
         children: [
           Text(
             label,
-            style: AppTextStyles.bodyMedium
-                .copyWith(color: AppColors.textSecondary),
+            style: AppTextStyles.bodyMedium.copyWith(
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurface
+                    .withValues(alpha: 0.68)),
           ),
           Text(
             value,
-            style:
-                AppTextStyles.bodyMedium.copyWith(color: AppColors.textPrimary),
+            style: AppTextStyles.bodyMedium
+                .copyWith(color: Theme.of(context).colorScheme.onSurface),
           ),
         ],
       ),
@@ -429,14 +432,17 @@ class _HistoryViewState extends State<_HistoryView> {
           Text(
             label,
             style: AppTextStyles.bodySmall.copyWith(
-              color: AppColors.textSecondary,
+              color: Theme.of(context)
+                  .colorScheme
+                  .onSurface
+                  .withValues(alpha: 0.68),
             ),
           ),
           const SizedBox(height: 8),
           Text(
             value,
             style: AppTextStyles.bodyLarge.copyWith(
-              color: valueColor ?? AppColors.textPrimary,
+              color: valueColor ?? Theme.of(context).colorScheme.onSurface,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -537,13 +543,15 @@ class _HistoryViewState extends State<_HistoryView> {
           if (widget.targetName != null)
             Container(
               decoration: BoxDecoration(
-                color: AppColors.surface,
+                gradient: Theme.of(context).brightness == Brightness.dark
+                    ? AppColors.brandGradient
+                    : AppColors.softBrandGradient,
                 borderRadius: BorderRadius.circular(20),
-                boxShadow: const [
+                boxShadow: [
                   BoxShadow(
-                    color: AppColors.shadow,
-                    blurRadius: 12,
-                    offset: Offset(0, 6),
+                    color: AppColors.primary.withValues(alpha: 0.18),
+                    blurRadius: 18,
+                    offset: const Offset(0, 6),
                   ),
                 ],
               ),
@@ -552,7 +560,7 @@ class _HistoryViewState extends State<_HistoryView> {
                 children: [
                   CircleAvatar(
                     radius: 30,
-                    backgroundColor: AppColors.primaryLight10,
+                    backgroundColor: Colors.white.withValues(alpha: 0.26),
                     backgroundImage: _profileBytesCache != null
                         ? MemoryImage(_profileBytesCache!)
                         : null,
@@ -560,7 +568,7 @@ class _HistoryViewState extends State<_HistoryView> {
                         ? Text(
                             widget.targetName![0].toUpperCase(),
                             style: AppTextStyles.h3.copyWith(
-                              color: AppColors.primary,
+                              color: Colors.white,
                               fontWeight: FontWeight.bold,
                             ),
                           )
@@ -575,14 +583,20 @@ class _HistoryViewState extends State<_HistoryView> {
                           widget.targetName!,
                           style: AppTextStyles.bodyLarge.copyWith(
                             fontWeight: FontWeight.w700,
-                            color: AppColors.textPrimary,
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.white
+                                    : AppColors.textPrimary,
                           ),
                         ),
                         const SizedBox(height: 6),
                         Text(
                           'Espelho Mensal',
                           style: AppTextStyles.bodyMedium.copyWith(
-                            color: AppColors.textSecondary,
+                            color: Theme.of(context).brightness ==
+                                    Brightness.dark
+                                ? Colors.white.withValues(alpha: 0.78)
+                                : AppColors.textPrimary.withValues(alpha: 0.68),
                           ),
                         ),
                       ],
@@ -594,7 +608,7 @@ class _HistoryViewState extends State<_HistoryView> {
           if (widget.targetName != null) const SizedBox(height: 20),
           Container(
             decoration: BoxDecoration(
-              color: AppColors.surface,
+              color: Theme.of(context).colorScheme.surface,
               borderRadius: BorderRadius.circular(20),
               boxShadow: const [
                 BoxShadow(
@@ -616,7 +630,10 @@ class _HistoryViewState extends State<_HistoryView> {
                   return Text(
                     'Não foi possível carregar o espelho mensal.',
                     style: AppTextStyles.bodyLarge.copyWith(
-                      color: AppColors.textSecondary,
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withValues(alpha: 0.68),
                     ),
                   );
                 }
@@ -680,7 +697,7 @@ class _HistoryViewState extends State<_HistoryView> {
     return DefaultTabController(
       length: widget.showMonthlyTab ? 2 : 1,
       child: Scaffold(
-        backgroundColor: AppColors.bgLight,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         appBar: HistoryAppBar(
           title: title,
           subTitle: subTitle,
@@ -691,12 +708,15 @@ class _HistoryViewState extends State<_HistoryView> {
               ? PreferredSize(
                   preferredSize: const Size.fromHeight(48),
                   child: Material(
-                    color: AppColors.surface,
-                    child: const TabBar(
+                    color: Theme.of(context).colorScheme.surface,
+                    child: TabBar(
                       indicatorColor: AppColors.primary,
                       labelColor: AppColors.primary,
-                      unselectedLabelColor: AppColors.textSecondary,
-                      tabs: [
+                      unselectedLabelColor: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withValues(alpha: 0.68),
+                      tabs: const [
                         Tab(text: 'Espelho de Ponto'),
                         Tab(text: 'Espelho Mensal'),
                       ],

@@ -45,7 +45,6 @@ bool isWeekendOrHoliday(String diaId) {
   }
 }
 
-
 bool isWeekendOrHolidayWithCalendar(
   String diaId,
   Set<String> calendarBlockedDays,

@@ -38,8 +38,8 @@ class UserRepository {
     String? excludeUid,
     bool includeTodayStatus = false,
   }) async {
-    final todayWorkModes =
-        includeTodayStatus ? await _loadTodayPunchWorkModes() : {};
+    final todayStatuses =
+        includeTodayStatus ? await _loadTodayPunchStatuses() : {};
 
     final snapshot = await _db
         .collection(_usersCollection)
@@ -50,7 +50,9 @@ class UserRepository {
         .where((doc) => excludeUid == null || doc.id != excludeUid)
         .map((doc) {
       final data = doc.data();
-      final todayWorkMode = todayWorkModes[doc.id];
+      final todayStatus = todayStatuses[doc.id];
+      final todayWorkMode = todayStatus?.workMode;
+      final lastPunchType = todayStatus?.lastTipo;
 
       return {
         'id': doc.id,
@@ -62,7 +64,10 @@ class UserRepository {
         'registeredAt': _formatTimestamp(data['createdAt']),
         'profileImage': data['profileImage'] ?? '',
         'todayWorkMode': todayWorkMode ?? '',
-        'didPunchToday': todayWorkMode != null,
+        'lastPunchType': lastPunchType ?? '',
+        'didPunchToday': todayStatus != null,
+        'isOnlineToday':
+            lastPunchType == 'entrada' || lastPunchType == 'retorno',
       };
     }).toList();
 
@@ -80,7 +85,8 @@ class UserRepository {
     return users;
   }
 
-  static Future<Map<String, String>> _loadTodayPunchWorkModes() async {
+  static Future<Map<String, _TodayPunchStatus>>
+      _loadTodayPunchStatuses() async {
     final todayStart = ServerTimeService.todayStartUtc();
     final tomorrowStart = ServerTimeService.tomorrowStartUtc();
 
@@ -91,22 +97,27 @@ class UserRepository {
         .orderBy('at', descending: false)
         .get();
 
-    final Map<String, String> workModes = {};
+    final Map<String, _TodayPunchStatus> statuses = {};
 
     for (final doc in snapshot.docs) {
-      final workMode = (doc.data()['workMode'] ?? '').toString().toLowerCase();
-      if (workMode != 'presencial' && workMode != 'remoto') continue;
+      final data = doc.data();
+      final workMode = (data['workMode'] ?? '').toString().toLowerCase();
+      final tipo = (data['tipo'] ?? '').toString().toLowerCase();
+      if (tipo.isEmpty) continue;
 
       final segments = doc.reference.path.split('/');
       if (segments.length < 2) continue;
       final userId = segments[1];
 
-      if (!workModes.containsKey(userId)) {
-        workModes[userId] = workMode;
-      }
+      final normalizedWorkMode =
+          (workMode == 'presencial' || workMode == 'remoto') ? workMode : '';
+      statuses[userId] = _TodayPunchStatus(
+        workMode: normalizedWorkMode,
+        lastTipo: tipo,
+      );
     }
 
-    return workModes;
+    return statuses;
   }
 
   /// Get pending registration requests (status == 'pending')
@@ -228,4 +239,14 @@ class UserRepository {
     }
     return timestamp.toString();
   }
+}
+
+class _TodayPunchStatus {
+  final String workMode;
+  final String lastTipo;
+
+  const _TodayPunchStatus({
+    required this.workMode,
+    required this.lastTipo,
+  });
 }

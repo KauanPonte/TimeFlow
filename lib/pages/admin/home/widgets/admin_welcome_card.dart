@@ -12,17 +12,14 @@ class AdminWelcomeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? AppColors.white : AppColors.textPrimary;
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            AppColors.primary,
-            AppColors.primaryLight,
-          ],
-        ),
+        gradient:
+            isDark ? AppColors.brandGradient : AppColors.softBrandGradient,
         borderRadius: BorderRadius.circular(20),
         boxShadow: const [
           BoxShadow(
@@ -41,7 +38,7 @@ class AdminWelcomeCard extends StatelessWidget {
                 Text(
                   'Olá, ${employeeName.split(' ')[0]}!',
                   style: AppTextStyles.h3.copyWith(
-                    color: Colors.white,
+                    color: textColor,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -49,15 +46,15 @@ class AdminWelcomeCard extends StatelessWidget {
                 Text(
                   'Bem-vindo ao painel administrativo',
                   style: AppTextStyles.bodyMedium.copyWith(
-                    color: AppColors.surface90,
+                    color: textColor.withValues(alpha: 0.72),
                   ),
                 ),
               ],
             ),
           ),
-          const Icon(
+          Icon(
             Icons.admin_panel_settings,
-            color: Colors.white,
+            color: textColor,
             size: 32,
           ),
         ],

@@ -130,15 +130,18 @@ class _AbonoConsultaPageState extends State<AbonoConsultaPage> {
         }
       },
       child: Scaffold(
-        backgroundColor: AppColors.bgLight,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         appBar: AppBar(
           titleSpacing: 0,
-          backgroundColor: AppColors.surface,
+          backgroundColor: Theme.of(context).colorScheme.surface,
           elevation: 0,
           scrolledUnderElevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new_rounded,
-                color: AppColors.textPrimary, size: 20),
+            icon: Icon(
+              Icons.arrow_back_ios_new_rounded,
+              color: Theme.of(context).colorScheme.onSurface,
+              size: 20,
+            ),
             onPressed: () => Navigator.pop(context),
           ),
           title: Row(
@@ -158,7 +161,8 @@ class _AbonoConsultaPageState extends State<AbonoConsultaPage> {
               const SizedBox(width: 12),
               Text(
                 'Abono de Consulta',
-                style: AppTextStyles.h3.copyWith(color: AppColors.textPrimary),
+                style: AppTextStyles.h3
+                    .copyWith(color: Theme.of(context).colorScheme.onSurface),
               ),
             ],
           ),
@@ -170,15 +174,18 @@ class _AbonoConsultaPageState extends State<AbonoConsultaPage> {
             Text(
               'Período de ausência',
               style: AppTextStyles.titleSmall.copyWith(
-                color: AppColors.textPrimary,
+                color: Theme.of(context).colorScheme.onSurface,
                 fontWeight: FontWeight.w700,
               ),
             ),
             const SizedBox(height: 4),
             Text(
               'Informe quando saiu e, se já retornou, o horário de retorno.',
-              style: AppTextStyles.bodySmall
-                  .copyWith(color: AppColors.textSecondary),
+              style: AppTextStyles.bodySmall.copyWith(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.68)),
             ),
             const SizedBox(height: 16),
             Row(
@@ -220,8 +227,11 @@ class _AbonoConsultaPageState extends State<AbonoConsultaPage> {
                     const SizedBox(width: 10),
                     Text(
                       'Duração da ausência: ',
-                      style: AppTextStyles.bodySmall
-                          .copyWith(color: AppColors.textSecondary),
+                      style: AppTextStyles.bodySmall.copyWith(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withValues(alpha: 0.68)),
                     ),
                     Text(
                       _formatDuration(_durationMinutes!),
@@ -245,8 +255,11 @@ class _AbonoConsultaPageState extends State<AbonoConsultaPage> {
                   Expanded(
                     child: Text(
                       'Sem retorno informado, o abono de horas será definido pelo administrador na aprovação.',
-                      style: AppTextStyles.bodySmall
-                          .copyWith(color: AppColors.textSecondary),
+                      style: AppTextStyles.bodySmall.copyWith(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withValues(alpha: 0.68)),
                     ),
                   ),
                 ],
@@ -259,7 +272,7 @@ class _AbonoConsultaPageState extends State<AbonoConsultaPage> {
             Text(
               'Declaração médica (PDF)',
               style: AppTextStyles.titleSmall.copyWith(
-                color: AppColors.textPrimary,
+                color: Theme.of(context).colorScheme.onSurface,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -278,7 +291,14 @@ class _AbonoConsultaPageState extends State<AbonoConsultaPage> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
-                  disabledBackgroundColor: AppColors.border,
+                  disabledBackgroundColor:
+                      Theme.of(context).brightness == Brightness.dark
+                          ? AppColors.darkSurfaceAlt
+                          : AppColors.border,
+                  disabledForegroundColor:
+                      Theme.of(context).brightness == Brightness.dark
+                          ? AppColors.darkTextSecondary
+                          : AppColors.textSecondary,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
@@ -305,8 +325,11 @@ class _AbonoConsultaPageState extends State<AbonoConsultaPage> {
             Center(
               child: Text(
                 'A solicitação será revisada pela administração.',
-                style: AppTextStyles.bodySmall
-                    .copyWith(color: AppColors.textSecondary),
+                style: AppTextStyles.bodySmall.copyWith(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: 0.68)),
               ),
             ),
           ],
@@ -336,7 +359,7 @@ class _TimeField extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: value != null ? AppColors.primary : AppColors.borderLight,
@@ -351,7 +374,10 @@ class _TimeField extends StatelessWidget {
                 Text(
                   label,
                   style: AppTextStyles.bodySmall.copyWith(
-                    color: AppColors.textSecondary,
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: 0.68),
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -411,7 +437,7 @@ class _FilePickerBox extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: AppColors.borderLight,
@@ -431,15 +457,18 @@ class _FilePickerBox extends StatelessWidget {
               Text(
                 'Toque para selecionar o PDF',
                 style: AppTextStyles.bodyMedium.copyWith(
-                  color: AppColors.textPrimary,
+                  color: Theme.of(context).colorScheme.onSurface,
                   fontWeight: FontWeight.w600,
                 ),
               ),
               const SizedBox(height: 4),
               Text(
                 'Apenas arquivos PDF são aceitos',
-                style: AppTextStyles.bodySmall
-                    .copyWith(color: AppColors.textSecondary),
+                style: AppTextStyles.bodySmall.copyWith(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: 0.68)),
               ),
             ] else ...[
               Row(
@@ -457,14 +486,17 @@ class _FilePickerBox extends StatelessWidget {
                         Text(
                           'Arquivo selecionado',
                           style: AppTextStyles.bodySmall.copyWith(
-                            color: AppColors.textSecondary,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withValues(alpha: 0.68),
                             fontWeight: FontWeight.w600,
                           ),
                         ),
                         Text(
                           fileName!,
-                          style: AppTextStyles.bodyMedium
-                              .copyWith(color: AppColors.textPrimary),
+                          style: AppTextStyles.bodyMedium.copyWith(
+                              color: Theme.of(context).colorScheme.onSurface),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),

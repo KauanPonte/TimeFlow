@@ -33,8 +33,11 @@ class DayEditHeader extends StatelessWidget {
               Text(title, style: AppTextStyles.h3),
               Text(
                 formattedDate,
-                style: AppTextStyles.bodySmall
-                    .copyWith(color: AppColors.textSecondary),
+                style: AppTextStyles.bodySmall.copyWith(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: 0.68)),
               ),
             ],
           ),

@@ -129,8 +129,11 @@ class _EventoDialogState extends State<EventoDialog> {
                   const SizedBox(width: 5),
                   Text(
                     dateStr[0].toUpperCase() + dateStr.substring(1),
-                    style: AppTextStyles.bodySmall
-                        .copyWith(color: AppColors.textSecondary),
+                    style: AppTextStyles.bodySmall.copyWith(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withValues(alpha: 0.68)),
                   ),
                 ],
               ),
@@ -142,7 +145,10 @@ class _EventoDialogState extends State<EventoDialog> {
             Text(
               'Tipo de registro',
               style: AppTextStyles.bodySmall.copyWith(
-                color: AppColors.textSecondary,
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurface
+                    .withValues(alpha: 0.68),
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -207,7 +213,10 @@ class _EventoDialogState extends State<EventoDialog> {
             Text(
               'Horário',
               style: AppTextStyles.bodySmall.copyWith(
-                color: AppColors.textSecondary,
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurface
+                    .withValues(alpha: 0.68),
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -261,8 +270,11 @@ class _EventoDialogState extends State<EventoDialog> {
                     ),
                     child: Text(
                       'Cancelar',
-                      style: AppTextStyles.bodyMedium
-                          .copyWith(color: AppColors.textSecondary),
+                      style: AppTextStyles.bodyMedium.copyWith(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withValues(alpha: 0.68)),
                     ),
                   ),
                 ),

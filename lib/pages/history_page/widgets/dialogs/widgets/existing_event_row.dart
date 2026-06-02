@@ -38,11 +38,11 @@ class ExistingEventRow extends StatelessWidget {
       case RowMode.editing:
         return _buildEditingRow();
       case RowMode.normal:
-        return _buildNormalRow();
+        return _buildNormalRow(context);
     }
   }
 
-  Widget _buildNormalRow() {
+  Widget _buildNormalRow(BuildContext context) {
     final color = colorForTipo(ev.tipo);
     final hora = ev.originalAt != null
         ? DateFormat('HH:mm').format(ev.originalAt!)
@@ -52,7 +52,7 @@ class ExistingEventRow extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 6),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: AppColors.borderLight),
       ),
@@ -64,7 +64,7 @@ class ExistingEventRow extends StatelessWidget {
             child: Text(
               '${labelForTipo(ev.tipo)} — $hora',
               style: AppTextStyles.bodySmall
-                  .copyWith(color: AppColors.textPrimary),
+                  .copyWith(color: Theme.of(context).colorScheme.onSurface),
             ),
           ),
           if (ev.id != null) ...[

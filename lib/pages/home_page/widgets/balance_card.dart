@@ -22,13 +22,17 @@ class BalanceCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isPositive = monthBalance >= 0;
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.borderLight),
+        border: Border.all(
+          color: isDark ? AppColors.primaryLight30 : AppColors.borderLight,
+        ),
         boxShadow: const [
           BoxShadow(
             color: AppColors.shadow,
@@ -60,8 +64,9 @@ class BalanceCard extends StatelessWidget {
               children: [
                 Text(
                   'Saldo acumulado',
-                  style: AppTextStyles.bodySmall
-                      .copyWith(color: AppColors.textSecondary),
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: colorScheme.onSurface.withValues(alpha: 0.68),
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -73,8 +78,9 @@ class BalanceCard extends StatelessWidget {
                 ),
                 Text(
                   'total de horas acumuladas',
-                  style: AppTextStyles.bodySmall
-                      .copyWith(color: AppColors.textSecondary),
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: colorScheme.onSurface.withValues(alpha: 0.68),
+                  ),
                 ),
               ],
             ),

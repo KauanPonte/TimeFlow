@@ -193,8 +193,11 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                               const SizedBox(height: 6),
                               Text(
                                 'Nenhuma notificação no momento.',
-                                style: AppTextStyles.bodySmall
-                                    .copyWith(color: AppColors.textSecondary),
+                                style: AppTextStyles.bodySmall.copyWith(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurface
+                                        .withValues(alpha: 0.68)),
                               ),
                               const SizedBox(height: 32),
                             ],
@@ -261,8 +264,10 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                             subtitle: Text(motivo,
                                 style: AppTextStyles.bodySmall
                                     .copyWith(color: AppColors.warning)),
-                            trailing: const Icon(Icons.chevron_right,
-                                color: AppColors.textSecondary),
+                            trailing: Icon(
+                              Icons.chevron_right,
+                              color: Theme.of(context).colorScheme.onSurface,
+                            ),
                             onTap: () {
                               Navigator.pop(sheetCtx);
                               if (date == null) return;
@@ -532,8 +537,10 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                             subtitle: Text(mesmodia ? inicio : '$inicio → $fim',
                                 style: AppTextStyles.bodySmall
                                     .copyWith(color: AppColors.warning)),
-                            trailing: const Icon(Icons.chevron_right,
-                                color: AppColors.textSecondary),
+                            trailing: Icon(
+                              Icons.chevron_right,
+                              color: Theme.of(context).colorScheme.onSurface,
+                            ),
                             onTap: () {
                               Navigator.pop(sheetCtx);
                               _openAtestadoReview(context, a);
@@ -597,8 +604,10 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                                 '$dateLabel • ${sol.items.length} alteração(ões)',
                                 style: AppTextStyles.bodySmall
                                     .copyWith(color: AppColors.primary)),
-                            trailing: const Icon(Icons.chevron_right,
-                                color: AppColors.textSecondary),
+                            trailing: Icon(
+                              Icons.chevron_right,
+                              color: Theme.of(context).colorScheme.onSurface,
+                            ),
                             onTap: () {
                               Navigator.pop(sheetCtx);
                               _openSolicitationReview(context, sol);
@@ -663,8 +672,10 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                             subtitle: Text(dateLabel,
                                 style: AppTextStyles.bodySmall
                                     .copyWith(color: AppColors.error)),
-                            trailing: const Icon(Icons.chevron_right,
-                                color: AppColors.textSecondary),
+                            trailing: Icon(
+                              Icons.chevron_right,
+                              color: Theme.of(context).colorScheme.onSurface,
+                            ),
                             onTap: () {
                               Navigator.pop(sheetCtx);
                               _openJustificativaReview(context, j);
@@ -806,8 +817,10 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                             style: AppTextStyles.bodySmall
                                 .copyWith(color: AppColors.primary),
                           ),
-                          trailing: const Icon(Icons.chevron_right,
-                              color: AppColors.textSecondary),
+                          trailing: Icon(
+                            Icons.chevron_right,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
                           onTap: () {
                             Navigator.pop(sheetCtx);
                             _showPendingUsersSheet(context);
@@ -1117,8 +1130,11 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
             const SizedBox(height: 4),
             Text(
               'Atestado médico',
-              style: AppTextStyles.bodySmall
-                  .copyWith(color: AppColors.textSecondary),
+              style: AppTextStyles.bodySmall.copyWith(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.68)),
             ),
             // Motivo da recusa
             if (!isApproved &&
@@ -1339,8 +1355,11 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                       const SizedBox(width: 5),
                       Text(
                         'Enviado em ${DateFormat("dd/MM/yyyy").format(atestado.createdAt)}',
-                        style: AppTextStyles.bodySmall
-                            .copyWith(color: AppColors.textSecondary),
+                        style: AppTextStyles.bodySmall.copyWith(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withValues(alpha: 0.68)),
                       ),
                     ],
                   ),
@@ -1408,8 +1427,11 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                     maxLines: 2,
                     decoration: InputDecoration(
                       hintText: 'Motivo de recusa (opcional)',
-                      hintStyle: AppTextStyles.bodySmall
-                          .copyWith(color: AppColors.textSecondary),
+                      hintStyle: AppTextStyles.bodySmall.copyWith(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withValues(alpha: 0.68)),
                       contentPadding: const EdgeInsets.symmetric(
                           horizontal: 12, vertical: 10),
                       border: OutlineInputBorder(
@@ -1448,8 +1470,11 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                           ),
                           child: Text(
                             'Voltar',
-                            style: AppTextStyles.bodyMedium
-                                .copyWith(color: AppColors.textSecondary),
+                            style: AppTextStyles.bodyMedium.copyWith(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurface
+                                    .withValues(alpha: 0.68)),
                           ),
                         ),
                       ),
@@ -1567,8 +1592,11 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                       const SizedBox(width: 5),
                       Text(
                         'Dia de falta: $dateLabel',
-                        style: AppTextStyles.bodySmall
-                            .copyWith(color: AppColors.textSecondary),
+                        style: AppTextStyles.bodySmall.copyWith(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withValues(alpha: 0.68)),
                       ),
                     ],
                   ),
@@ -1606,7 +1634,10 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                           Text(
                             'Período de ausência',
                             style: AppTextStyles.bodySmall.copyWith(
-                              color: AppColors.textSecondary,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurface
+                                  .withValues(alpha: 0.68),
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -1618,7 +1649,9 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                               const SizedBox(width: 6),
                               Text('Saída: ${just.dataInicio}',
                                   style: AppTextStyles.bodySmall.copyWith(
-                                      color: AppColors.textPrimary)),
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurface)),
                               const SizedBox(width: 16),
                               const Icon(Icons.logout_rounded,
                                   size: 14, color: AppColors.primary),
@@ -1665,8 +1698,11 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                     maxLines: 2,
                     decoration: InputDecoration(
                       hintText: 'Observação (opcional, para recusa)',
-                      hintStyle: AppTextStyles.bodySmall
-                          .copyWith(color: AppColors.textSecondary),
+                      hintStyle: AppTextStyles.bodySmall.copyWith(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withValues(alpha: 0.68)),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
                         borderSide:
@@ -1702,8 +1738,11 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                           ),
                           child: Text(
                             'Voltar',
-                            style: AppTextStyles.bodyMedium
-                                .copyWith(color: AppColors.textSecondary),
+                            style: AppTextStyles.bodyMedium.copyWith(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurface
+                                    .withValues(alpha: 0.68)),
                           ),
                         ),
                       ),
@@ -1806,7 +1845,7 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
           const SizedBox(height: 8),
           Text(j.justificativa,
               style: AppTextStyles.bodySmall
-                  .copyWith(color: AppColors.textPrimary)),
+                  .copyWith(color: Theme.of(context).colorScheme.onSurface)),
           if (j.reason != null && j.reason!.isNotEmpty) ...[
             const SizedBox(height: 6),
             Container(
@@ -1905,9 +1944,10 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     final isAdmin = _resolveIsAdmin(context);
+    final colorScheme = Theme.of(context).colorScheme;
 
     return AppBar(
-      backgroundColor: AppColors.surface,
+      backgroundColor: colorScheme.surface,
       elevation: 0,
       scrolledUnderElevation: 0,
       automaticallyImplyLeading: false,
@@ -1916,7 +1956,14 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: AppColors.primary,
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  AppColors.lime,
+                  AppColors.primaryLight,
+                ],
+              ),
               borderRadius: BorderRadius.circular(12),
               boxShadow: const [
                 BoxShadow(
@@ -1945,13 +1992,13 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                 'TimeFlow',
                 style: AppTextStyles.bodyLarge.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: AppColors.primary,
+                  color: colorScheme.primary,
                 ),
               ),
               Text(
                 subtitle,
                 style: AppTextStyles.bodySmall.copyWith(
-                  color: AppColors.textSecondary,
+                  color: colorScheme.onSurface.withValues(alpha: 0.68),
                 ),
               ),
             ],
@@ -2131,11 +2178,10 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                       color: AppColors.primary, size: 20),
                   const SizedBox(width: 12),
                   Text('Configurações',
-                      style: AppTextStyles.bodyMedium
-                          .copyWith(color: AppColors.textPrimary)),
+                      style: AppTextStyles.bodyMedium.copyWith(
+                          color: Theme.of(context).colorScheme.onSurface)),
                 ]),
               ),
-              const PopupMenuDivider(),
             ],
             if (isAdmin) ...[
               PopupMenuItem<String>(
@@ -2151,13 +2197,12 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                     Text(
                       'Solicitações',
                       style: AppTextStyles.bodyMedium.copyWith(
-                        color: AppColors.textPrimary,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                   ],
                 ),
               ),
-              const PopupMenuDivider(),
             ],
             PopupMenuItem<String>(
               value: 'logout',

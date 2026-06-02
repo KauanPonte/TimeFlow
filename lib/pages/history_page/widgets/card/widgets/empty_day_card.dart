@@ -55,19 +55,24 @@ class EmptyDayCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
         color: (_isAbsentDay && justificativa != null)
             ? _absentColor.withValues(alpha: 0.04)
-            : AppColors.surface,
+            : colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: (_isAbsentDay && justificativa != null)
               ? _absentColor.withValues(alpha: 0.3)
               : disabled
-                  ? AppColors.borderLight.withValues(alpha: 0.7)
-                  : AppColors.borderLight,
+                  ? (isDark
+                      ? AppColors.primaryLight20
+                      : AppColors.borderLight.withValues(alpha: 0.7))
+                  : (isDark ? AppColors.primaryLight30 : AppColors.borderLight),
         ),
       ),
       child: Column(
@@ -80,18 +85,20 @@ class EmptyDayCard extends StatelessWidget {
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
                 color: disabled
-                    ? AppColors.borderLight.withValues(alpha: 0.4)
-                    : AppColors.borderLight.withValues(alpha: 0.5),
+                    ? colorScheme.onSurface.withValues(alpha: 0.08)
+                    : colorScheme.onSurface.withValues(alpha: 0.10),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
                   color: disabled
-                      ? AppColors.borderLight.withValues(alpha: 0.7)
-                      : AppColors.borderLight,
+                      ? colorScheme.onSurface.withValues(alpha: 0.14)
+                      : (isDark
+                          ? AppColors.primaryLight30
+                          : AppColors.borderLight),
                 ),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.calendar_today,
-                color: AppColors.textSecondary,
+                color: colorScheme.onSurface.withValues(alpha: 0.68),
                 size: 20,
               ),
             ),
@@ -100,7 +107,7 @@ class EmptyDayCard extends StatelessWidget {
               style: AppTextStyles.bodyMedium.copyWith(
                 color: (_isAbsentDay && justificativa != null)
                     ? _absentColor
-                    : AppColors.textSecondary,
+                    : colorScheme.onSurface.withValues(alpha: 0.68),
                 fontWeight: (_isAbsentDay && justificativa != null)
                     ? FontWeight.w600
                     : FontWeight.normal,
@@ -117,7 +124,7 @@ class EmptyDayCard extends StatelessWidget {
                     style: AppTextStyles.bodySmall.copyWith(
                       color: (_isAbsentDay && justificativa != null)
                           ? _absentColor.withValues(alpha: 0.7)
-                          : AppColors.textSecondary.withValues(alpha: 0.6),
+                          : colorScheme.onSurface.withValues(alpha: 0.60),
                       fontSize: 11,
                     ),
                   ),
@@ -250,9 +257,12 @@ class EmptyDayCard extends StatelessWidget {
 
     switch (status) {
       case JustificativaStatus.approved:
-        chipColor = _isFullDayAbonoApproved ? AppColors.warning : AppColors.success;
+        chipColor =
+            _isFullDayAbonoApproved ? AppColors.warning : AppColors.success;
         chipIcon = Icons.check_circle_outline;
-        chipLabel = _isFullDayAbonoApproved ? 'Abono justificado' : 'Justificativa aprovada';
+        chipLabel = _isFullDayAbonoApproved
+            ? 'Abono justificado'
+            : 'Justificativa aprovada';
         break;
       case JustificativaStatus.pending:
         chipColor = AppColors.warning;
@@ -322,13 +332,19 @@ class EmptyDayCard extends StatelessWidget {
                       fontSize: 11,
                     ),
                   ),
-                  if (onDeleteJustificativa != null || (isAdmin && onJustify != null)) ...[
+                  if (onDeleteJustificativa != null ||
+                      (isAdmin && onJustify != null)) ...[
                     const Spacer(),
                     if (isAdmin && onJustify != null)
-                      const Icon(Icons.edit_outlined,
-                          size: 12, color: AppColors.textSecondary),
+                      Icon(Icons.edit_outlined,
+                          size: 12,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withValues(alpha: 0.68)),
                     if (onDeleteJustificativa != null) ...[
-                      if (isAdmin && onJustify != null) const SizedBox(width: 6),
+                      if (isAdmin && onJustify != null)
+                        const SizedBox(width: 6),
                       GestureDetector(
                         onTap: confirmDelete,
                         child: const Icon(Icons.delete_outline,
@@ -342,7 +358,7 @@ class EmptyDayCard extends StatelessWidget {
               Text(
                 justificativa!.justificativa,
                 style: AppTextStyles.bodySmall.copyWith(
-                  color: AppColors.textPrimary,
+                  color: Theme.of(context).colorScheme.onSurface,
                   fontSize: 11,
                 ),
                 maxLines: 2,
@@ -355,7 +371,10 @@ class EmptyDayCard extends StatelessWidget {
                 Text(
                   'Motivo: ${justificativa!.reason}',
                   style: AppTextStyles.bodySmall.copyWith(
-                    color: AppColors.textSecondary,
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: 0.68),
                     fontSize: 10,
                     fontStyle: FontStyle.italic,
                   ),

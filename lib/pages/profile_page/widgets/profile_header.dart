@@ -14,12 +14,14 @@ class ProfileHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Column(
       children: [
         Text(
           name.toUpperCase(),
           style: AppTextStyles.h2.copyWith(
-            color: AppColors.textPrimary,
+            color: colorScheme.onSurface,
             fontWeight: FontWeight.bold,
           ),
           textAlign: TextAlign.center,
@@ -35,7 +37,7 @@ class ProfileHeader extends StatelessWidget {
           child: Text(
             role.isNotEmpty ? role : 'Sem cargo',
             style: AppTextStyles.bodySmall.copyWith(
-              color: AppColors.primary,
+              color: colorScheme.primary,
               fontWeight: FontWeight.w600,
             ),
           ),

@@ -61,6 +61,8 @@ class _FilledDayCardState extends State<FilledDayCard> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final incomplete = _incomplete;
     final hasPending = widget.pendingSolicitations.isNotEmpty;
     final count = widget.pendingSolicitations.length;
@@ -69,23 +71,25 @@ class _FilledDayCardState extends State<FilledDayCard> {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(14),
       ),
       child: Container(
         decoration: BoxDecoration(
           color: disabledStyle
-              ? AppColors.surface
+              ? colorScheme.surface
               : (incomplete
                   ? AppColors.warning.withValues(alpha: 0.05)
-                  : AppColors.surface),
+                  : colorScheme.surface),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: disabledStyle
                 ? AppColors.borderLight.withValues(alpha: 0.7)
                 : (incomplete
                     ? AppColors.warningLight30
-                    : AppColors.borderLight),
+                    : (isDark
+                        ? AppColors.primaryLight30
+                        : AppColors.borderLight)),
           ),
           boxShadow: const [
             BoxShadow(
@@ -112,13 +116,13 @@ class _FilledDayCardState extends State<FilledDayCard> {
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
                     color: disabledStyle
-                        ? AppColors.borderLight.withValues(alpha: 0.4)
+                        ? colorScheme.onSurface.withValues(alpha: 0.08)
                         : (incomplete
                             ? AppColors.warning.withValues(alpha: 0.05)
                             : AppColors.primaryLight10),
                     border: Border.all(
                       color: disabledStyle
-                          ? AppColors.borderLight.withValues(alpha: 0.7)
+                          ? colorScheme.onSurface.withValues(alpha: 0.14)
                           : (incomplete
                               ? AppColors.warningLight30
                               : AppColors.primary.withValues(alpha: 0.3)),
@@ -130,7 +134,7 @@ class _FilledDayCardState extends State<FilledDayCard> {
                         ? Icons.warning_amber_rounded
                         : Icons.calendar_today,
                     color: disabledStyle
-                        ? AppColors.textSecondary
+                        ? colorScheme.onSurface.withValues(alpha: 0.45)
                         : (incomplete ? AppColors.warning : AppColors.primary),
                     size: 20,
                   ),
@@ -140,8 +144,8 @@ class _FilledDayCardState extends State<FilledDayCard> {
                   style: AppTextStyles.bodyLarge.copyWith(
                     fontWeight: FontWeight.w600,
                     color: disabledStyle
-                        ? AppColors.textSecondary
-                        : AppColors.textPrimary,
+                        ? colorScheme.onSurface.withValues(alpha: 0.45)
+                        : colorScheme.onSurface,
                   ),
                 ),
                 trailing: Row(
@@ -169,9 +173,9 @@ class _FilledDayCardState extends State<FilledDayCard> {
                     AnimatedRotation(
                       turns: _isExpanded ? 0.5 : 0,
                       duration: const Duration(milliseconds: 250),
-                      child: const Icon(
+                      child: Icon(
                         Icons.expand_more,
-                        color: AppColors.textSecondary,
+                        color: colorScheme.onSurface.withValues(alpha: 0.68),
                         size: 22,
                       ),
                     ),
@@ -222,8 +226,11 @@ class _FilledDayCardState extends State<FilledDayCard> {
             const SizedBox(width: 4),
             Text(
               computeWorked(widget.eventos),
-              style: AppTextStyles.bodySmall
-                  .copyWith(color: AppColors.textSecondary),
+              style: AppTextStyles.bodySmall.copyWith(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.68)),
             ),
           ],
         ),
@@ -343,7 +350,9 @@ class _FilledDayCardState extends State<FilledDayCard> {
               left: BorderSide(
                 color: incomplete
                     ? AppColors.warning.withValues(alpha: 0.45)
-                    : AppColors.borderLight,
+                    : (Theme.of(context).brightness == Brightness.dark
+                        ? AppColors.primaryLight30
+                        : AppColors.borderLight),
                 width: 3,
               ),
             ),
@@ -434,7 +443,7 @@ class _FilledDayCardState extends State<FilledDayCard> {
                   labelForTipo(tipo),
                   style: AppTextStyles.bodyMedium.copyWith(
                     fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
                 Row(
@@ -442,8 +451,11 @@ class _FilledDayCardState extends State<FilledDayCard> {
                   children: [
                     Text(
                       formatTime(at),
-                      style: AppTextStyles.bodySmall
-                          .copyWith(color: AppColors.textSecondary),
+                      style: AppTextStyles.bodySmall.copyWith(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withValues(alpha: 0.68)),
                     ),
                     const SizedBox(width: 8),
                     Container(

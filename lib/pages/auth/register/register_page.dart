@@ -94,16 +94,10 @@ class _RegisterPageState extends State<RegisterPage> {
             builder: (context, constraints) {
               return Container(
                 height: constraints.maxHeight,
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      AppColors.bgLight,
-                      AppColors.surface,
-                    ],
-                  ),
-                ),
+                decoration: BoxDecoration(
+                    gradient: Theme.of(context).brightness == Brightness.dark
+                        ? AppColors.techDarkBackground
+                        : AppColors.appBackground),
                 child: SafeArea(
                   child: Center(
                     child: SingleChildScrollView(
@@ -252,15 +246,15 @@ class _RegisterPageState extends State<RegisterPage> {
                                 : "Solicitar Cadastro",
                             isLoading: isLoading,
                             onPressed: () {
-                                    context.read<AuthBloc>().add(
-                                          RegisterRequested(
-                                            email: emailController.text.trim(),
-                                            password: passwordController.text,
-                                            name: nameController.text.trim(),
-                                            profileImage: selectedImage,
-                                          ),
-                                        );
-                                  },
+                              context.read<AuthBloc>().add(
+                                    RegisterRequested(
+                                      email: emailController.text.trim(),
+                                      password: passwordController.text,
+                                      name: nameController.text.trim(),
+                                      profileImage: selectedImage,
+                                    ),
+                                  );
+                            },
                           ),
                           const SizedBox(height: 16),
 

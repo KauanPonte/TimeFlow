@@ -23,7 +23,7 @@ class SettingsSearchField extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: AppColors.borderLight),
         boxShadow: const [
@@ -56,13 +56,13 @@ class SettingsSearchField extends StatelessWidget {
                 ),
                 suffixIcon: loadingSuggestions
                     ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: AppColors.primary,
-                      ),
-                    )
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppColors.primary,
+                        ),
+                      )
                     : controller.text.isNotEmpty
                         ? IconButton(
                             constraints: const BoxConstraints(),

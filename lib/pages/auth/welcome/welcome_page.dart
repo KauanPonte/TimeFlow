@@ -10,12 +10,14 @@ class WelcomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          color: AppColors.primary,
-        ),
+        decoration: BoxDecoration(
+            gradient: Theme.of(context).brightness == Brightness.dark
+                ? AppColors.techDarkBackground
+                : AppColors.appBackground),
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 64.0),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 32.0, vertical: 64.0),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [

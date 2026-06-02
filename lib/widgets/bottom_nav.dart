@@ -1,6 +1,5 @@
 // lib/widgets/bottom_nav.dart
 import 'package:flutter/material.dart';
-import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 
 class BottomNav extends StatelessWidget {
   final int index;
@@ -16,6 +15,8 @@ class BottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final inactiveColor = colorScheme.onSurface.withValues(alpha: 0.62);
     final data = {
       "employeeName": args?["employeeName"] ?? "",
       "profileImageUrl": args?["profileImageUrl"] ?? "",
@@ -25,9 +26,9 @@ class BottomNav extends StatelessWidget {
     if (isAdmin) {
       return BottomNavigationBar(
         currentIndex: index,
-        selectedItemColor: AppColors.primary,
-        unselectedItemColor: AppColors.textSecondary,
-        backgroundColor: AppColors.surface,
+        selectedItemColor: colorScheme.primary,
+        unselectedItemColor: inactiveColor,
+        backgroundColor: colorScheme.surface,
         type: BottomNavigationBarType.fixed,
         onTap: (i) {
           if (i == index) return;
@@ -68,9 +69,9 @@ class BottomNav extends StatelessWidget {
     // Nav padrão para usuários normais (2 abas)
     return BottomNavigationBar(
       currentIndex: index,
-      selectedItemColor: AppColors.primary,
-      unselectedItemColor: AppColors.textSecondary,
-      backgroundColor: AppColors.surface,
+      selectedItemColor: colorScheme.primary,
+      unselectedItemColor: inactiveColor,
+      backgroundColor: colorScheme.surface,
       type: BottomNavigationBarType.fixed,
       onTap: (i) {
         if (i == index) return;

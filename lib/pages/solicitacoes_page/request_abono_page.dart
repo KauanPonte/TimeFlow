@@ -91,15 +91,18 @@ class _RequestAbonoPageState extends State<RequestAbonoPage> {
         }
       },
       child: Scaffold(
-        backgroundColor: AppColors.bgLight,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         appBar: AppBar(
           titleSpacing: 0,
-          backgroundColor: AppColors.surface,
+          backgroundColor: Theme.of(context).colorScheme.surface,
           elevation: 0,
           scrolledUnderElevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new_rounded,
-                color: AppColors.textPrimary, size: 20),
+            icon: Icon(
+              Icons.arrow_back_ios_new_rounded,
+              color: Theme.of(context).colorScheme.onSurface,
+              size: 20,
+            ),
             onPressed: () => Navigator.pop(context),
           ),
           title: Row(
@@ -119,7 +122,8 @@ class _RequestAbonoPageState extends State<RequestAbonoPage> {
               const SizedBox(width: 12),
               Text(
                 'Solicitar Abono',
-                style: AppTextStyles.h3.copyWith(color: AppColors.textPrimary),
+                style: AppTextStyles.h3
+                    .copyWith(color: Theme.of(context).colorScheme.onSurface),
               ),
             ],
           ),
@@ -131,7 +135,7 @@ class _RequestAbonoPageState extends State<RequestAbonoPage> {
               Text(
                 'Motivo do Abono',
                 style: AppTextStyles.titleSmall.copyWith(
-                  color: AppColors.textPrimary,
+                  color: Theme.of(context).colorScheme.onSurface,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -188,7 +192,7 @@ class _RequestAbonoPageState extends State<RequestAbonoPage> {
                 Text(
                   'Qual outro motivo?',
                   style: AppTextStyles.titleSmall.copyWith(
-                    color: AppColors.textPrimary,
+                    color: Theme.of(context).colorScheme.onSurface,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -203,7 +207,7 @@ class _RequestAbonoPageState extends State<RequestAbonoPage> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     filled: true,
-                    fillColor: AppColors.surface,
+                    fillColor: Theme.of(context).colorScheme.surface,
                     contentPadding: const EdgeInsets.symmetric(
                         horizontal: 16, vertical: 14),
                   ),
@@ -215,7 +219,14 @@ class _RequestAbonoPageState extends State<RequestAbonoPage> {
                 onPressed: _canSubmit ? _submit : null,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
-                  disabledBackgroundColor: AppColors.borderLight,
+                  disabledBackgroundColor:
+                      Theme.of(context).brightness == Brightness.dark
+                          ? AppColors.darkSurfaceAlt
+                          : AppColors.borderLight,
+                  disabledForegroundColor:
+                      Theme.of(context).brightness == Brightness.dark
+                          ? AppColors.darkTextSecondary
+                          : AppColors.textSecondary,
                   minimumSize: const Size.fromHeight(54),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14),
@@ -224,7 +235,7 @@ class _RequestAbonoPageState extends State<RequestAbonoPage> {
                 child: Text(
                   'Enviar solicitação',
                   style: AppTextStyles.bodyLarge.copyWith(
-                    color: AppColors.surface,
+                    color: Theme.of(context).colorScheme.surface,
                     fontWeight: FontWeight.w700,
                   ),
                 ),

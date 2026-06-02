@@ -312,6 +312,8 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return BlocListener<SolicitationBloc, SolicitationState>(
       listener: (context, solState) {
         if (solState is SolicitationActionSuccess) {
@@ -339,7 +341,7 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
               const SizedBox(width: 12),
               Text(
                 'Meu Histórico',
-                style: AppTextStyles.h3.copyWith(color: AppColors.textPrimary),
+                style: AppTextStyles.h3.copyWith(color: colorScheme.onSurface),
               ),
               const Spacer(),
               HistoryViewModeIconButton(
@@ -426,8 +428,10 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
                       child: Center(
                         child: Text(
                           'Nenhum dia para exibir',
-                          style: AppTextStyles.bodyMedium
-                              .copyWith(color: AppColors.textSecondary),
+                          style: AppTextStyles.bodyMedium.copyWith(
+                            color:
+                                colorScheme.onSurface.withValues(alpha: 0.68),
+                          ),
                         ),
                       ),
                     ),
@@ -732,8 +736,9 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
     showDialog(
       context: context,
       builder: (_) {
+        final colorScheme = Theme.of(context).colorScheme;
         return Dialog(
-          backgroundColor: Colors.white,
+          backgroundColor: colorScheme.surface,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(24),
           ),
@@ -744,7 +749,9 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
               children: [
                 Text(
                   'Ações do Dia',
-                  style: AppTextStyles.h3,
+                  style: AppTextStyles.h3.copyWith(
+                    color: colorScheme.onSurface,
+                  ),
                 ),
                 const SizedBox(height: 24),
                 _buildActionTile(
@@ -805,14 +812,22 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
     required String title,
     required VoidCallback onTap,
   }) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return InkWell(
       borderRadius: BorderRadius.circular(16),
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppColors.primary.withValues(alpha: 0.05),
+          color: isDark
+              ? AppColors.darkSurfaceAlt
+              : AppColors.primary.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isDark ? AppColors.primaryLight30 : Colors.transparent,
+          ),
         ),
         child: Row(
           children: [
@@ -826,10 +841,15 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
                 title,
                 style: AppTextStyles.bodyMedium.copyWith(
                   fontWeight: FontWeight.w600,
+                  color: colorScheme.onSurface,
                 ),
               ),
             ),
-            const Icon(Icons.arrow_forward_ios_rounded, size: 18),
+            Icon(
+              Icons.arrow_forward_ios_rounded,
+              size: 18,
+              color: colorScheme.onSurface.withValues(alpha: 0.68),
+            ),
           ],
         ),
       ),

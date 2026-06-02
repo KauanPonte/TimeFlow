@@ -8,6 +8,7 @@ import 'package:flutter_application_appdeponto/pages/admin/relatorios/user_repor
 import 'package:flutter_application_appdeponto/pages/admin/users_management/users_management_mode.dart';
 import 'package:flutter_application_appdeponto/services/analytics_service.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
+import '../dialogs/delete_user_dialog.dart';
 import '../dialogs/edit_user_dialog.dart';
 import '../user_card.dart';
 import '../empty_users_state.dart';
@@ -145,7 +146,7 @@ class _RegisteredUsersTabState extends State<RegisteredUsersTab>
                         const BorderSide(color: AppColors.primary, width: 2),
                   ),
                   filled: true,
-                  fillColor: AppColors.surface,
+                  fillColor: Theme.of(context).colorScheme.surface,
                   contentPadding:
                       const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 ),
@@ -208,9 +209,11 @@ class _RegisteredUsersTabState extends State<RegisteredUsersTab>
                                 onEdit: isEmployeesMode
                                     ? () => _openEditUserDialog(user)
                                     : () {},
-                                onDelete: () {},
+                                onDelete: isEmployeesMode
+                                    ? () => _openDeleteUserDialog(user)
+                                    : () {},
                                 showActions: isEmployeesMode,
-                                showDeleteAction: false,
+                                showDeleteAction: isEmployeesMode,
                               );
                             },
                           ),
@@ -270,6 +273,23 @@ class _RegisteredUsersTabState extends State<RegisteredUsersTab>
                   userName: user['name']?.toString() ?? '',
                   newRole: role,
                   workloadMinutes: workloadMinutes,
+                ),
+              );
+        },
+      ),
+    );
+  }
+
+  void _openDeleteUserDialog(Map<String, dynamic> user) {
+    showDialog(
+      context: context,
+      builder: (_) => DeleteUserDialog(
+        userName: user['name']?.toString() ?? '',
+        onConfirm: () {
+          context.read<UserManagementBloc>().add(
+                DeleteUserEvent(
+                  userId: user['id']?.toString() ?? '',
+                  userName: user['name']?.toString() ?? '',
                 ),
               );
         },

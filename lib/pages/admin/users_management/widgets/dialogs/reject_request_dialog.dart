@@ -15,7 +15,8 @@ class RejectRequestDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     return AppDialogScaffold(
       title: 'Rejeitar Solicitação',
-      subtitle: 'Tem certeza que deseja rejeitar a solicitação de $userName?\nEsta ação não pode ser desfeita.',
+      subtitle:
+          'Tem certeza que deseja rejeitar a solicitação de $userName?\nEsta ação não pode ser desfeita.',
       icon: Icons.close,
       isDestructive: true,
       confirmLabel: 'Rejeitar',

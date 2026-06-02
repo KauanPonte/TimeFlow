@@ -173,9 +173,8 @@ class HistoryContentBody extends StatelessWidget {
     holidayDayIds.addAll(excusedDayIds);
 
     final isHoliday = holidayDayIds.contains(diaId);
-    final isFuture = date != null &&
-        HistorySharedUtils.isFutureDate(date) &&
-        !isHoliday;
+    final isFuture =
+        date != null && HistorySharedUtils.isFutureDate(date) && !isHoliday;
 
     // Busca o nome do feriado para o DayCard
     final cleanDate =
@@ -205,8 +204,7 @@ class HistoryContentBody extends StatelessWidget {
                 eventos: evs,
               )
           : null,
-      onAddEvento:
-          isAdmin ? () => _showAddDialogForDay(context, diaId) : null,
+      onAddEvento: isAdmin ? () => _showAddDialogForDay(context, diaId) : null,
       onJustify: isAdmin
           ? () => AdminJustificativaDialog.show(
                 context: context,

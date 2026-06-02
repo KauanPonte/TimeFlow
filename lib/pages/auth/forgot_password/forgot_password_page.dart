@@ -41,7 +41,12 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.primary),
+          icon: Icon(
+            Icons.arrow_back,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Theme.of(context).colorScheme.onSurface
+                : AppColors.primary,
+          ),
           onPressed: () {
             Navigator.pop(context);
           },
@@ -69,16 +74,10 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
           final isEmailSent = state is PasswordResetEmailSent;
 
           return Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  AppColors.bgLight,
-                  AppColors.surface,
-                ],
-              ),
-            ),
+            decoration: BoxDecoration(
+                gradient: Theme.of(context).brightness == Brightness.dark
+                    ? AppColors.techDarkBackground
+                    : AppColors.appBackground),
             child: SafeArea(
               child: Center(
                 child: SingleChildScrollView(
