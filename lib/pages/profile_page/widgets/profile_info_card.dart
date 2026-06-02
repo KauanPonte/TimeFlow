@@ -9,6 +9,10 @@ class ProfileInfoCard extends StatelessWidget {
   final String role;
   final int? workloadMinutes;
   final bool isAdmin;
+  final String contractType;
+  final List<String> workDays;
+  final String projectType;
+  final List<String> projects;
   final VoidCallback onEdit;
 
   const ProfileInfoCard({
@@ -19,6 +23,10 @@ class ProfileInfoCard extends StatelessWidget {
     required this.workloadMinutes,
     required this.isAdmin,
     required this.onEdit,
+    this.contractType = '',
+    this.workDays = const [],
+    this.projectType = '',
+    this.projects = const [],
   });
 
   String _formatWorkload(int? minutes) {
@@ -29,6 +37,8 @@ class ProfileInfoCard extends StatelessWidget {
         ? '${hours}h'
         : '${hours}h${mins.toString().padLeft(2, '0')}';
   }
+
+  bool get _isBolsista => contractType == 'Bolsista';
 
   @override
   Widget build(BuildContext context) {
@@ -77,32 +87,58 @@ class ProfileInfoCard extends StatelessWidget {
             label: 'Nome',
             value: name,
           ),
-          const SizedBox(height: 12),
-          const Divider(height: 1),
-          const SizedBox(height: 12),
+          _divider(),
           ProfileInfoRow(
             icon: Icons.email_outlined,
             label: 'Email',
             value: email,
           ),
-          const SizedBox(height: 12),
-          const Divider(height: 1),
-          const SizedBox(height: 12),
+          _divider(),
           ProfileInfoRow(
             icon: Icons.badge_outlined,
             label: 'Cargo',
             value: role.isNotEmpty ? role : 'Sem cargo',
           ),
-          const SizedBox(height: 12),
-          const Divider(height: 1),
-          const SizedBox(height: 12),
+          _divider(),
           ProfileInfoRow(
             icon: Icons.schedule_outlined,
             label: 'Carga horária diária',
             value: _formatWorkload(workloadMinutes),
           ),
+          if (contractType.isNotEmpty) ...[
+            _divider(),
+            ProfileInfoRow(
+              icon: Icons.description_outlined,
+              label: 'Tipo de Contrato',
+              value: contractType,
+            ),
+          ],
+          if (_isBolsista && workDays.isNotEmpty) ...[
+            _divider(),
+            ProfileInfoRow(
+              icon: Icons.calendar_today_outlined,
+              label: 'Dias de trabalho',
+              value: workDays.join(', '),
+            ),
+          ],
+          if (_isBolsista && projects.isNotEmpty) ...[
+            _divider(),
+            ProfileInfoRow(
+              icon: Icons.work_outline,
+              label: projects.length == 1 ? 'Projeto vinculado' : 'Projetos vinculados',
+              value: projects.join('\n'),
+            ),
+          ],
         ],
       ),
     );
   }
+
+  Widget _divider() => const Column(
+        children: [
+          SizedBox(height: 12),
+          Divider(height: 1),
+          SizedBox(height: 12),
+        ],
+      );
 }

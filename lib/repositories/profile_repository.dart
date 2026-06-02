@@ -38,6 +38,18 @@ class ProfileRepository {
       'role': data['role'] ?? '',
       'profileImage': data['profileImage'] ?? '',
       'workloadMinutes': workloadMinutes,
+      'contractType': data['contractType'] ?? '',
+      'workDays': (data['workDays'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          [],
+      'projectType': data['projectType'] ?? '',
+      'projects': (data['projects'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          [],
+      'project1': data['project1'] ?? '',
+      'project2': data['project2'] ?? '',
     };
   }
 

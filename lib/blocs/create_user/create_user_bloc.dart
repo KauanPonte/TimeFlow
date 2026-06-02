@@ -137,8 +137,8 @@ class CreateUserBloc extends Bloc<CreateUserEvent, CreateUserState> {
         contractType: event.contractType,
         workDays: event.workDays,
         projectType: event.projectType,
-        project1: event.project1,
-        project2: event.project2,
+        projects: event.projects,
+        startDate: event.startDate,
       );
 
       globalLoading?.hide();
@@ -272,11 +272,16 @@ class CreateUserBloc extends Bloc<CreateUserEvent, CreateUserState> {
 
   CreateUserFormState _validateWorkDays(
       CreateUserFormState state, String value) {
-    if (state.contractTypeValid && value.trim().isEmpty) {
-      return state.copyWith(
-        workDaysError: 'Selecione ao menos um dia para bolsista',
-        workDaysValid: false,
-      );
+    if (state.contractTypeValid) {
+      final count = value.trim().isEmpty
+          ? 0
+          : value.trim().split(',').where((d) => d.isNotEmpty).length;
+      if (count < 3) {
+        return state.copyWith(
+          workDaysError: 'Selecione ao menos 3 dias para bolsista',
+          workDaysValid: false,
+        );
+      }
     }
     return state.copyWith(
       clearWorkDaysError: true,

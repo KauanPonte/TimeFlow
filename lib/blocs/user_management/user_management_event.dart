@@ -23,16 +23,36 @@ class ApproveRequestEvent extends UserManagementEvent {
   final String userName;
   final String cargaHoraria;
   final String role;
+  final String contractType;
+  final List<String> workDays;
+  final String projectType;
+  final List<String> projects;
+  final DateTime startDate;
 
   const ApproveRequestEvent({
     required this.requestId,
     required this.userName,
     required this.cargaHoraria,
     required this.role,
+    required this.contractType,
+    required this.workDays,
+    required this.projectType,
+    required this.projects,
+    required this.startDate,
   });
 
   @override
-  List<Object?> get props => [requestId, userName, cargaHoraria, role];
+  List<Object?> get props => [
+        requestId,
+        userName,
+        cargaHoraria,
+        role,
+        contractType,
+        workDays,
+        projectType,
+        projects,
+        startDate,
+      ];
 }
 
 /// Rejeita uma solicitação de cadastro
@@ -87,16 +107,36 @@ class UpdateUserProfileEvent extends UserManagementEvent {
   final String userName;
   final String newRole;
   final int workloadMinutes;
+  final String contractType;
+  final List<String> workDays;
+  final String projectType;
+  final List<String> projects;
+  final DateTime? effectiveDate;
 
   const UpdateUserProfileEvent({
     required this.userId,
     required this.userName,
     required this.newRole,
     required this.workloadMinutes,
+    required this.contractType,
+    required this.workDays,
+    required this.projectType,
+    required this.projects,
+    this.effectiveDate,
   });
 
   @override
-  List<Object> get props => [userId, userName, newRole, workloadMinutes];
+  List<Object?> get props => [
+        userId,
+        userName,
+        newRole,
+        workloadMinutes,
+        contractType,
+        workDays,
+        projectType,
+        projects,
+        effectiveDate,
+      ];
 }
 
 /// Remove um usuário do sistema

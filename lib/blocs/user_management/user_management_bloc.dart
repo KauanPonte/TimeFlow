@@ -1,6 +1,8 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/global_loading/global_loading_cubit.dart';
 import 'package:flutter_application_appdeponto/repositories/user_repository.dart';
+import 'package:flutter_application_appdeponto/services/ponto_service.dart';
+import 'package:flutter_application_appdeponto/services/server_time_service.dart';
 import 'user_management_event.dart';
 import 'user_management_state.dart';
 
@@ -75,6 +77,11 @@ class UserManagementBloc
         requestId: event.requestId,
         cargaHoraria: event.cargaHoraria,
         role: event.role,
+        contractType: event.contractType,
+        workDays: event.workDays,
+        projectType: event.projectType,
+        projects: event.projects,
+        startDate: event.startDate,
       );
 
       // Recarrega as solicitações pendentes
@@ -223,10 +230,23 @@ class UserManagementBloc
     try {
       globalLoading?.show('Atualizando usuário...');
 
-      await Future.wait([
-        UserRepository.updateUserRole(event.userId, event.newRole),
-        UserRepository.updateUserWorkload(event.userId, event.workloadMinutes),
-      ]);
+      await UserRepository.updateUserFullProfile(
+        userId: event.userId,
+        role: event.newRole,
+        workloadMinutes: event.workloadMinutes,
+        contractType: event.contractType,
+        workDays: event.workDays,
+        projectType: event.projectType,
+        projects: event.projects,
+      );
+
+      if (event.effectiveDate != null) {
+        await PontoService.recalcularPeriodo(
+          uid: event.userId,
+          from: event.effectiveDate!,
+          to: ServerTimeService.now(),
+        );
+      }
 
       final users = await UserRepository.getUsers(includeTodayStatus: true);
       final newState = UsersLoaded(

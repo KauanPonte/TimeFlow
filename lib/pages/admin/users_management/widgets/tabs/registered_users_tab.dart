@@ -263,13 +263,36 @@ class _RegisteredUsersTabState extends State<RegisteredUsersTab>
         userName: user['name']?.toString() ?? '',
         currentRole: user['role']?.toString() ?? '',
         currentWorkloadMinutes: user['workloadMinutes'] as int?,
-        onSave: (role, workloadMinutes) {
+        currentContractType: user['contractType']?.toString() ?? '',
+        currentWorkDays: (user['workDays'] as List<dynamic>?)
+                ?.map((e) => e.toString())
+                .toList() ??
+            [],
+        currentProjectType: user['projectType']?.toString() ?? '',
+        currentProjects: (user['projects'] as List<dynamic>?)
+                ?.map((e) => e.toString())
+                .toList() ??
+            [],
+        onSave: ({
+          required String role,
+          required int workloadMinutes,
+          required String contractType,
+          required List<String> workDays,
+          required String projectType,
+          required List<String> projects,
+          required DateTime? effectiveDate,
+        }) {
           context.read<UserManagementBloc>().add(
                 UpdateUserProfileEvent(
                   userId: user['id']?.toString() ?? '',
                   userName: user['name']?.toString() ?? '',
                   newRole: role,
                   workloadMinutes: workloadMinutes,
+                  contractType: contractType,
+                  workDays: workDays,
+                  projectType: projectType,
+                  projects: projects,
+                  effectiveDate: effectiveDate,
                 ),
               );
         },

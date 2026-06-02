@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/create_user/create_user_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/create_user/create_user_event.dart';
@@ -24,6 +25,69 @@ class CreateUserPage extends StatelessWidget {
   }
 }
 
+class _DatePickerField extends StatelessWidget {
+  final String label;
+  final DateTime date;
+  final ValueChanged<DateTime> onDateSelected;
+
+  const _DatePickerField({
+    required this.label,
+    required this.date,
+    required this.onDateSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: AppTextStyles.bodySmall.copyWith(
+            color: AppColors.textSecondary,
+          ),
+        ),
+        const SizedBox(height: 6),
+        InkWell(
+          onTap: () async {
+            final now = DateTime.now();
+            final picked = await showDatePicker(
+              context: context,
+              initialDate: date,
+              firstDate: DateTime(now.year - 5),
+              lastDate: DateTime(now.year + 2),
+              confirmText: 'Confirmar',
+              cancelText: 'Cancelar',
+            );
+            if (picked != null) onDateSelected(picked);
+          },
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              border: Border.all(color: AppColors.borderLight),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.calendar_today_outlined,
+                    color: AppColors.primary, size: 20),
+                const SizedBox(width: 12),
+                Text(
+                  DateFormat('dd/MM/yyyy').format(date),
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class CreateUserView extends StatefulWidget {
   const CreateUserView({super.key});
 
@@ -39,8 +103,9 @@ class _CreateUserViewState extends State<CreateUserView> {
   final _confirmPasswordController = TextEditingController();
   final TextEditingController _cargaHorariaController = TextEditingController();
   final _roleController = TextEditingController();
-  final _project1Controller = TextEditingController();
-  final _project2Controller = TextEditingController();
+  final List<TextEditingController> _projectControllers = [
+    TextEditingController(),
+  ];
 
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
@@ -48,6 +113,7 @@ class _CreateUserViewState extends State<CreateUserView> {
   String _projectType = '';
   String _selectedBolsistaHour = '4';
   final List<String> _selectedWorkDays = [];
+  DateTime _startDate = DateTime.now();
 
   static const List<Map<String, String>> _weekDayOptions = [
     {'label': 'D', 'value': 'Dom'},
@@ -67,8 +133,9 @@ class _CreateUserViewState extends State<CreateUserView> {
     _confirmPasswordController.dispose();
     _cargaHorariaController.dispose();
     _roleController.dispose();
-    _project1Controller.dispose();
-    _project2Controller.dispose();
+    for (final c in _projectControllers) {
+      c.dispose();
+    }
     super.dispose();
   }
 
@@ -80,8 +147,10 @@ class _CreateUserViewState extends State<CreateUserView> {
         _cargaHorariaController.text = '8';
         _selectedWorkDays.clear();
         _projectType = '';
-        _project1Controller.clear();
-        _project2Controller.clear();
+        _projectControllers
+          ..forEach((c) => c.dispose())
+          ..clear()
+          ..add(TextEditingController());
       } else {
         _selectedBolsistaHour = '4';
         _cargaHorariaController.text = '4';
@@ -144,8 +213,8 @@ class _CreateUserViewState extends State<CreateUserView> {
             contractType: _contractType,
             workDays: List.unmodifiable(_selectedWorkDays),
             projectType: _projectType,
-            project1: _project1Controller.text,
-            project2: _project2Controller.text,
+            projects: _projectControllers.map((c) => c.text).toList(),
+            startDate: _startDate,
           ),
         );
   }
@@ -344,18 +413,14 @@ class _CreateUserViewState extends State<CreateUserView> {
                           }
                         : null,
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 16),
 
-                  Padding(
-                    padding: const EdgeInsets.only(left: 16),
-                    child: Text(
-                      'Ex: 8 ou 8:30 ',
-                      style: AppTextStyles.bodySmall.copyWith(
-                        color: AppColors.textSecondary,
-                        fontStyle: FontStyle.italic,
-                      ),
-                    ),
+                  _DatePickerField(
+                    label: 'Data de início',
+                    date: _startDate,
+                    onDateSelected: (d) => setState(() => _startDate = d),
                   ),
+
                   const SizedBox(height: 16),
 
                   CustomTextField(
@@ -587,19 +652,54 @@ class _CreateUserViewState extends State<CreateUserView> {
                         );
                       }).toList(),
                     ),
-                    const SizedBox(height: 16),
-                    CustomTextField(
-                      controller: _project1Controller,
-                      labelText: 'Projeto 1',
-                      prefixIcon: Icons.work_outline,
+                    ..._projectControllers.asMap().entries.map((entry) {
+                      final index = entry.key;
+                      final controller = entry.value;
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 16),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: CustomTextField(
+                                controller: controller,
+                                labelText: 'Projeto ${index + 1}',
+                                prefixIcon: Icons.work_outline,
+                              ),
+                            ),
+                            if (_projectControllers.length > 1)
+                              IconButton(
+                                onPressed: () {
+                                  setState(() {
+                                    controller.dispose();
+                                    _projectControllers.removeAt(index);
+                                  });
+                                },
+                                icon: const Icon(Icons.remove_circle_outline),
+                                color: Colors.redAccent,
+                                tooltip: 'Remover projeto',
+                              ),
+                          ],
+                        ),
+                      );
+                    }),
+                    const SizedBox(height: 12),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton.icon(
+                        onPressed: () {
+                          setState(() {
+                            _projectControllers.add(TextEditingController());
+                          });
+                        },
+                        icon: const Icon(Icons.add, size: 18),
+                        label: const Text('Adicionar projeto'),
+                        style: TextButton.styleFrom(
+                          foregroundColor: const Color(0xFF178573),
+                          padding: EdgeInsets.zero,
+                        ),
+                      ),
                     ),
                     const SizedBox(height: 16),
-                    CustomTextField(
-                      controller: _project2Controller,
-                      labelText: 'Projeto 2',
-                      prefixIcon: Icons.work_outline,
-                    ),
-                    const SizedBox(height: 24),
                   ],
 
                   /*Padding(

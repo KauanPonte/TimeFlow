@@ -25,6 +25,10 @@ class ProfileLoaded extends ProfileState {
   final String role;
   final String profileImageUrl;
   final int? workloadMinutes;
+  final String contractType;
+  final List<String> workDays;
+  final String projectType;
+  final List<String> projects;
 
   const ProfileLoaded({
     required this.uid,
@@ -33,6 +37,10 @@ class ProfileLoaded extends ProfileState {
     required this.role,
     required this.profileImageUrl,
     this.workloadMinutes,
+    this.contractType = '',
+    this.workDays = const [],
+    this.projectType = '',
+    this.projects = const [],
   });
 
   @override
@@ -43,6 +51,10 @@ class ProfileLoaded extends ProfileState {
         role,
         profileImageUrl,
         workloadMinutes,
+        contractType,
+        workDays,
+        projectType,
+        projects,
       ];
 
   ProfileLoaded copyWith({
@@ -52,6 +64,10 @@ class ProfileLoaded extends ProfileState {
     String? role,
     String? profileImageUrl,
     int? workloadMinutes,
+    String? contractType,
+    List<String>? workDays,
+    String? projectType,
+    List<String>? projects,
   }) {
     return ProfileLoaded(
       uid: uid ?? this.uid,
@@ -60,6 +76,10 @@ class ProfileLoaded extends ProfileState {
       role: role ?? this.role,
       profileImageUrl: profileImageUrl ?? this.profileImageUrl,
       workloadMinutes: workloadMinutes ?? this.workloadMinutes,
+      contractType: contractType ?? this.contractType,
+      workDays: workDays ?? this.workDays,
+      projectType: projectType ?? this.projectType,
+      projects: projects ?? this.projects,
     );
   }
 }

@@ -29,6 +29,12 @@ class _UserReportPageState extends State<UserReportPage> {
 
   int get _workloadMinutes => widget.user['workloadMinutes'] as int? ?? 0;
 
+  List<String> get _workDays =>
+      (widget.user['workDays'] as List<dynamic>?)
+          ?.map((e) => e.toString())
+          .toList() ??
+      [];
+
   @override
   void initState() {
     super.initState();
@@ -47,6 +53,7 @@ class _UserReportPageState extends State<UserReportPage> {
     final report = _RadData.fromDays(
       days: days,
       workloadMinutes: _workloadMinutes,
+      workDays: _workDays,
       projects: _projectsFromUser(widget.user),
     );
     final prefs = await SharedPreferences.getInstance();
@@ -1035,6 +1042,7 @@ class _RadData {
   factory _RadData.fromDays({
     required Map<String, List<Map<String, dynamic>>> days,
     required int workloadMinutes,
+    required List<String> workDays,
     required List<String> projects,
   }) {
     var workedMinutes = 0;
@@ -1042,6 +1050,14 @@ class _RadData {
     var presencialDays = 0;
     var remoteDays = 0;
     final weekly = <int, _WeekAccumulator>{};
+
+    bool isWorkDay(String dayId) {
+      if (workDays.isEmpty) return true;
+      final date = DateTime.tryParse(dayId);
+      if (date == null) return true;
+      const names = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab'];
+      return workDays.contains(names[date.weekday % 7]);
+    }
 
     for (final entry in days.entries) {
       final dayId = entry.key;
@@ -1063,10 +1079,11 @@ class _RadData {
       final acc = weekly.putIfAbsent(weekIndex, () => _WeekAccumulator());
       acc.days += 1;
       acc.workedMinutes += dayWorked;
-      acc.expectedMinutes += workloadMinutes;
+      if (isWorkDay(dayId)) acc.expectedMinutes += workloadMinutes;
     }
 
-    final expectedMinutes = workloadMinutes * days.length;
+    final expectedMinutes =
+        workloadMinutes * days.keys.where(isWorkDay).length;
     final balanceMinutes = workedMinutes - expectedMinutes;
     final adherencePercent = expectedMinutes <= 0
         ? 0
@@ -1212,15 +1229,18 @@ String _dominantWorkMode(List<Map<String, dynamic>> events) {
 }
 
 List<String> _projectsFromUser(Map<String, dynamic> user) {
-  final raw = [
-    user['projectType'],
-    user['project1'],
-    user['project2'],
-  ];
-  return raw
-      .map((value) => (value ?? '').toString().trim())
-      .where((value) => value.isNotEmpty)
-      .toSet()
+  // Novos usuários: campo 'projects' é uma lista (projectType é só o setor, não aparece aqui).
+  final projectsList = user['projects'];
+  if (projectsList is List && projectsList.isNotEmpty) {
+    return projectsList
+        .map((e) => e.toString().trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+  }
+  // Usuários antigos: campos 'project1' e 'project2' separados.
+  return [user['project1'], user['project2']]
+      .map((v) => (v ?? '').toString().trim())
+      .where((v) => v.isNotEmpty)
       .toList();
 }
 

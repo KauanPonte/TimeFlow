@@ -335,6 +335,7 @@ class _ProfilePageViewState extends State<_ProfilePageView> {
                 child: ProfileHeader(
                   name: profileData.name,
                   role: profileData.role,
+                  projectType: profileData.projectType,
                 ),
               ),
 
@@ -346,6 +347,10 @@ class _ProfilePageViewState extends State<_ProfilePageView> {
                 role: profileData.role,
                 workloadMinutes: profileData.workloadMinutes,
                 isAdmin: isAdmin,
+                contractType: profileData.contractType,
+                workDays: profileData.workDays,
+                projectType: profileData.projectType,
+                projects: profileData.projects,
                 onEdit: () => _showEditProfileDialog(profileData!),
               ),
 

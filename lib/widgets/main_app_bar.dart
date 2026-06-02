@@ -2502,11 +2502,24 @@ class _PendingUsersSheetState extends State<_PendingUsersSheet> {
       context: context,
       builder: (_) => ApproveRequestDialog(
         userName: name,
-        onApprove: (role, cargaHoraria) async {
+        onApprove: ({
+          required String role,
+          required String cargaHoraria,
+          required String contractType,
+          required List<String> workDays,
+          required String projectType,
+          required List<String> projects,
+          required DateTime startDate,
+        }) async {
           final success = await UserRepository.approveRequest(
             requestId: id,
             cargaHoraria: cargaHoraria,
             role: role,
+            contractType: contractType,
+            workDays: workDays,
+            projectType: projectType,
+            projects: projects,
+            startDate: startDate,
           );
           if (success && mounted) {
             setState(() => _requests?.removeWhere((r) => r['id'] == id));
