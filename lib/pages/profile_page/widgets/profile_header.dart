@@ -5,12 +5,19 @@ import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
 class ProfileHeader extends StatelessWidget {
   final String name;
   final String role;
+  final String projectType;
 
   const ProfileHeader({
     super.key,
     required this.name,
     required this.role,
+    this.projectType = '',
   });
+
+  String _chipLabel() {
+    final r = role.isNotEmpty ? role : 'Sem cargo';
+    return projectType.isNotEmpty ? '$projectType / $r' : r;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,7 +42,7 @@ class ProfileHeader extends StatelessWidget {
             border: Border.all(color: AppColors.primaryLight30),
           ),
           child: Text(
-            role.isNotEmpty ? role : 'Sem cargo',
+            _chipLabel(),
             style: AppTextStyles.bodySmall.copyWith(
               color: colorScheme.primary,
               fontWeight: FontWeight.w600,

@@ -34,8 +34,8 @@ class CreateUserRepository {
     required String contractType,
     required List<String> workDays,
     required String projectType,
-    required String project1,
-    required String project2,
+    required List<String> projects,
+    required DateTime startDate,
   }) async {
     FirebaseApp? secondaryApp;
 
@@ -71,10 +71,10 @@ class CreateUserRepository {
         'contractType': contractType,
         'workDays': workDays,
         'projectType': projectType,
-        'project1': project1.trim(),
-        'project2': project2.trim(),
+        'projects': projects.map((p) => p.trim()).where((p) => p.isNotEmpty).toList(),
         'status': 'active',
         'profileImage': '',
+        'startDate': Timestamp.fromDate(startDate),
         'createdAt': FieldValue.serverTimestamp(),
       });
     } on FirebaseAuthException catch (e) {

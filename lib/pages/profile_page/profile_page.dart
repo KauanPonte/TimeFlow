@@ -326,6 +326,7 @@ class _ProfilePageViewState extends State<_ProfilePageView> {
             }
 
             final isAdmin = _isAdminRole(profileData.role);
+            final profile = profileData;
 
             return ListView(
               padding: const EdgeInsets.all(24),
@@ -346,33 +347,38 @@ class _ProfilePageViewState extends State<_ProfilePageView> {
 
                 const SizedBox(height: 24),
 
-                Center(
-                  child: ProfileHeader(
-                    name: profileData.name,
-                    role: profileData.role,
-                  ),
+              Center(
+                child: ProfileHeader(
+                  name: profileData.name,
+                  role: profileData.role,
+                  projectType: profileData.projectType,
                 ),
+              ),
 
                 const SizedBox(height: 32),
 
-                BlocBuilder<PontoTodayCubit, PontoTodayState>(
-                  builder: (context, pontoState) {
-                    final hasPunchToday = pontoState.eventosHoje.isNotEmpty;
-                    final isOnline = pontoState.ultimoTipo == 'entrada' ||
-                        pontoState.ultimoTipo == 'retorno';
+              BlocBuilder<PontoTodayCubit, PontoTodayState>(
+                builder: (context, pontoState) {
+                  final hasPunchToday = pontoState.eventosHoje.isNotEmpty;
+                  final isOnline = pontoState.ultimoTipo == 'entrada' ||
+                      pontoState.ultimoTipo == 'retorno';
 
-                    return ProfileInfoCard(
-                      name: profileData!.name,
-                      email: profileData.email,
-                      role: profileData.role,
-                      workloadMinutes: profileData.workloadMinutes,
-                      isAdmin: isAdmin,
-                      onEdit: () => _showEditProfileDialog(profileData!),
-                      showPresence: hasPunchToday,
-                      isOnline: isOnline,
-                    );
-                  },
-                ),
+                  return ProfileInfoCard(
+                    name: profile.name,
+                    email: profile.email,
+                    role: profile.role,
+                    workloadMinutes: profile.workloadMinutes,
+                    isAdmin: isAdmin,
+                    contractType: profile.contractType,
+                    workDays: profile.workDays,
+                    projectType: profile.projectType,
+                    projects: profile.projects,
+                    onEdit: () => _showEditProfileDialog(profile),
+                    showPresence: hasPunchToday,
+                    isOnline: isOnline,
+                  );
+                },
+              ),
 
                 const SizedBox(height: 16),
 

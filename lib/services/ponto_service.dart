@@ -34,13 +34,6 @@ class PontoService {
     }
   }
 
-  /// Carga horária do usuário lida do cache local (instantânea).
-  static Future<int> _getWorkloadMinutesCacheFirst(String uid) async {
-    final snap = await _getDocCacheFirst(
-        FirebaseFirestore.instance.collection('usuarios').doc(uid));
-    return (snap.data()?['workloadMinutes'] as int?) ?? (8 * 60);
-  }
-
   static String _hojeId() => ServerTimeService.todayId();
   static String _diaId(DateTime d) => DateFormat('yyyy-MM-dd').format(d);
   static DateTime _startOfDay(DateTime d) => DateTime(d.year, d.month, d.day);
@@ -52,11 +45,40 @@ class PontoService {
     return (userSnap.data()?['workloadMinutes'] as int?) ?? (8 * 60);
   }
 
+  /// Retorna workloadMinutes + workDays para o usuário (cache-first).
+  static Future<({int workloadMinutes, List<String> workDays})>
+      _getUserWorkload(String uid) async {
+    final snap = await _getDocCacheFirst(
+        FirebaseFirestore.instance.collection('usuarios').doc(uid));
+    final data = snap.data() ?? {};
+    final minutes = (data['workloadMinutes'] as int?) ?? (8 * 60);
+    final days = (data['workDays'] as List<dynamic>?)
+            ?.map((e) => e.toString())
+            .toList() ??
+        [];
+    return (workloadMinutes: minutes, workDays: days);
+  }
+
+  /// Verifica se uma data é dia de trabalho para o usuário.
+  /// CLT: workDays vazio → todos os dias úteis contam.
+  /// Bolsista: apenas os dias da lista (ex.: ['Seg', 'Qua', 'Sex']).
+  static bool _isUserWorkDay(DateTime date, List<String> workDays) {
+    if (workDays.isEmpty) return true;
+    // DateTime.weekday: 1=Mon … 7=Sun → índice [0]=Dom,[1]=Seg,…,[6]=Sab
+    const names = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab'];
+    return workDays.contains(names[date.weekday % 7]);
+  }
+
   static Future<DateTime?> _getUserCreatedAt(String uid) async {
     final userSnap =
         await FirebaseFirestore.instance.collection('usuarios').doc(uid).get();
-    final ts = userSnap.data()?['createdAt'];
-    if (ts is Timestamp) return _startOfDay(ts.toDate());
+    final data = userSnap.data();
+    // startDate tem prioridade: data de início do trabalho definida pelo admin.
+    // Fallback para createdAt para manter compatibilidade com usuários antigos.
+    final startTs = data?['startDate'];
+    if (startTs is Timestamp) return _startOfDay(startTs.toDate());
+    final createdTs = data?['createdAt'];
+    if (createdTs is Timestamp) return _startOfDay(createdTs.toDate());
     return null;
   }
 
@@ -196,10 +218,15 @@ class PontoService {
           : (diaData?['workedMinutes'] as int?) ?? 0;
       final bool isExcused = (diaData?['isExcused'] as bool?) ?? false;
       final int abonoMinutes = (diaData?['abonoMinutes'] as int?) ?? 0;
-      final int workloadMinutes = await _getWorkloadMinutesCacheFirst(uid);
+      final userWorkload = await _getUserWorkload(uid);
+      final int workloadMinutes = userWorkload.workloadMinutes;
+      final bool isWorkDay =
+          _isUserWorkDay(ServerTimeService.now(), userWorkload.workDays);
       final int deltaMinutes = isExcused
           ? workedMinutes
-          : (diaFechado ? (workedMinutes + abonoMinutes - workloadMinutes) : 0);
+          : (diaFechado && isWorkDay
+              ? (workedMinutes + abonoMinutes - workloadMinutes)
+              : 0);
       final int oldDelta = (diaData?['deltaMinutes'] as int?) ?? 0;
       final int balanceDiff = deltaMinutes - oldDelta;
 
@@ -573,8 +600,8 @@ class PontoService {
     }).toList();
 
     final workedMinutes = _computeWorkedMinutesFromEventosFechado(eventos);
-    final workloadMinutes =
-        await _getWorkloadMinutes(uid); // <--- VALOR DEFINIDO AQUI
+    final userWorkload = await _getUserWorkload(uid);
+    final workloadMinutes = userWorkload.workloadMinutes;
 
     final diaSnapPre = await refDia.get();
     final bool isExcused = (diaSnapPre.data()?['isExcused'] as bool?) ?? false;
@@ -593,9 +620,10 @@ class PontoService {
     final bool isWeekend =
         date.weekday == DateTime.saturday || date.weekday == DateTime.sunday;
     final bool isHoliday = holidays.containsKey(date);
+    final bool isWorkDay = _isUserWorkDay(date, userWorkload.workDays);
 
     final bool falta =
-        !ehHoje && eventos.isEmpty && !isWeekend && !isHoliday && !isExcused;
+        !ehHoje && eventos.isEmpty && !isWeekend && !isHoliday && !isExcused && isWorkDay;
 
     final bool emAberto = !diaFechado && eventos.isNotEmpty;
 
@@ -603,7 +631,9 @@ class PontoService {
         ? workedMinutes
         : (falta
             ? -workloadMinutes
-            : (diaFechado ? (workedMinutes + abonoMinutes - workloadMinutes) : 0));
+            : (diaFechado && isWorkDay
+                ? (workedMinutes + abonoMinutes - workloadMinutes)
+                : 0));
 
     // Função interna corrigida usando workloadMinutes
     Future<void> applyUpdate(int oldDelta, int oldBalance) async {
@@ -670,6 +700,20 @@ class PontoService {
       final mesSnap = await refMes.get();
       await applyUpdate((diaSnap.data()?['deltaMinutes'] as int?) ?? 0,
           (mesSnap.data()?['balanceMinutes'] as int?) ?? 0);
+    }
+  }
+
+  /// Recalcula o banco de horas para todos os dias de [from] até [to] (inclusive).
+  /// Útil quando workload ou workDays mudam com data retroativa.
+  static Future<void> recalcularPeriodo({
+    required String uid,
+    required DateTime from,
+    required DateTime to,
+  }) async {
+    final start = _startOfDay(from);
+    final end = _startOfDay(to);
+    for (var d = start; !d.isAfter(end); d = d.add(const Duration(days: 1))) {
+      await recalcularBancoDeHorasDoDia(uid: uid, diaId: _diaId(d));
     }
   }
 
@@ -845,7 +889,9 @@ class PontoService {
       }
     }
 
-    final workloadMinutes = await _getWorkloadMinutes(uid);
+    final userWorkload = await _getUserWorkload(uid);
+    final workloadMinutes = userWorkload.workloadMinutes;
+    final workDays = userWorkload.workDays;
 
     // 1. Horas no mês: baseadas na jornada mensal esperada completa do mês consultado
     int diasUteisNoMes = 0;
@@ -860,7 +906,7 @@ class PontoService {
       bool isFolga = folgas.contains(
           diaId); // Inclui feriados fixos e artificiais via CalendarService
       bool isAtestado = atestadoDays.contains(diaId);
-      if (!isWeekend && !isFolga && !isAtestado) diasUteisNoMes++;
+      if (!isWeekend && !isFolga && !isAtestado && _isUserWorkDay(date, workDays)) diasUteisNoMes++;
     }
 
     final int expectedMinutesTotal = diasUteisNoMes * workloadMinutes;
@@ -903,7 +949,7 @@ class PontoService {
       bool isAtestado = atestadoDays.contains(diaId);
 
       // Assim como no user_reports_page, contabiliza apenas dias úteis na meta de saldo.
-      if (!isWeekend && !isFolga && !isAtestado) {
+      if (!isWeekend && !isFolga && !isAtestado && _isUserWorkDay(date, workDays)) {
         expectedMinutesUntilLimit += workloadMinutes;
       }
     }
@@ -1063,6 +1109,7 @@ class PontoService {
         (userCreatedAt != null && userCreatedAt.isAfter(monthStart))
             ? userCreatedAt
             : monthStart;
+    final userWorkDays = (await _getUserWorkload(uid)).workDays;
 
     final prefix =
         '${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}';
@@ -1108,7 +1155,7 @@ class PontoService {
       final isWeekend =
           day.weekday == DateTime.saturday || day.weekday == DateTime.sunday;
       final isHoliday = holidays.containsKey(day);
-      if (isWeekend || isHoliday) continue;
+      if (isWeekend || isHoliday || !_isUserWorkDay(day, userWorkDays)) continue;
 
       final diaId = _diaId(day);
       if (!existingDays.contains(diaId)) {

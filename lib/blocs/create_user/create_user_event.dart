@@ -46,8 +46,8 @@ class CreateUserSubmitEvent extends CreateUserEvent {
   final String contractType;
   final List<String> workDays;
   final String projectType;
-  final String project1;
-  final String project2;
+  final List<String> projects;
+  final DateTime startDate;
 
   const CreateUserSubmitEvent({
     required this.name,
@@ -59,8 +59,8 @@ class CreateUserSubmitEvent extends CreateUserEvent {
     required this.contractType,
     required this.workDays,
     required this.projectType,
-    required this.project1,
-    required this.project2,
+    required this.projects,
+    required this.startDate,
   });
 
   @override
@@ -74,8 +74,8 @@ class CreateUserSubmitEvent extends CreateUserEvent {
         contractType,
         workDays,
         projectType,
-        project1,
-        project2,
+        projects,
+        startDate,
       ];
 }
 

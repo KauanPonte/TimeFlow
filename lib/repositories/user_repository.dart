@@ -61,6 +61,12 @@ class UserRepository {
         'role': data['role'] ?? '',
         'status': data['status'] ?? '',
         'workloadMinutes': data['workloadMinutes'] ?? 0,
+        'contractType': data['contractType'] ?? '',
+        'workDays': data['workDays'] ?? [],
+        'projectType': data['projectType'] ?? '',
+        'projects': data['projects'] ?? [],
+        'project1': data['project1'] ?? '',
+        'project2': data['project2'] ?? '',
         'registeredAt': _formatTimestamp(data['createdAt']),
         'profileImage': data['profileImage'] ?? '',
         'todayWorkMode': todayWorkMode ?? '',
@@ -166,6 +172,11 @@ class UserRepository {
     required String requestId,
     required String cargaHoraria,
     required String role,
+    required String contractType,
+    required List<String> workDays,
+    required String projectType,
+    required List<String> projects,
+    required DateTime startDate,
   }) async {
     try {
       final workloadMinutes = _parseCargaHoraria(cargaHoraria);
@@ -173,6 +184,12 @@ class UserRepository {
         'status': 'active',
         'workloadMinutes': workloadMinutes,
         'role': role,
+        'contractType': contractType,
+        'workDays': workDays,
+        'projectType': projectType,
+        'projects':
+            projects.map((p) => p.trim()).where((p) => p.isNotEmpty).toList(),
+        'startDate': Timestamp.fromDate(startDate),
       });
       return true;
     } catch (e) {
@@ -224,6 +241,33 @@ class UserRepository {
         'workloadMinutes': workloadMinutes,
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Atualiza perfil completo do usuário (cargo, carga, contrato, dias, projetos).
+  static Future<bool> updateUserFullProfile({
+    required String userId,
+    required String role,
+    required int workloadMinutes,
+    required String contractType,
+    required List<String> workDays,
+    required String projectType,
+    required List<String> projects,
+  }) async {
+    try {
+      await _db.collection(_usersCollection).doc(userId).update({
+        'role': role,
+        'workloadMinutes': workloadMinutes,
+        'contractType': contractType,
+        'workDays': workDays,
+        'projectType': projectType,
+        'projects':
+            projects.map((p) => p.trim()).where((p) => p.isNotEmpty).toList(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
       return true;
     } catch (e) {
       return false;

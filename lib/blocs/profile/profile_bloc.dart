@@ -39,6 +39,16 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
         role: data['role'] ?? '',
         profileImageUrl: data['profileImage'] ?? '',
         workloadMinutes: data['workloadMinutes'] as int?,
+        contractType: (data['contractType'] ?? '') as String,
+        workDays: (data['workDays'] as List<dynamic>?)
+                ?.map((e) => e.toString())
+                .toList() ??
+            [],
+        projectType: (data['projectType'] ?? '') as String,
+        projects: (data['projects'] as List<dynamic>?)
+                ?.map((e) => e.toString())
+                .toList() ??
+            [],
       ));
     } catch (e) {
       emit(ProfileError(
