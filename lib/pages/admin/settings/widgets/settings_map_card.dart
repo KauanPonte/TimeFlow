@@ -104,7 +104,7 @@ class SettingsMapCard extends StatelessWidget {
               bottom: 14,
               child: FloatingActionButton.small(
                 heroTag: 'admin_settings_gps_btn',
-                backgroundColor: AppColors.surface,
+                backgroundColor: Theme.of(context).colorScheme.surface,
                 onPressed: capturingGps ? null : onMyLocationPressed,
                 child: capturingGps
                     ? const SizedBox(

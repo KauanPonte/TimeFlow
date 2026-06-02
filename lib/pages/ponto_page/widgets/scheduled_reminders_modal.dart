@@ -126,7 +126,7 @@ class _ScheduledRemindersModalState extends State<ScheduledRemindersModal> {
           Text(
             'Deseja remover o lembrete de ${reminder.category.label} às ${reminder.formattedTime}?',
             style: AppTextStyles.bodyMedium.copyWith(
-              color: AppColors.textPrimary,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
         ],
@@ -179,9 +179,9 @@ class _ScheduledRemindersModalState extends State<ScheduledRemindersModal> {
       constraints: BoxConstraints(
         maxHeight: MediaQuery.of(context).size.height * 0.85,
       ),
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -218,6 +218,7 @@ class _ScheduledRemindersModalState extends State<ScheduledRemindersModal> {
   }
 
   Widget _buildHeader() {
+    final colorScheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Row(
@@ -243,13 +244,13 @@ class _ScheduledRemindersModalState extends State<ScheduledRemindersModal> {
                   'Lembretes Agendados',
                   style: AppTextStyles.bodyLarge.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
+                    color: colorScheme.onSurface,
                   ),
                 ),
                 Text(
                   '${_reminders.where((r) => r.enabled).length} ativo(s)',
                   style: AppTextStyles.bodySmall.copyWith(
-                    color: AppColors.textSecondary,
+                    color: colorScheme.onSurface.withValues(alpha: 0.68),
                   ),
                 ),
               ],
@@ -258,7 +259,7 @@ class _ScheduledRemindersModalState extends State<ScheduledRemindersModal> {
           IconButton(
             onPressed: () => Navigator.pop(context),
             icon: const Icon(Icons.close_rounded),
-            color: AppColors.textSecondary,
+            color: colorScheme.onSurface.withValues(alpha: 0.68),
           ),
         ],
       ),
@@ -266,6 +267,7 @@ class _ScheduledRemindersModalState extends State<ScheduledRemindersModal> {
   }
 
   Widget _buildEmptyState() {
+    final onSurface = Theme.of(context).colorScheme.onSurface;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -275,13 +277,13 @@ class _ScheduledRemindersModalState extends State<ScheduledRemindersModal> {
             Icon(
               Icons.alarm_off_rounded,
               size: 64,
-              color: AppColors.textSecondary.withValues(alpha: 0.5),
+              color: onSurface.withValues(alpha: 0.5),
             ),
             const SizedBox(height: 16),
             Text(
               'Nenhum lembrete agendado',
               style: AppTextStyles.bodyLarge.copyWith(
-                color: AppColors.textSecondary,
+                color: onSurface.withValues(alpha: 0.68),
               ),
             ),
             const SizedBox(height: 8),
@@ -289,7 +291,7 @@ class _ScheduledRemindersModalState extends State<ScheduledRemindersModal> {
               'Adicione lembretes para ser notificado\nnos horários de entrada, pausa, volta ou saída.',
               textAlign: TextAlign.center,
               style: AppTextStyles.bodySmall.copyWith(
-                color: AppColors.textSecondary,
+                color: onSurface.withValues(alpha: 0.68),
               ),
             ),
           ],
@@ -347,17 +349,19 @@ class _ScheduledRemindersModalState extends State<ScheduledRemindersModal> {
   }
 
   Widget _buildReminderTile(ScheduledReminder reminder) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
         color: reminder.enabled
             ? reminder.category.color.withValues(alpha: 0.08)
-            : AppColors.greyLight,
+            : (isDark ? AppColors.darkSurfaceAlt : AppColors.greyLight),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: reminder.enabled
               ? reminder.category.color.withValues(alpha: 0.3)
-              : AppColors.border,
+              : (isDark ? AppColors.primaryLight30 : AppColors.border),
         ),
       ),
       child: ListTile(
@@ -367,7 +371,7 @@ class _ScheduledRemindersModalState extends State<ScheduledRemindersModal> {
           style: AppTextStyles.h3.copyWith(
             color: reminder.enabled
                 ? reminder.category.color
-                : AppColors.textSecondary,
+                : colorScheme.onSurface.withValues(alpha: 0.68),
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -375,8 +379,8 @@ class _ScheduledRemindersModalState extends State<ScheduledRemindersModal> {
           reminder.label ?? reminder.category.notificationTitle,
           style: AppTextStyles.bodyMedium.copyWith(
             color: reminder.enabled
-                ? AppColors.textPrimary
-                : AppColors.textSecondary,
+                ? colorScheme.onSurface
+                : colorScheme.onSurface.withValues(alpha: 0.68),
           ),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
@@ -385,7 +389,7 @@ class _ScheduledRemindersModalState extends State<ScheduledRemindersModal> {
             ? Text(
                 reminder.category.label,
                 style: AppTextStyles.bodySmall.copyWith(
-                  color: AppColors.textSecondary,
+                  color: colorScheme.onSurface.withValues(alpha: 0.68),
                 ),
               )
             : null,
@@ -395,10 +399,13 @@ class _ScheduledRemindersModalState extends State<ScheduledRemindersModal> {
             Switch.adaptive(
               value: reminder.enabled,
               onChanged: (v) => _toggleReminder(reminder, v),
-              activeColor: reminder.category.color,
+              activeThumbColor: reminder.category.color,
             ),
             PopupMenuButton<String>(
-              icon: const Icon(Icons.more_vert, color: AppColors.textSecondary),
+              icon: Icon(
+                Icons.more_vert,
+                color: colorScheme.onSurface.withValues(alpha: 0.68),
+              ),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
@@ -417,7 +424,8 @@ class _ScheduledRemindersModalState extends State<ScheduledRemindersModal> {
                   child: Row(
                     children: [
                       Icon(Icons.edit_rounded,
-                          size: 20, color: AppColors.primary.withValues(alpha: 0.8)),
+                          size: 20,
+                          color: AppColors.primary.withValues(alpha: 0.8)),
                       const SizedBox(width: 12),
                       const Text('Editar'),
                     ],
@@ -428,7 +436,8 @@ class _ScheduledRemindersModalState extends State<ScheduledRemindersModal> {
                   child: Row(
                     children: [
                       Icon(Icons.delete_rounded,
-                          size: 20, color: AppColors.error.withValues(alpha: 0.8)),
+                          size: 20,
+                          color: AppColors.error.withValues(alpha: 0.8)),
                       const SizedBox(width: 12),
                       const Text('Excluir',
                           style: TextStyle(color: AppColors.error)),
@@ -536,12 +545,17 @@ class _AddEditReminderDialogState extends State<_AddEditReminderDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return AppDialogScaffold(
       title: isEditing ? 'Editar Lembrete' : 'Novo Lembrete',
       subtitle: isEditing
           ? 'Atualize as configurações do lembrete'
           : 'Configure uma nova notificação',
-      icon: isEditing ? Icons.edit_notifications_rounded : Icons.add_alarm_rounded,
+      icon: isEditing
+          ? Icons.edit_notifications_rounded
+          : Icons.add_alarm_rounded,
       confirmLabel: isEditing ? 'Salvar' : 'Adicionar',
       onConfirm: _save,
       children: [
@@ -550,7 +564,7 @@ class _AddEditReminderDialogState extends State<_AddEditReminderDialog> {
           'Categoria',
           style: AppTextStyles.bodySmall.copyWith(
             fontWeight: FontWeight.w600,
-            color: AppColors.textSecondary,
+            color: colorScheme.onSurface.withValues(alpha: 0.68),
           ),
         ),
         const SizedBox(height: 8),
@@ -576,7 +590,11 @@ class _AddEditReminderDialogState extends State<_AddEditReminderDialog> {
               selectedColor: cat.color,
               backgroundColor: cat.color.withValues(alpha: 0.1),
               side: BorderSide(
-                color: isSelected ? cat.color : AppColors.borderLight,
+                color: isSelected
+                    ? cat.color
+                    : (isDark
+                        ? AppColors.primaryLight30
+                        : AppColors.borderLight),
               ),
               labelStyle: TextStyle(
                 color: isSelected ? Colors.white : cat.color,
@@ -593,7 +611,7 @@ class _AddEditReminderDialogState extends State<_AddEditReminderDialog> {
           'Horário',
           style: AppTextStyles.bodySmall.copyWith(
             fontWeight: FontWeight.w600,
-            color: AppColors.textSecondary,
+            color: colorScheme.onSurface.withValues(alpha: 0.68),
           ),
         ),
         const SizedBox(height: 8),
@@ -612,7 +630,8 @@ class _AddEditReminderDialogState extends State<_AddEditReminderDialog> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.access_time_rounded, color: _category.color, size: 20),
+                Icon(Icons.access_time_rounded,
+                    color: _category.color, size: 20),
                 const SizedBox(width: 10),
                 Text(
                   '${_time.hour.toString().padLeft(2, '0')}:${_time.minute.toString().padLeft(2, '0')}',

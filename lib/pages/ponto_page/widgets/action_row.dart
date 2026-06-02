@@ -30,8 +30,20 @@ class ActionRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
     final bool enabled = isNext && !isRegistering;
     final bool skipped = optional && !done && !isNext;
+    final inactiveTextColor = colorScheme.onSurface.withValues(
+      alpha: isDark ? 0.72 : 0.68,
+    );
+    final supportingTextColor = colorScheme.onSurface.withValues(
+      alpha: isDark ? 0.66 : 0.62,
+    );
+    final mutedTextColor = colorScheme.onSurface.withValues(
+      alpha: isDark ? 0.52 : 0.50,
+    );
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -54,7 +66,9 @@ class ActionRow extends StatelessWidget {
                         ? accentColor.withValues(alpha: 0.12)
                         : isNext
                             ? accentColor
-                            : AppColors.bgLight,
+                            : isDark
+                                ? AppColors.darkSurfaceAlt
+                                : AppColors.bgLight,
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Icon(
@@ -63,7 +77,7 @@ class ActionRow extends StatelessWidget {
                         ? accentColor
                         : isNext
                             ? Colors.white
-                            : AppColors.textSecondary,
+                            : inactiveTextColor,
                     size: 20,
                   ),
                 ),
@@ -82,8 +96,8 @@ class ActionRow extends StatelessWidget {
                               color: done
                                   ? accentColor
                                   : isNext
-                                      ? AppColors.textPrimary
-                                      : AppColors.textSecondary,
+                                      ? colorScheme.onSurface
+                                      : inactiveTextColor,
                             ),
                           ),
                           if (optional && !done) ...[
@@ -92,14 +106,19 @@ class ActionRow extends StatelessWidget {
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
-                                color: AppColors.borderLight,
+                                color: isDark
+                                    ? AppColors.primaryLight20
+                                    : AppColors.borderLight,
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text(
                                 'opcional',
                                 style: AppTextStyles.bodySmall.copyWith(
-                                    fontSize: 10,
-                                    color: AppColors.textSecondary),
+                                  fontSize: 10,
+                                  color: isDark
+                                      ? colorScheme.onSurface
+                                      : AppColors.textSecondary,
+                                ),
                               ),
                             ),
                           ],
@@ -115,23 +134,28 @@ class ActionRow extends StatelessWidget {
                         Text(
                           'Toque para registrar',
                           style: AppTextStyles.bodySmall.copyWith(
-                              color: AppColors.textSecondary, fontSize: 12),
+                            color: supportingTextColor,
+                            fontSize: 12,
+                          ),
                         )
                       else if (skipped)
                         Text(
                           'Não utilizada',
                           style: AppTextStyles.bodySmall.copyWith(
-                              fontSize: 12,
-                              color: AppColors.textSecondary
-                                  .withValues(alpha: 0.5)),
+                            fontSize: 12,
+                            color: mutedTextColor,
+                          ),
                         ),
                     ],
                   ),
                 ),
                 // Indicador direita
                 if (isNext && !isRegistering)
-                  Icon(Icons.arrow_forward_ios_rounded,
-                      size: 14, color: accentColor)
+                  Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 14,
+                    color: isDark ? colorScheme.onSurface : accentColor,
+                  )
                 else if (done)
                   Container(
                     padding:
@@ -154,11 +178,12 @@ class ActionRow extends StatelessWidget {
           ),
         ),
         if (!isLast)
-          const Divider(
-              height: 1,
-              indent: 70,
-              endIndent: 16,
-              color: AppColors.borderLight),
+          Divider(
+            height: 1,
+            indent: 70,
+            endIndent: 16,
+            color: isDark ? AppColors.primaryLight30 : AppColors.borderLight,
+          ),
       ],
     );
   }

@@ -32,7 +32,6 @@ import '../../history_page/widgets/monthly_summary_card.dart';
 import '../../history_page/widgets/dialogs/day_edit_dialog.dart';
 import 'package:flutter_application_appdeponto/blocs/abono/abono_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/abono/abono_event.dart';
-import 'package:flutter_application_appdeponto/blocs/abono/abono_state.dart';
 import 'package:flutter_application_appdeponto/models/abono_model.dart';
 import 'package:flutter_application_appdeponto/repositories/abono_repository.dart';
 import 'package:flutter_application_appdeponto/pages/solicitacoes_page/request_abono_page.dart';
@@ -102,7 +101,9 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
       final uid = widget.uid ?? FirebaseAuth.instance.currentUser?.uid;
       if (uid == null) return;
       final list = await _abonoRepository.getMyAbonos();
-      if (mounted) setState(() => _myAbonos = {for (final a in list) a.diaId: a});
+      if (mounted) {
+        setState(() => _myAbonos = {for (final a in list) a.diaId: a});
+      }
     } catch (_) {}
   }
 
@@ -329,30 +330,18 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocListener<AbonoBloc, AbonoState>(
-      listener: (context, abonoState) {
-        if (abonoState is AbonoActionSuccess || abonoState is AbonoLoaded) {
-          _loadMyAbonos();
-          // Invalida o cache do resumo mensal para refletir o abono no saldo
-          final uid = widget.uid ?? FirebaseAuth.instance.currentUser?.uid;
-          if (uid != null) {
-            _monthlySummaryCache.invalidateMonth(uid, widget.currentMonth);
-          }
-          _loadMesResumo();
-          // Atualiza o saldo acumulado exibido no BalanceCard
-          context.read<PontoTodayCubit>().recalculateBalance();
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return BlocListener<SolicitationBloc, SolicitationState>(
+      listener: (context, solState) {
+        if (solState is SolicitationActionSuccess) {
+          CustomSnackbar.showSuccess(context, solState.message);
+        } else if (solState is SolicitationError &&
+            solState.message.isNotEmpty) {
+          CustomSnackbar.showError(context, solState.message);
         }
       },
-      child: BlocListener<SolicitationBloc, SolicitationState>(
-        listener: (context, solState) {
-          if (solState is SolicitationActionSuccess) {
-            CustomSnackbar.showSuccess(context, solState.message);
-          } else if (solState is SolicitationError &&
-              solState.message.isNotEmpty) {
-            CustomSnackbar.showError(context, solState.message);
-          }
-        },
-        child: Column(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SizedBox(height: 32),
@@ -370,7 +359,7 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
               const SizedBox(width: 12),
               Text(
                 'Meu Histórico',
-                style: AppTextStyles.h3.copyWith(color: AppColors.textPrimary),
+                style: AppTextStyles.h3.copyWith(color: colorScheme.onSurface),
               ),
               const Spacer(),
               HistoryViewModeIconButton(
@@ -457,8 +446,10 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
                       child: Center(
                         child: Text(
                           'Nenhum dia para exibir',
-                          style: AppTextStyles.bodyMedium
-                              .copyWith(color: AppColors.textSecondary),
+                          style: AppTextStyles.bodyMedium.copyWith(
+                            color:
+                                colorScheme.onSurface.withValues(alpha: 0.68),
+                          ),
                         ),
                       ),
                     ),
@@ -640,7 +631,6 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
             },
           ),
         ],
-        ),
       ),
     );
   }
@@ -773,8 +763,9 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
     showDialog(
       context: context,
       builder: (_) {
+        final colorScheme = Theme.of(context).colorScheme;
         return Dialog(
-          backgroundColor: Colors.white,
+          backgroundColor: colorScheme.surface,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(24),
           ),
@@ -785,7 +776,9 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
               children: [
                 Text(
                   'Ações do Dia',
-                  style: AppTextStyles.h3,
+                  style: AppTextStyles.h3.copyWith(
+                    color: colorScheme.onSurface,
+                  ),
                 ),
                 const SizedBox(height: 24),
                 _buildActionTile(
@@ -846,14 +839,22 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
     required String title,
     required VoidCallback onTap,
   }) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return InkWell(
       borderRadius: BorderRadius.circular(16),
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppColors.primary.withValues(alpha: 0.05),
+          color: isDark
+              ? AppColors.darkSurfaceAlt
+              : AppColors.primary.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isDark ? AppColors.primaryLight30 : Colors.transparent,
+          ),
         ),
         child: Row(
           children: [
@@ -867,10 +868,15 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
                 title,
                 style: AppTextStyles.bodyMedium.copyWith(
                   fontWeight: FontWeight.w600,
+                  color: colorScheme.onSurface,
                 ),
               ),
             ),
-            const Icon(Icons.arrow_forward_ios_rounded, size: 18),
+            Icon(
+              Icons.arrow_forward_ios_rounded,
+              size: 18,
+              color: colorScheme.onSurface.withValues(alpha: 0.68),
+            ),
           ],
         ),
       ),

@@ -17,11 +17,16 @@ class AdminStatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.borderLight),
+        border: Border.all(
+          color: isDark ? AppColors.primaryLight30 : AppColors.borderLight,
+        ),
         boxShadow: const [
           BoxShadow(
             color: AppColors.shadow,
@@ -44,14 +49,14 @@ class AdminStatCard extends StatelessWidget {
                   end: Alignment.bottomRight,
                   colors: [
                     AppColors.primary,
-            AppColors.primaryLight,
+                    AppColors.primaryLight,
                   ],
                 ),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
                 icon,
-                color: AppColors.surface,
+                color: Theme.of(context).colorScheme.surface,
                 size: 24,
               ),
             ),
@@ -59,7 +64,7 @@ class AdminStatCard extends StatelessWidget {
             Text(
               value,
               style: AppTextStyles.h1.copyWith(
-                color: AppColors.textPrimary,
+                color: colorScheme.onSurface,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -67,7 +72,7 @@ class AdminStatCard extends StatelessWidget {
             Text(
               label,
               style: AppTextStyles.bodyMedium.copyWith(
-                color: AppColors.textSecondary,
+                color: colorScheme.onSurface.withValues(alpha: 0.68),
                 fontWeight: FontWeight.w500,
               ),
             ),

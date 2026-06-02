@@ -19,7 +19,7 @@ class AdminAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return AppBar(
-      backgroundColor: AppColors.surface,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       elevation: 0,
       automaticallyImplyLeading: false,
       title: Row(
@@ -27,7 +27,14 @@ class AdminAppBar extends StatelessWidget implements PreferredSizeWidget {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: AppColors.primary,
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  AppColors.lime,
+                  AppColors.primaryLight,
+                ],
+              ),
               borderRadius: BorderRadius.circular(12),
               boxShadow: const [
                 BoxShadow(

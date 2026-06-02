@@ -23,7 +23,6 @@ import 'package:flutter_application_appdeponto/blocs/justificativa/justificativa
 import 'package:flutter_application_appdeponto/blocs/justificativa/justificativa_state.dart';
 import 'package:flutter_application_appdeponto/models/justificativa_model.dart';
 import 'package:flutter_application_appdeponto/blocs/abono/abono_bloc.dart';
-import 'package:flutter_application_appdeponto/blocs/abono/abono_event.dart';
 import 'package:flutter_application_appdeponto/blocs/abono/abono_state.dart';
 import 'package:flutter_application_appdeponto/models/abono_model.dart';
 import 'package:flutter_application_appdeponto/pages/admin/solicitations/solicitation_review_dialog.dart';
@@ -199,8 +198,11 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                               const SizedBox(height: 6),
                               Text(
                                 'Nenhuma notificação no momento.',
-                                style: AppTextStyles.bodySmall
-                                    .copyWith(color: AppColors.textSecondary),
+                                style: AppTextStyles.bodySmall.copyWith(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurface
+                                        .withValues(alpha: 0.68)),
                               ),
                               const SizedBox(height: 32),
                             ],
@@ -267,8 +269,10 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                             subtitle: Text(motivo,
                                 style: AppTextStyles.bodySmall
                                     .copyWith(color: AppColors.warning)),
-                            trailing: const Icon(Icons.chevron_right,
-                                color: AppColors.textSecondary),
+                            trailing: Icon(
+                              Icons.chevron_right,
+                              color: Theme.of(context).colorScheme.onSurface,
+                            ),
                             onTap: () {
                               Navigator.pop(sheetCtx);
                               if (date == null) return;
@@ -538,8 +542,10 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                             subtitle: Text(mesmodia ? inicio : '$inicio → $fim',
                                 style: AppTextStyles.bodySmall
                                     .copyWith(color: AppColors.warning)),
-                            trailing: const Icon(Icons.chevron_right,
-                                color: AppColors.textSecondary),
+                            trailing: Icon(
+                              Icons.chevron_right,
+                              color: Theme.of(context).colorScheme.onSurface,
+                            ),
                             onTap: () {
                               Navigator.pop(sheetCtx);
                               _openAtestadoReview(context, a);
@@ -603,8 +609,10 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                                 '$dateLabel • ${sol.items.length} alteração(ões)',
                                 style: AppTextStyles.bodySmall
                                     .copyWith(color: AppColors.primary)),
-                            trailing: const Icon(Icons.chevron_right,
-                                color: AppColors.textSecondary),
+                            trailing: Icon(
+                              Icons.chevron_right,
+                              color: Theme.of(context).colorScheme.onSurface,
+                            ),
                             onTap: () {
                               Navigator.pop(sheetCtx);
                               _openSolicitationReview(context, sol);
@@ -669,84 +677,13 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                             subtitle: Text(dateLabel,
                                 style: AppTextStyles.bodySmall
                                     .copyWith(color: AppColors.error)),
-                            trailing: const Icon(Icons.chevron_right,
-                                color: AppColors.textSecondary),
+                            trailing: Icon(
+                              Icons.chevron_right,
+                              color: Theme.of(context).colorScheme.onSurface,
+                            ),
                             onTap: () {
                               Navigator.pop(sheetCtx);
                               _openJustificativaReview(context, j);
-                            },
-                          );
-                        }),
-                      ],
-
-                      //  Seção: Abonos pendentes (admin)
-                      if (isAdmin && pendingAbonos.isNotEmpty) ...[
-                        if (incompletos.isNotEmpty ||
-                            solicitations.isNotEmpty ||
-                            pendingAtestados.isNotEmpty ||
-                            pendingJustificativas.isNotEmpty)
-                          const SizedBox(height: 16),
-                        Row(
-                          children: [
-                            const Icon(Icons.verified_outlined,
-                                color: AppColors.primary),
-                            const SizedBox(width: 10),
-                            const Text('Solicitações de Abono',
-                                style: AppTextStyles.h3),
-                            const Spacer(),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 3),
-                              decoration: BoxDecoration(
-                                color:
-                                    AppColors.primary.withValues(alpha: 0.12),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                '${pendingAbonos.length}',
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.primary,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        const Divider(),
-                        ...pendingAbonos.map((a) {
-                          final date = DateTime.tryParse(a.diaId);
-                          final dateLabel = date != null
-                              ? DateFormat('dd/MM/yyyy', 'pt_BR').format(date)
-                              : a.diaId;
-                          return ListTile(
-                            contentPadding: EdgeInsets.zero,
-                            leading: Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color:
-                                    AppColors.primary.withValues(alpha: 0.10),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: const Icon(Icons.verified_outlined,
-                                  size: 18, color: AppColors.primary),
-                            ),
-                            title: Text(a.employeeName,
-                                style: AppTextStyles.bodyMedium
-                                    .copyWith(fontWeight: FontWeight.w600)),
-                            subtitle: Text(
-                              '$dateLabel • ${a.observacao}',
-                              style: AppTextStyles.bodySmall
-                                  .copyWith(color: AppColors.primary),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            trailing: const Icon(Icons.chevron_right,
-                                color: AppColors.textSecondary),
-                            onTap: () {
-                              Navigator.pop(sheetCtx);
-                              _openAbonoReview(context, a);
                             },
                           );
                         }),
@@ -885,8 +822,10 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                             style: AppTextStyles.bodySmall
                                 .copyWith(color: AppColors.primary),
                           ),
-                          trailing: const Icon(Icons.chevron_right,
-                              color: AppColors.textSecondary),
+                          trailing: Icon(
+                            Icons.chevron_right,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
                           onTap: () {
                             Navigator.pop(sheetCtx);
                             _showPendingUsersSheet(context);
@@ -1196,8 +1135,11 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
             const SizedBox(height: 4),
             Text(
               'Atestado médico',
-              style: AppTextStyles.bodySmall
-                  .copyWith(color: AppColors.textSecondary),
+              style: AppTextStyles.bodySmall.copyWith(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.68)),
             ),
             // Motivo da recusa
             if (!isApproved &&
@@ -1418,8 +1360,11 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                       const SizedBox(width: 5),
                       Text(
                         'Enviado em ${DateFormat("dd/MM/yyyy").format(atestado.createdAt)}',
-                        style: AppTextStyles.bodySmall
-                            .copyWith(color: AppColors.textSecondary),
+                        style: AppTextStyles.bodySmall.copyWith(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withValues(alpha: 0.68)),
                       ),
                     ],
                   ),
@@ -1487,8 +1432,11 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                     maxLines: 2,
                     decoration: InputDecoration(
                       hintText: 'Motivo de recusa (opcional)',
-                      hintStyle: AppTextStyles.bodySmall
-                          .copyWith(color: AppColors.textSecondary),
+                      hintStyle: AppTextStyles.bodySmall.copyWith(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withValues(alpha: 0.68)),
                       contentPadding: const EdgeInsets.symmetric(
                           horizontal: 12, vertical: 10),
                       border: OutlineInputBorder(
@@ -1527,8 +1475,11 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                           ),
                           child: Text(
                             'Voltar',
-                            style: AppTextStyles.bodyMedium
-                                .copyWith(color: AppColors.textSecondary),
+                            style: AppTextStyles.bodyMedium.copyWith(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurface
+                                    .withValues(alpha: 0.68)),
                           ),
                         ),
                       ),
@@ -1646,8 +1597,11 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                       const SizedBox(width: 5),
                       Text(
                         'Dia de falta: $dateLabel',
-                        style: AppTextStyles.bodySmall
-                            .copyWith(color: AppColors.textSecondary),
+                        style: AppTextStyles.bodySmall.copyWith(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withValues(alpha: 0.68)),
                       ),
                     ],
                   ),
@@ -1672,23 +1626,36 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                   // Link para o documento PDF (se enviado)
                   if (just.fileUrl != null) ...[
                     const SizedBox(height: 10),
-                    OutlinedButton.icon(
-                      onPressed: () async {
-                        try {
-                          await launchUrl(
-                            Uri.parse(just.fileUrl!),
-                            mode: LaunchMode.externalApplication,
-                          );
-                        } catch (_) {}
-                      },
-                      icon: const Icon(Icons.picture_as_pdf_outlined, size: 16),
-                      label: const Text('Ver documento'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.primary,
-                        side: const BorderSide(color: AppColors.primary),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryLight10,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Documento anexado',
+                            style: AppTextStyles.bodySmall.copyWith(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurface
+                                  .withValues(alpha: 0.68),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            just.fileName != null
+                                ? 'Arquivo: ${just.fileName}'
+                                : 'Um documento foi enviado com a justificativa.',
+                            style: AppTextStyles.bodySmall.copyWith(
+                              color: Theme.of(context).colorScheme.onSurface,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
@@ -1700,8 +1667,11 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                     maxLines: 2,
                     decoration: InputDecoration(
                       hintText: 'Observação (opcional, para recusa)',
-                      hintStyle: AppTextStyles.bodySmall
-                          .copyWith(color: AppColors.textSecondary),
+                      hintStyle: AppTextStyles.bodySmall.copyWith(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withValues(alpha: 0.68)),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
                         borderSide:
@@ -1737,8 +1707,11 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                           ),
                           child: Text(
                             'Voltar',
-                            style: AppTextStyles.bodyMedium
-                                .copyWith(color: AppColors.textSecondary),
+                            style: AppTextStyles.bodyMedium.copyWith(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurface
+                                    .withValues(alpha: 0.68)),
                           ),
                         ),
                       ),
@@ -1771,240 +1744,6 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                             context.read<JustificativaBloc>().add(
                                   ApproveJustificativaEvent(just.id),
                                 );
-                          },
-                          style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            backgroundColor: AppColors.success,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10)),
-                          ),
-                          child: const Text('Aprovar'),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          );
-        });
-      },
-    );
-  }
-
-  void _openAbonoReview(BuildContext context, AbonoModel abono) {
-    final date = DateTime.tryParse(abono.diaId);
-    final dateLabel = date != null
-        ? DateFormat('dd/MM/yyyy', 'pt_BR').format(date)
-        : abono.diaId;
-    final rejectController = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (dialogCtx) {
-        return StatefulBuilder(builder: (_, setState) {
-          return Dialog(
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            insetPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: const Icon(Icons.verified_outlined,
-                            color: AppColors.primary, size: 20),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text('Revisar Abono', style: AppTextStyles.h3),
-                            Text(
-                              abono.employeeName,
-                              style: AppTextStyles.bodySmall.copyWith(
-                                color: AppColors.primary,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      const Icon(Icons.calendar_today_rounded,
-                          size: 13, color: AppColors.textSecondary),
-                      const SizedBox(width: 5),
-                      Text(
-                        'Data: $dateLabel',
-                        style: AppTextStyles.bodySmall
-                            .copyWith(color: AppColors.textSecondary),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  const Divider(height: 1),
-                  const SizedBox(height: 12),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: AppColors.bgLight,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: AppColors.borderLight),
-                    ),
-                    child: Text(abono.observacao, style: AppTextStyles.bodyMedium),
-                  ),
-                  if (abono.abonoMinutes > 0) ...[
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        const Icon(Icons.schedule_rounded,
-                            size: 14, color: AppColors.primary),
-                        const SizedBox(width: 6),
-                        Text(
-                          'Tempo a abonar: ',
-                          style: AppTextStyles.bodySmall
-                              .copyWith(color: AppColors.textSecondary),
-                        ),
-                        Text(
-                          () {
-                            final h = abono.abonoMinutes ~/ 60;
-                            final m = abono.abonoMinutes % 60;
-                            if (h == 0) return '${m}min';
-                            if (m == 0) return '${h}h';
-                            return '${h}h ${m}min';
-                          }(),
-                          style: AppTextStyles.bodySmall.copyWith(
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                  if (abono.dataInicio != null && abono.dataFim != null) ...[
-                    const SizedBox(height: 8),
-                    Builder(builder: (_) {
-                      final p1 = abono.dataInicio!.split(':');
-                      final p2 = abono.dataFim!.split(':');
-                      final startMin = p1.length == 2
-                          ? (int.tryParse(p1[0]) ?? 0) * 60 +
-                              (int.tryParse(p1[1]) ?? 0)
-                          : 0;
-                      final endMin = p2.length == 2
-                          ? (int.tryParse(p2[0]) ?? 0) * 60 +
-                              (int.tryParse(p2[1]) ?? 0)
-                          : 0;
-                      final diff = (endMin - startMin).clamp(0, 1440);
-                      final h = diff ~/ 60;
-                      final m = diff % 60;
-                      final label = h > 0 && m > 0
-                          ? '${h}h ${m}min'
-                          : h > 0
-                              ? '${h}h'
-                              : '${m}min';
-                      return Row(
-                        children: [
-                          const Icon(Icons.schedule_rounded,
-                              size: 13, color: AppColors.textSecondary),
-                          const SizedBox(width: 5),
-                          Text(
-                            '$label a abonar',
-                            style: AppTextStyles.bodySmall
-                                .copyWith(color: AppColors.textSecondary),
-                          ),
-                        ],
-                      );
-                    }),
-                  ],
-                  if (abono.fileUrl != null) ...[
-                    const SizedBox(height: 10),
-                    OutlinedButton.icon(
-                      onPressed: () async {
-                        try {
-                          await launchUrl(Uri.parse(abono.fileUrl!),
-                              mode: LaunchMode.externalApplication);
-                        } catch (_) {}
-                      },
-                      icon: const Icon(Icons.picture_as_pdf_outlined, size: 16),
-                      label: const Text('Ver documento'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.primary,
-                        side: const BorderSide(color: AppColors.primary),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8)),
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 14),
-                  TextField(
-                    controller: rejectController,
-                    maxLines: 2,
-                    decoration: InputDecoration(
-                      hintText: 'Observação (opcional, para recusa)',
-                      hintStyle: AppTextStyles.bodySmall
-                          .copyWith(color: AppColors.textSecondary),
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide:
-                              const BorderSide(color: AppColors.borderLight)),
-                      enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide:
-                              const BorderSide(color: AppColors.borderLight)),
-                      focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(color: AppColors.primary)),
-                    ),
-                    style: AppTextStyles.bodySmall,
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () {
-                            final reason = rejectController.text.trim();
-                            Navigator.pop(dialogCtx);
-                            context.read<AbonoBloc>().add(
-                                  RejectAbonoEvent(abono.id,
-                                      reason: reason.isNotEmpty ? reason : null),
-                                );
-                          },
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            foregroundColor: AppColors.error,
-                            side: const BorderSide(color: AppColors.error),
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10)),
-                          ),
-                          child: const Text('Recusar'),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () {
-                            Navigator.pop(dialogCtx);
-                            context
-                                .read<AbonoBloc>()
-                                .add(ApproveAbonoEvent(abono.id));
                           },
                           style: ElevatedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 12),
@@ -2075,7 +1814,7 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
           const SizedBox(height: 8),
           Text(j.justificativa,
               style: AppTextStyles.bodySmall
-                  .copyWith(color: AppColors.textPrimary)),
+                  .copyWith(color: Theme.of(context).colorScheme.onSurface)),
           if (j.reason != null && j.reason!.isNotEmpty) ...[
             const SizedBox(height: 6),
             Container(
@@ -2174,9 +1913,10 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     final isAdmin = _resolveIsAdmin(context);
+    final colorScheme = Theme.of(context).colorScheme;
 
     return AppBar(
-      backgroundColor: AppColors.surface,
+      backgroundColor: colorScheme.surface,
       elevation: 0,
       scrolledUnderElevation: 0,
       automaticallyImplyLeading: false,
@@ -2185,7 +1925,14 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: AppColors.primary,
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  AppColors.lime,
+                  AppColors.primaryLight,
+                ],
+              ),
               borderRadius: BorderRadius.circular(12),
               boxShadow: const [
                 BoxShadow(
@@ -2214,13 +1961,13 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                 'TimeFlow',
                 style: AppTextStyles.bodyLarge.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: AppColors.primary,
+                  color: colorScheme.primary,
                 ),
               ),
               Text(
                 subtitle,
                 style: AppTextStyles.bodySmall.copyWith(
-                  color: AppColors.textSecondary,
+                  color: colorScheme.onSurface.withValues(alpha: 0.68),
                 ),
               ),
             ],
@@ -2413,11 +2160,10 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                       color: AppColors.primary, size: 20),
                   const SizedBox(width: 12),
                   Text('Configurações',
-                      style: AppTextStyles.bodyMedium
-                          .copyWith(color: AppColors.textPrimary)),
+                      style: AppTextStyles.bodyMedium.copyWith(
+                          color: Theme.of(context).colorScheme.onSurface)),
                 ]),
               ),
-              const PopupMenuDivider(),
             ],
             if (isAdmin) ...[
               PopupMenuItem<String>(
@@ -2433,13 +2179,12 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                     Text(
                       'Solicitações',
                       style: AppTextStyles.bodyMedium.copyWith(
-                        color: AppColors.textPrimary,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                   ],
                 ),
               ),
-              const PopupMenuDivider(),
             ],
             PopupMenuItem<String>(
               value: 'logout',

@@ -11,10 +11,11 @@ class SettingsAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return AppBar(
-      backgroundColor: AppColors.surface,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       elevation: 0,
       leading: IconButton(
-        icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
+        icon: Icon(Icons.arrow_back,
+            color: Theme.of(context).colorScheme.onSurface),
         onPressed: () => Navigator.pop(context),
       ),
       title: Row(
@@ -31,7 +32,8 @@ class SettingsAppBar extends StatelessWidget implements PreferredSizeWidget {
           const SizedBox(width: 12),
           Text(
             'Configuracoes',
-            style: AppTextStyles.h3.copyWith(color: AppColors.textPrimary),
+            style: AppTextStyles.h3
+                .copyWith(color: Theme.of(context).colorScheme.onSurface),
           ),
         ],
       ),

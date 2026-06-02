@@ -315,7 +315,7 @@ class _HomePageState extends State<HomePage> {
         : (workedMinutes / targetMinutesPerDay).clamp(0.0, 1.0);
 
     return Scaffold(
-      backgroundColor: AppColors.bgLight,
+      backgroundColor: Colors.transparent,
       appBar: MainAppBar(
         subtitle: 'Meu Ponto',
         onNotificationDayTap: _goToDay,
@@ -331,69 +331,76 @@ class _HomePageState extends State<HomePage> {
       ),
       // Spinner apenas na primeira carga (sem cache local).
       // Com streams, cargas subsequentes mostram dados do cache instantaneamente.
-      body: (pontoState.loading &&
-              !context.read<PontoTodayCubit>().hasLoadedOnce)
-          ? const Center(
-              child: CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: Theme.of(context).brightness == Brightness.dark
+              ? AppColors.techDarkBackground
+              : AppColors.appBackground,
+        ),
+        child: (pontoState.loading &&
+                !context.read<PontoTodayCubit>().hasLoadedOnce)
+            ? const Center(
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                ),
+              )
+            : RefreshIndicator(
+                onRefresh: () async {
+                  context.read<PontoTodayCubit>().refresh();
+                  context
+                      .read<PontoHistoryBloc>()
+                      .add(const SilentReloadHistoryEvent());
+                },
+                color: AppColors.primary,
+                child: ListView(
+                  controller: _scrollController,
+                  padding: const EdgeInsets.all(20),
+                  children: [
+                    HomeGreeting(employeeName: employeeName),
+                    const SizedBox(height: 24),
+                    StatusCard(
+                      statusLabel: statusLabel,
+                      todayWorkedDisplay: todayWorkedDisplay,
+                      workProgress: workProgress,
+                      workedMinutes:
+                          workedMinutes, // Passando o valor para o novo StatusCard
+                      monthWorkedMinutes: pontoState.monthWorkedMinutes,
+                      monthExpectedMinutes: pontoState.monthExpectedMinutes,
+                    ),
+                    const SizedBox(height: 16),
+                    BalanceCard(
+                      monthBalance: pontoState.monthBalance / 60.0,
+                    ),
+                    const SizedBox(height: 24),
+                    PunchButton(
+                      onPressed: () async {
+                        await Navigator.pushNamed(
+                          context,
+                          '/ponto',
+                          arguments: {
+                            'employeeName': employeeName,
+                            'profileImageUrl': profileImageUrl,
+                            'employeeRole': widget.employeeRole,
+                          },
+                        );
+                      },
+                    ),
+                    HomeHistorySection(
+                      key: _historySectionKey,
+                      currentMonth: _currentMonth,
+                      highlightDayId: _highlightDayId,
+                      onPrevious: _goToPreviousMonth,
+                      onNext: _goToNextMonth,
+                      isAdmin: isAdmin,
+                      uid: _uid,
+                      onActionSuccess: () {
+                        context.read<PontoTodayCubit>().refresh();
+                      },
+                    ),
+                  ],
+                ),
               ),
-            )
-          : RefreshIndicator(
-              onRefresh: () async {
-                context.read<PontoTodayCubit>().refresh();
-                context
-                    .read<PontoHistoryBloc>()
-                    .add(const SilentReloadHistoryEvent());
-              },
-              color: AppColors.primary,
-              child: ListView(
-                controller: _scrollController,
-                padding: const EdgeInsets.all(20),
-                children: [
-                  HomeGreeting(employeeName: employeeName),
-                  const SizedBox(height: 24),
-                  StatusCard(
-                    statusLabel: statusLabel,
-                    todayWorkedDisplay: todayWorkedDisplay,
-                    workProgress: workProgress,
-                    workedMinutes:
-                        workedMinutes, // Passando o valor para o novo StatusCard
-                    monthWorkedMinutes: pontoState.monthWorkedMinutes,
-                    monthExpectedMinutes: pontoState.monthExpectedMinutes,
-                  ),
-                  const SizedBox(height: 16),
-                  BalanceCard(
-                    monthBalance: pontoState.monthBalance / 60.0,
-                  ),
-                  const SizedBox(height: 24),
-                  PunchButton(
-                    onPressed: () async {
-                      await Navigator.pushNamed(
-                        context,
-                        '/ponto',
-                        arguments: {
-                          'employeeName': employeeName,
-                          'profileImageUrl': profileImageUrl,
-                          'employeeRole': widget.employeeRole,
-                        },
-                      );
-                    },
-                  ),
-                  HomeHistorySection(
-                    key: _historySectionKey,
-                    currentMonth: _currentMonth,
-                    highlightDayId: _highlightDayId,
-                    onPrevious: _goToPreviousMonth,
-                    onNext: _goToNextMonth,
-                    isAdmin: isAdmin,
-                    uid: _uid,
-                    onActionSuccess: () {
-                      context.read<PontoTodayCubit>().refresh();
-                    },
-                  ),
-                ],
-              ),
-            ),
+      ),
     );
   }
 }

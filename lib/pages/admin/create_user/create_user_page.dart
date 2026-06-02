@@ -183,12 +183,13 @@ class _CreateUserViewState extends State<CreateUserView> {
         final isLoading = state is CreateUserLoading;
         final formState = state is CreateUserFormState ? state : null;
         return Scaffold(
-          backgroundColor: AppColors.bgLight,
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           appBar: AppBar(
-            backgroundColor: AppColors.surface,
+            backgroundColor: Theme.of(context).colorScheme.surface,
             elevation: 0,
             leading: IconButton(
-              icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
+              icon: Icon(Icons.arrow_back,
+                  color: Theme.of(context).colorScheme.onSurface),
               onPressed: () => Navigator.pop(context),
             ),
             title: Row(
@@ -209,7 +210,7 @@ class _CreateUserViewState extends State<CreateUserView> {
                 Text(
                   'Cadastrar Usuário',
                   style: AppTextStyles.h3.copyWith(
-                    color: AppColors.textPrimary,
+                    color: Theme.of(context).colorScheme.onSurface,
                     fontSize: 20,
                   ),
                 ),
@@ -388,7 +389,7 @@ class _CreateUserViewState extends State<CreateUserView> {
                     'Tipo de Contrato',
                     style: AppTextStyles.bodyMedium.copyWith(
                       fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -398,8 +399,8 @@ class _CreateUserViewState extends State<CreateUserView> {
                         child: OutlinedButton(
                           style: OutlinedButton.styleFrom(
                             backgroundColor: _contractType == 'CLT'
-                                ? const Color(0xFF3F51B5)
-                                : const Color(0xFF7C8CFF),
+                                ? AppColors.primary
+                                : AppColors.primaryLight,
                             foregroundColor: Colors.white,
                             side: BorderSide.none,
                           ),
@@ -420,8 +421,8 @@ class _CreateUserViewState extends State<CreateUserView> {
                         child: OutlinedButton(
                           style: OutlinedButton.styleFrom(
                             backgroundColor: _contractType == 'Bolsista'
-                                ? const Color(0xFF3F51B5)
-                                : const Color(0xFF7C8CFF),
+                                ? AppColors.primary
+                                : AppColors.primaryLight,
                             foregroundColor: Colors.white,
                             side: BorderSide.none,
                           ),
@@ -458,7 +459,7 @@ class _CreateUserViewState extends State<CreateUserView> {
                       'Carga horária bolsista',
                       style: AppTextStyles.bodyMedium.copyWith(
                         fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -471,8 +472,8 @@ class _CreateUserViewState extends State<CreateUserView> {
                             child: OutlinedButton(
                               style: OutlinedButton.styleFrom(
                                 backgroundColor: selected
-                                    ? const Color(0xFF3F51B5)
-                                    : const Color(0xFF7C8CFF),
+                                    ? AppColors.primary
+                                    : AppColors.primaryLight,
                                 foregroundColor: Colors.white,
                                 side: BorderSide.none,
                               ),
@@ -496,7 +497,7 @@ class _CreateUserViewState extends State<CreateUserView> {
                       'Dias de trabalho',
                       style: AppTextStyles.bodyMedium.copyWith(
                         fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -517,8 +518,8 @@ class _CreateUserViewState extends State<CreateUserView> {
                           ),
                           selected: selected,
                           onSelected: (_) => _toggleWorkDay(option['value']!),
-                          selectedColor: const Color(0xFF3F51B5),
-                          backgroundColor: const Color(0xFF7C8CFF),
+                          selectedColor: AppColors.primary,
+                          backgroundColor: AppColors.primaryLight,
                         );
                       }).toList(),
                     ),
@@ -552,7 +553,7 @@ class _CreateUserViewState extends State<CreateUserView> {
                       'Projetos',
                       style: AppTextStyles.bodyMedium.copyWith(
                         fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -565,8 +566,8 @@ class _CreateUserViewState extends State<CreateUserView> {
                             child: OutlinedButton(
                               style: OutlinedButton.styleFrom(
                                 backgroundColor: selected
-                                    ? const Color(0xFF3F51B5)
-                                    : const Color(0xFF7C8CFF),
+                                    ? AppColors.primary
+                                    : AppColors.primaryLight,
                                 foregroundColor: Colors.white,
                                 side: BorderSide.none,
                               ),

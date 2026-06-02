@@ -48,14 +48,20 @@ class PdfPreviewModal {
                       .copyWith(fontWeight: FontWeight.bold)),
             ),
             Expanded(
-              flex: 5,
+              flex: 4,
               child: Text('Registros',
                   style: AppTextStyles.bodyMedium
                       .copyWith(fontWeight: FontWeight.bold)),
             ),
             Expanded(
               flex: 3,
-              child: Text('Obs',
+              child: Text('Modalidade',
+                  style: AppTextStyles.bodyMedium
+                      .copyWith(fontWeight: FontWeight.bold)),
+            ),
+            Expanded(
+              flex: 3,
+              child: Text('Observações',
                   style: AppTextStyles.bodyMedium
                       .copyWith(fontWeight: FontWeight.bold)),
             ),
@@ -108,8 +114,18 @@ class PdfPreviewModal {
                 ),
               ),
               Expanded(
-                flex: 5,
+                flex: 4,
                 child: Text(p['registros']!, style: AppTextStyles.bodySmall),
+              ),
+              Expanded(
+                flex: 3,
+                child: Text(
+                  p['modalidade']!,
+                  style: AppTextStyles.bodySmall.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.primary,
+                  ),
+                ),
               ),
               Expanded(
                 flex: 3,
@@ -135,9 +151,9 @@ class PdfPreviewModal {
         backgroundColor: Colors.transparent,
         builder: (ctx) => Container(
           height: MediaQuery.of(context).size.height * 0.85,
-          decoration: const BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           ),
           child: Column(
             children: [
@@ -191,9 +207,9 @@ class PdfPreviewModal {
               ),
               Container(
                 padding: const EdgeInsets.all(20),
-                decoration: const BoxDecoration(
-                  color: AppColors.surface,
-                  boxShadow: [
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface,
+                  boxShadow: const [
                     BoxShadow(
                       color: AppColors.shadow,
                       blurRadius: 8,

@@ -30,7 +30,7 @@ class ActionLoadingOverlay extends StatelessWidget {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 28, vertical: 20),
                   decoration: BoxDecoration(
-                    color: AppColors.surface,
+                    color: Theme.of(context).colorScheme.surface,
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: const [
                       BoxShadow(

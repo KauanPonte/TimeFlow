@@ -19,13 +19,18 @@ class StatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
     final dotColor = _dotColor;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.borderLight),
+        border: Border.all(
+          color: isDark ? AppColors.primaryLight30 : AppColors.borderLight,
+        ),
         boxShadow: const [
           BoxShadow(
               color: AppColors.shadow, blurRadius: 8, offset: Offset(0, 2)),
@@ -47,14 +52,19 @@ class StatusBadge extends StatelessWidget {
             children: [
               Text(
                 'Status atual',
-                style: AppTextStyles.bodySmall
-                    .copyWith(color: AppColors.textSecondary, fontSize: 12),
+                style: AppTextStyles.bodySmall.copyWith(
+                  color: colorScheme.onSurface.withValues(alpha: 0.72),
+                  fontSize: 12,
+                ),
               ),
               Text(
                 statusLabel,
                 style: AppTextStyles.bodyLarge.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.w700,
+                  color: statusLabel == 'Trabalhando...' ||
+                          statusLabel == 'Pausado'
+                      ? dotColor
+                      : colorScheme.onSurface,
                 ),
               ),
             ],

@@ -30,6 +30,8 @@ class AppDialogScaffold extends StatelessWidget {
   Widget build(BuildContext context) {
     final cancelAction = onCancel ?? () => Navigator.pop(context);
     final accentColor = isDestructive ? AppColors.error : AppColors.primary;
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -61,12 +63,20 @@ class AppDialogScaffold extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(title, style: AppTextStyles.h3),
+                      Text(
+                        title,
+                        style: AppTextStyles.h3.copyWith(
+                          color: colorScheme.onSurface,
+                        ),
+                      ),
                       if (subtitle != null && subtitle!.isNotEmpty)
                         Text(
                           subtitle!,
                           style: AppTextStyles.bodySmall.copyWith(
-                            color: AppColors.textSecondary,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withValues(alpha: 0.68),
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -74,9 +84,9 @@ class AppDialogScaffold extends StatelessWidget {
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.close,
-                    color: AppColors.textSecondary,
+                    color: colorScheme.onSurface.withValues(alpha: 0.68),
                     size: 20,
                   ),
                   onPressed: cancelAction,
@@ -86,7 +96,10 @@ class AppDialogScaffold extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 24),
-            const Divider(height: 1, color: AppColors.borderLight),
+            Divider(
+              height: 1,
+              color: isDark ? AppColors.primaryLight30 : AppColors.borderLight,
+            ),
             const SizedBox(height: 20),
             ...children,
             const SizedBox(height: 24),
@@ -97,15 +110,22 @@ class AppDialogScaffold extends StatelessWidget {
                     onPressed: cancelAction,
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      side: const BorderSide(color: AppColors.borderLight),
+                      side: BorderSide(
+                        color: isDark
+                            ? AppColors.primaryLight30
+                            : AppColors.borderLight,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
                     child: Text(
                       cancelLabel,
-                      style: AppTextStyles.bodyMedium
-                          .copyWith(color: AppColors.textSecondary),
+                      style: AppTextStyles.bodyMedium.copyWith(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withValues(alpha: 0.68)),
                     ),
                   ),
                 ),
@@ -158,6 +178,9 @@ class AppDialogField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -165,7 +188,7 @@ class AppDialogField extends StatelessWidget {
           label,
           style: AppTextStyles.bodySmall.copyWith(
             fontWeight: FontWeight.w600,
-            color: AppColors.textSecondary,
+            color: colorScheme.onSurface.withValues(alpha: 0.68),
           ),
         ),
         const SizedBox(height: 6),
@@ -181,7 +204,10 @@ class AppDialogField extends StatelessWidget {
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.borderLight),
+              borderSide: BorderSide(
+                color:
+                    isDark ? AppColors.primaryLight30 : AppColors.borderLight,
+              ),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),

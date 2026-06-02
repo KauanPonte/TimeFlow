@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_application_appdeponto/pages/history_page/widgets/card/widgets/day_card_helpers.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
+import 'package:flutter_application_appdeponto/widgets/presence_badge.dart';
 
 class UserCard extends StatelessWidget {
   final Map<String, dynamic> user;
@@ -60,10 +61,13 @@ class UserCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final roleColor = _getRoleColor(user['role']);
     final Uint8List? profileBytes =
         _decodeProfileImage(user['profileImage'] ?? '');
     final bool didPunchToday = user['didPunchToday'] == true;
+    final bool isOnlineToday = user['isOnlineToday'] == true;
     final String todayWorkMode =
         (user['todayWorkMode'] ?? '').toString().toLowerCase();
     final IconData punchIcon = didPunchToday
@@ -73,11 +77,12 @@ class UserCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: isCurrentUser ? AppColors.primaryLight10 : AppColors.surface,
+        color: isCurrentUser ? AppColors.primaryLight10 : colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color:
-              isCurrentUser ? AppColors.primaryLight20 : AppColors.borderLight,
+          color: isCurrentUser
+              ? AppColors.primaryLight20
+              : (isDark ? AppColors.primaryLight30 : AppColors.borderLight),
           width: 1.2,
         ),
         boxShadow: const [
@@ -165,13 +170,23 @@ class UserCard extends StatelessWidget {
                                   user['name'],
                                   style: AppTextStyles.bodyLarge.copyWith(
                                     fontWeight: FontWeight.w600,
-                                    color: AppColors.textPrimary,
+                                    color: colorScheme.onSurface,
                                   ),
                                 ),
                               ),
+                              if (didPunchToday) ...[
+                                const SizedBox(width: 8),
+                                PresenceBadge(
+                                  isOnline: isOnlineToday,
+                                  compact: true,
+                                ),
+                              ],
                               if (isCurrentUser)
                                 Padding(
-                                  padding: const EdgeInsets.only(right: 12),
+                                  padding: const EdgeInsets.only(
+                                    left: 8,
+                                    right: 12,
+                                  ),
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(
                                       horizontal: 10,
@@ -196,17 +211,19 @@ class UserCard extends StatelessWidget {
                           const SizedBox(height: 4),
                           Row(
                             children: [
-                              const Icon(
+                              Icon(
                                 Icons.email_outlined,
                                 size: 14,
-                                color: AppColors.textSecondary,
+                                color: colorScheme.onSurface
+                                    .withValues(alpha: 0.68),
                               ),
                               const SizedBox(width: 4),
                               Expanded(
                                 child: Text(
                                   user['email'],
                                   style: AppTextStyles.bodySmall.copyWith(
-                                    color: AppColors.textSecondary,
+                                    color: colorScheme.onSurface
+                                        .withValues(alpha: 0.68),
                                   ),
                                   overflow: TextOverflow.ellipsis,
                                 ),
@@ -252,69 +269,96 @@ class UserCard extends StatelessWidget {
 
                     // Actions Menu
                     if (showActions)
-                      PopupMenuButton<String>(
-                        icon: const Icon(
-                          Icons.more_vert,
-                          size: 20,
-                          color: AppColors.textSecondary,
+                      Theme(
+                        data: Theme.of(context).copyWith(
+                          dividerColor: colorScheme.onSurface.withValues(alpha: 0.12),
                         ),
-                        constraints: const BoxConstraints(),
-                        style: IconButton.styleFrom(
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          minimumSize: Size.zero,
+                        child: PopupMenuButton<String>(
+                          icon: Icon(
+                            Icons.more_vert,
+                            size: 20,
+                            color:
+                                colorScheme.onSurface.withValues(alpha: 0.68),
+                          ),
+                          constraints: const BoxConstraints(),
+                          style: IconButton.styleFrom(
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            minimumSize: Size.zero,
+                            padding: EdgeInsets.zero,
+                          ),
                           padding: EdgeInsets.zero,
-                        ),
-                        padding: EdgeInsets.zero,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        itemBuilder: (context) {
-                          final items = <PopupMenuEntry<String>>[
-                            PopupMenuItem(
-                              child: const Row(
-                                children: [
-                                  Icon(
-                                    Icons.manage_accounts_rounded,
-                                    size: 16,
-                                    color: AppColors.primary,
-                                  ),
-                                  SizedBox(width: 12),
-                                  Text('Editar'),
-                                ],
-                              ),
-                              onTap: () {
-                                Future.delayed(Duration.zero, onEdit);
-                              },
-                            ),
-                          ];
-
-                          if (showDeleteAction && !isCurrentUser) {
-                            items.add(const PopupMenuDivider());
-                            items.add(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          color: colorScheme.surface,
+                          itemBuilder: (context) {
+                            final items = <PopupMenuEntry<String>>[
                               PopupMenuItem(
-                                child: const Row(
+                                child: Row(
                                   children: [
-                                    Icon(
-                                      Icons.delete,
+                                    const Icon(
+                                      Icons.manage_accounts_rounded,
                                       size: 16,
-                                      color: AppColors.error,
+                                      color: AppColors.primary,
                                     ),
-                                    SizedBox(width: 12),
+                                    const SizedBox(width: 12),
                                     Text(
-                                      'Excluir',
-                                      style: TextStyle(color: AppColors.error),
+                                      'Editar',
+                                      style: TextStyle(
+                                        color: colorScheme.onSurface,
+                                      ),
                                     ),
                                   ],
                                 ),
                                 onTap: () {
-                                  Future.delayed(Duration.zero, onDelete);
+                                  Future.delayed(Duration.zero, onEdit);
                                 },
                               ),
-                            );
-                          }
+                            ];
 
-                          return items;
-                        },
+                            if (showDeleteAction && !isCurrentUser) {
+                              items.add(const PopupMenuDivider(height: 1));
+                              items.add(
+                                PopupMenuItem(
+                                  child: Container(
+                                    decoration: const BoxDecoration(
+                                      color: AppColors.errorLight10,
+                                      borderRadius: BorderRadius.all(
+                                        Radius.circular(10),
+                                      ),
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 6,
+                                    ),
+                                    child: const Row(
+                                      children: [
+                                        Icon(
+                                          Icons.delete_outlined,
+                                          size: 16,
+                                          color: AppColors.error,
+                                        ),
+                                        SizedBox(width: 12),
+                                        Text(
+                                          'Excluir',
+                                          style: TextStyle(
+                                            color: AppColors.error,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  onTap: () {
+                                    Future.delayed(Duration.zero, onDelete);
+                                  },
+                                ),
+                              );
+                            }
+
+                            return items;
+                          },
+                        ),
                       ),
                   ],
                 ),
@@ -343,7 +387,7 @@ class UserCard extends StatelessWidget {
                       ? (todayWorkMode == 'presencial'
                           ? AppColors.success
                           : AppColors.primary)
-                      : AppColors.textSecondary,
+                      : colorScheme.onSurface.withValues(alpha: 0.68),
                 ),
               ),
             ),

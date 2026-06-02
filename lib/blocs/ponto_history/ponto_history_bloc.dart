@@ -114,7 +114,9 @@ class PontoHistoryBloc extends Bloc<PontoHistoryEvent, PontoHistoryState> {
     // Descarta eventos de meses/usuários que não são mais o atual.
     if (event.month.year != _currentMonth.year ||
         event.month.month != _currentMonth.month ||
-        event.uid != _currentUid) return;
+        event.uid != _currentUid) {
+      return;
+    }
 
     final key = _cacheKey(event.month, event.uid);
     _monthCache[key] = event.daysMap;

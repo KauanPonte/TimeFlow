@@ -32,8 +32,11 @@ class DayEditActions extends StatelessWidget {
             ),
             child: Text(
               'Cancelar',
-              style: AppTextStyles.bodyMedium
-                  .copyWith(color: AppColors.textSecondary),
+              style: AppTextStyles.bodyMedium.copyWith(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.68)),
             ),
           ),
         ),

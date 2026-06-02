@@ -94,7 +94,7 @@ class _AbonoHorarioPageState extends State<AbonoHorarioPage> {
       final hasExisting = abonoSnap.docs.isNotEmpty;
 
       final userSnap = results[0];
-      final daySnap  = results[1];
+      final daySnap = results[1];
 
       final workload = (userSnap.data()?['workloadMinutes'] as int?) ??
           (userSnap.data()?['cargaHorariaMinutos'] as int?) ??
@@ -112,8 +112,8 @@ class _AbonoHorarioPageState extends State<AbonoHorarioPage> {
             if (dt != null) eventos.add({...e, 'at': dt});
           }
         }
-        eventos.sort((a, b) =>
-            (a['at'] as DateTime).compareTo(b['at'] as DateTime));
+        eventos.sort(
+            (a, b) => (a['at'] as DateTime).compareTo(b['at'] as DateTime));
       }
 
       DateTime? openWork;
@@ -122,7 +122,7 @@ class _AbonoHorarioPageState extends State<AbonoHorarioPage> {
 
       for (final ev in eventos) {
         final tipo = (ev['tipo'] ?? '').toString();
-        final at   = ev['at'] as DateTime;
+        final at = ev['at'] as DateTime;
 
         if (tipo == 'entrada' || tipo == 'retorno') {
           openWork ??= at;
@@ -140,12 +140,12 @@ class _AbonoHorarioPageState extends State<AbonoHorarioPage> {
 
       if (mounted) {
         setState(() {
-          _workloadMinutes    = workload;
-          _workedMinutes      = totalMin;
+          _workloadMinutes = workload;
+          _workedMinutes = totalMin;
           _hasSaidaRegistrada = saidaStr != null;
-          _hasExistingAbono   = hasExisting;
+          _hasExistingAbono = hasExisting;
           _saidaRegistradaStr = saidaStr;
-          _loadingDay         = false;
+          _loadingDay = false;
         });
       }
     } catch (_) {
@@ -174,9 +174,9 @@ class _AbonoHorarioPageState extends State<AbonoHorarioPage> {
   // Sem retorno + sem batida: null (retorno obrigatório)
   int? get _abonoMinutes {
     if (_horaRetorno != null && _saidaEfetiva != null) {
-      final parts    = _saidaEfetiva!.split(':');
+      final parts = _saidaEfetiva!.split(':');
       final saidaMin = int.parse(parts[0]) * 60 + int.parse(parts[1]);
-      final retMin   = _horaRetorno!.hour * 60 + _horaRetorno!.minute;
+      final retMin = _horaRetorno!.hour * 60 + _horaRetorno!.minute;
       if (retMin <= saidaMin) return null;
       return retMin - saidaMin;
     }
@@ -188,8 +188,8 @@ class _AbonoHorarioPageState extends State<AbonoHorarioPage> {
   }
 
   Future<void> _pickSaidaManual() async {
-    final picked = await showTimePicker24h(
-        context, _horaSaidaManual ?? TimeOfDay.now());
+    final picked =
+        await showTimePicker24h(context, _horaSaidaManual ?? TimeOfDay.now());
     if (picked != null) {
       setState(() {
         _horaSaidaManual = picked;
@@ -206,12 +206,23 @@ class _AbonoHorarioPageState extends State<AbonoHorarioPage> {
     TimeOfDay initial = TimeOfDay.now();
     if (_saidaEfetiva != null) {
       final p = _saidaEfetiva!.split(':');
-      initial =
-          TimeOfDay(hour: int.parse(p[0]), minute: int.parse(p[1]));
+      initial = TimeOfDay(hour: int.parse(p[0]), minute: int.parse(p[1]));
     }
     final picked = await showTimePicker24h(context, initial);
     if (picked != null) setState(() => _horaRetorno = picked);
   }
+
+  Future<void> _pickTime({required bool isSaida}) async {
+    if (isSaida) {
+      await _pickSaidaManual();
+    } else {
+      await _pickRetorno();
+    }
+  }
+
+  int? get _durationMinutes => _abonoMinutes;
+
+  String _formatDuration(int minutes) => _formatMinutes(minutes);
 
   bool get _canSubmit {
     if (_loadingDay || _hasExistingAbono) return false;
@@ -227,7 +238,7 @@ class _AbonoHorarioPageState extends State<AbonoHorarioPage> {
     if (date == null) return;
 
     final diaId = _fmtId.format(date);
-    final uid   = FirebaseAuth.instance.currentUser?.uid;
+    final uid = FirebaseAuth.instance.currentUser?.uid;
 
     if (_isAdmin && uid != null) {
       setState(() => _submitting = true);
@@ -279,15 +290,18 @@ class _AbonoHorarioPageState extends State<AbonoHorarioPage> {
         }
       },
       child: Scaffold(
-        backgroundColor: AppColors.bgLight,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         appBar: AppBar(
           titleSpacing: 0,
-          backgroundColor: AppColors.surface,
+          backgroundColor: Theme.of(context).colorScheme.surface,
           elevation: 0,
           scrolledUnderElevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new_rounded,
-                color: AppColors.textPrimary, size: 20),
+            icon: Icon(
+              Icons.arrow_back_ios_new_rounded,
+              color: Theme.of(context).colorScheme.onSurface,
+              size: 20,
+            ),
             onPressed: () => Navigator.pop(context),
           ),
           title: Row(
@@ -298,263 +312,171 @@ class _AbonoHorarioPageState extends State<AbonoHorarioPage> {
                   color: AppColors.primaryLight10,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(widget.icone,
-                    color: AppColors.primary, size: 20),
+                child: Icon(widget.icone, color: AppColors.primary, size: 20),
               ),
               const SizedBox(width: 12),
-              Text(widget.titulo,
-                  style: AppTextStyles.h3
-                      .copyWith(color: AppColors.textPrimary)),
+              Text(
+                widget.titulo,
+                style: AppTextStyles.h3
+                    .copyWith(color: Theme.of(context).colorScheme.onSurface),
+              ),
             ],
           ),
         ),
-        body: _loadingDay
-            ? const Center(child: CircularProgressIndicator())
-            : ListView(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 20, vertical: 24),
-                children: [
-                  Text(
-                    'Período de ausência',
-                    style: AppTextStyles.titleSmall.copyWith(
-                      color: AppColors.textPrimary,
-                      fontWeight: FontWeight.w700,
+        body: ListView(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+          children: [
+            Text(
+              'Período de ausência',
+              style: AppTextStyles.titleSmall.copyWith(
+                color: Theme.of(context).colorScheme.onSurface,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Informe quando saiu e, se já retornou, o horário de retorno.',
+              style: AppTextStyles.bodySmall.copyWith(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.68)),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: _TimeField(
+                    label: 'Saída',
+                    required: true,
+                    value: _horaSaidaManual != null
+                        ? _formatTime(_horaSaidaManual!)
+                        : null,
+                    onTap: () => _pickTime(isSaida: true),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _TimeField(
+                    label: 'Retorno',
+                    required: false,
+                    value: _horaRetorno != null
+                        ? _formatTime(_horaRetorno!)
+                        : null,
+                    onTap: () => _pickTime(isSaida: false),
+                  ),
+                ),
+              ],
+            ),
+            if (_durationMinutes != null) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryLight10,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.timer_outlined,
+                        color: AppColors.primary, size: 18),
+                    const SizedBox(width: 10),
+                    Text(
+                      'Duração da ausência: ',
+                      style: AppTextStyles.bodySmall.copyWith(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withValues(alpha: 0.68)),
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    _hasSaidaRegistrada
-                        ? 'Saída registrada detectada. Informe o retorno se já voltou.'
-                        : 'Informe quando saiu e quando retornou.',
-                    style: AppTextStyles.bodySmall
-                        .copyWith(color: AppColors.textSecondary),
-                  ),
-                  const SizedBox(height: 16),
-
-                  Row(
-                    children: [
-                      Expanded(child: _buildSaidaField()),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _TimeField(
-                          label: 'Retorno',
-                          required: !_hasSaidaRegistrada,
-                          value: _horaRetorno != null
-                              ? _formatTime(_horaRetorno!)
-                              : null,
-                          onTap: _pickRetorno,
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 12),
-                  _buildAbonoPreview(),
-
-                  if (_hasExistingAbono) ...[
-                    const SizedBox(height: 12),
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: AppColors.warning.withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                            color: AppColors.warning.withValues(alpha: 0.3)),
-                      ),
-                      child: const Row(
-                        children: [
-                          Icon(Icons.info_outline,
-                              size: 15, color: AppColors.warning),
-                          SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              'Já existe um abono para este dia. Remova-o antes de solicitar um novo.',
-                              style: TextStyle(
-                                  fontSize: 12, color: AppColors.warning),
-                            ),
-                          ),
-                        ],
+                    Text(
+                      _formatDuration(_durationMinutes!),
+                      style: AppTextStyles.bodySmall.copyWith(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                   ],
-
-                  const SizedBox(height: 40),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: (_canSubmit && !_submitting) ? _submit : null,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
-                        disabledBackgroundColor: AppColors.border,
-                        padding:
-                            const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16)),
-                        elevation: 0,
-                      ),
-                      child: _submitting
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                  strokeWidth: 2, color: Colors.white),
-                            )
-                          : Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Icon(Icons.send_rounded, size: 18),
-                                const SizedBox(width: 8),
-                                Text(
-                                  _isAdmin ? 'Aplicar abono' : 'Enviar solicitação',
-                                  style: AppTextStyles.bodyMedium.copyWith(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Center(
+                ),
+              ),
+            ],
+            if (_horaRetorno == null && _horaSaidaManual != null) ...[
+              const SizedBox(height: 10),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(Icons.info_outline,
+                      size: 14, color: AppColors.textSecondary),
+                  const SizedBox(width: 6),
+                  Expanded(
                     child: Text(
-                      'A solicitação será revisada pela administração.',
-                      style: AppTextStyles.bodySmall
-                          .copyWith(color: AppColors.textSecondary),
+                      'Sem retorno informado, o abono de horas será definido pelo administrador na aprovação.',
+                      style: AppTextStyles.bodySmall.copyWith(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withValues(alpha: 0.68)),
                     ),
                   ),
                 ],
               ),
-      ),
-    );
-  }
-
-  Widget _buildSaidaField() {
-    if (_hasSaidaRegistrada && _saidaRegistradaStr != null) {
-      return Container(
-        padding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.primary, width: 1.5),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Saída registrada',
-              style: AppTextStyles.bodySmall.copyWith(
-                color: AppColors.textSecondary,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Row(
-              children: [
-                Expanded(
-                  child: Text(_saidaRegistradaStr!,
-                      style: AppTextStyles.bodyMedium
-                          .copyWith(color: AppColors.textPrimary)),
+            ],
+            const SizedBox(height: 40),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _canSubmit ? _submit : null,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  disabledBackgroundColor:
+                      Theme.of(context).brightness == Brightness.dark
+                          ? AppColors.darkSurfaceAlt
+                          : AppColors.border,
+                  disabledForegroundColor:
+                      Theme.of(context).brightness == Brightness.dark
+                          ? AppColors.darkTextSecondary
+                          : AppColors.textSecondary,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  elevation: 0,
                 ),
-                const Icon(Icons.lock_outline_rounded,
-                    size: 15, color: AppColors.textSecondary),
-              ],
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.send_rounded, size: 18),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Enviar solicitação',
+                      style: AppTextStyles.bodyMedium.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
-          ],
-        ),
-      );
-    }
-
-    return _TimeField(
-      label: 'Saída',
-      required: true,
-      value: _horaSaidaManual != null
-          ? _formatTime(_horaSaidaManual!)
-          : null,
-      onTap: _pickSaidaManual,
-    );
-  }
-
-  Widget _buildAbonoPreview() {
-    final abono = _abonoMinutes;
-    final autoCalc = _horaRetorno == null && _hasSaidaRegistrada;
-
-    if (abono == null) return const SizedBox.shrink();
-
-    if (abono <= 0) {
-      return Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: AppColors.warning.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-              color: AppColors.warning.withValues(alpha: 0.3)),
-        ),
-        child: Row(
-          children: [
-            const Icon(Icons.info_outline,
-                size: 15, color: AppColors.warning),
-            const SizedBox(width: 8),
-            Expanded(
+            const SizedBox(height: 16),
+            Center(
               child: Text(
-                'A carga horária já foi cumprida — não há horas a abonar.',
-                style: AppTextStyles.bodySmall
-                    .copyWith(color: AppColors.warning),
+                'A solicitação será revisada pela administração.',
+                style: AppTextStyles.bodySmall.copyWith(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: 0.68)),
               ),
             ),
           ],
         ),
-      );
-    }
-
-    return Container(
-      padding:
-          const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: AppColors.primaryLight10,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        children: [
-          if (autoCalc) ...[
-            _previewRow('Horas trabalhadas',
-                _formatMinutes(_workedMinutes), AppColors.textSecondary),
-            const SizedBox(height: 4),
-            _previewRow('Carga horária',
-                _formatMinutes(_workloadMinutes), AppColors.textSecondary),
-            const Divider(height: 16),
-          ],
-          _previewRow(
-            autoCalc ? 'Abono necessário' : 'Duração da ausência',
-            _formatMinutes(abono),
-            AppColors.primary,
-            bold: true,
-          ),
-        ],
       ),
     );
   }
 
-  Widget _previewRow(String label, String value, Color valueColor,
-      {bool bold = false}) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(label,
-            style: AppTextStyles.bodySmall
-                .copyWith(color: AppColors.textSecondary)),
-        Text(
-          value,
-          style: AppTextStyles.bodySmall.copyWith(
-            color: valueColor,
-            fontWeight: bold ? FontWeight.w700 : FontWeight.w500,
-          ),
-        ),
-      ],
-    );
-  }
 }
 
 class _TimeField extends StatelessWidget {
@@ -577,7 +499,7 @@ class _TimeField extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: value != null ? AppColors.primary : AppColors.borderLight,
@@ -589,11 +511,16 @@ class _TimeField extends StatelessWidget {
           children: [
             Row(
               children: [
-                Text(label,
-                    style: AppTextStyles.bodySmall.copyWith(
-                      color: AppColors.textSecondary,
-                      fontWeight: FontWeight.w600,
-                    )),
+                Text(
+                  label,
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: 0.68),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 if (required)
                   Text(' *',
                       style: AppTextStyles.bodySmall
@@ -609,8 +536,7 @@ class _TimeField extends StatelessWidget {
                     style: AppTextStyles.bodyMedium.copyWith(
                       color: value != null
                           ? AppColors.textPrimary
-                          : AppColors.textSecondary
-                              .withValues(alpha: 0.6),
+                          : AppColors.textSecondary.withValues(alpha: 0.6),
                     ),
                   ),
                 ),

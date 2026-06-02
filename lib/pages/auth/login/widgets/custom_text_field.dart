@@ -75,7 +75,7 @@ class CustomTextField extends StatelessWidget {
                 : null),
         errorText: errorText,
         filled: true,
-        fillColor: AppColors.surface,
+        fillColor: Theme.of(context).colorScheme.surface,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
         ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
+import 'package:flutter_application_appdeponto/widgets/presence_badge.dart';
 import 'profile_info_row.dart';
 
 class ProfileInfoCard extends StatelessWidget {
@@ -10,6 +11,8 @@ class ProfileInfoCard extends StatelessWidget {
   final int? workloadMinutes;
   final bool isAdmin;
   final VoidCallback onEdit;
+  final bool showPresence;
+  final bool isOnline;
 
   const ProfileInfoCard({
     super.key,
@@ -19,6 +22,8 @@ class ProfileInfoCard extends StatelessWidget {
     required this.workloadMinutes,
     required this.isAdmin,
     required this.onEdit,
+    this.showPresence = false,
+    this.isOnline = false,
   });
 
   String _formatWorkload(int? minutes) {
@@ -32,12 +37,17 @@ class ProfileInfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.borderLight),
+        border: Border.all(
+          color: isDark ? AppColors.primaryLight30 : AppColors.borderLight,
+        ),
         boxShadow: const [
           BoxShadow(
             color: AppColors.shadow,
@@ -56,10 +66,17 @@ class ProfileInfoCard extends StatelessWidget {
                   'Informações',
                   style: AppTextStyles.bodyLarge.copyWith(
                     fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
+                    color: colorScheme.onSurface,
                   ),
                 ),
               ),
+              if (showPresence) ...[
+                PresenceBadge(
+                  isOnline: isOnline,
+                  compact: true,
+                ),
+                const SizedBox(width: 6),
+              ],
               IconButton(
                 onPressed: onEdit,
                 icon: const Icon(

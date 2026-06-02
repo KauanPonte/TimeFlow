@@ -251,8 +251,11 @@ class _SolicitationReviewDialogState extends State<SolicitationReviewDialog> {
                       size: 13, color: AppColors.textSecondary),
                   const SizedBox(width: 5),
                   Text(formattedDate,
-                      style: AppTextStyles.bodySmall
-                          .copyWith(color: AppColors.textSecondary)),
+                      style: AppTextStyles.bodySmall.copyWith(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withValues(alpha: 0.68))),
                 ],
               ),
 
@@ -273,8 +276,11 @@ class _SolicitationReviewDialogState extends State<SolicitationReviewDialog> {
                       Expanded(
                         child: Text(
                           sol.reason!,
-                          style: AppTextStyles.bodySmall
-                              .copyWith(color: AppColors.textSecondary),
+                          style: AppTextStyles.bodySmall.copyWith(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurface
+                                  .withValues(alpha: 0.68)),
                         ),
                       ),
                     ],
@@ -305,7 +311,10 @@ class _SolicitationReviewDialogState extends State<SolicitationReviewDialog> {
                   Text(
                     '$acceptedCount aceito(s), $rejectedCount rejeitado(s)',
                     style: AppTextStyles.bodySmall.copyWith(
-                      color: AppColors.textSecondary,
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withValues(alpha: 0.68),
                       fontSize: 11,
                     ),
                   ),
@@ -340,8 +349,11 @@ class _SolicitationReviewDialogState extends State<SolicitationReviewDialog> {
                 maxLines: 2,
                 decoration: InputDecoration(
                   hintText: 'Observação do admin (opcional)',
-                  hintStyle: AppTextStyles.bodySmall
-                      .copyWith(color: AppColors.textSecondary),
+                  hintStyle: AppTextStyles.bodySmall.copyWith(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withValues(alpha: 0.68)),
                   contentPadding:
                       const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   border: OutlineInputBorder(
@@ -377,8 +389,11 @@ class _SolicitationReviewDialogState extends State<SolicitationReviewDialog> {
                       ),
                       child: Text(
                         'Voltar',
-                        style: AppTextStyles.bodyMedium
-                            .copyWith(color: AppColors.textSecondary),
+                        style: AppTextStyles.bodyMedium.copyWith(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withValues(alpha: 0.68)),
                       ),
                     ),
                   ),

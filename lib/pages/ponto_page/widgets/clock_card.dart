@@ -12,15 +12,19 @@ class ClockCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final timeStr = DateFormat('HH:mm:ss').format(now);
     final dateStr =
         DateFormat("EEEE, dd 'de' MMMM 'de' yyyy", 'pt_BR').format(now);
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.borderLight),
+        border: Border.all(
+          color: isDark ? AppColors.primaryLight30 : AppColors.borderLight,
+        ),
         boxShadow: const [
           BoxShadow(
             color: AppColors.shadow,
@@ -50,19 +54,20 @@ class ClockCard extends StatelessWidget {
               children: [
                 Text(
                   timeStr,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 36,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.primary,
+                    color: colorScheme.primary,
                     letterSpacing: 1.5,
-                    fontFeatures: [FontFeature.tabularFigures()],
+                    fontFeatures: const [FontFeature.tabularFigures()],
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   _capitalize(dateStr),
-                  style: AppTextStyles.bodySmall
-                      .copyWith(color: AppColors.textSecondary),
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: colorScheme.onSurface.withValues(alpha: 0.68),
+                  ),
                 ),
               ],
             ),

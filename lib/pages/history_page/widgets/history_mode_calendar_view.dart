@@ -35,6 +35,8 @@ class HistoryModeCalendarView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final selectedId = dayIdFor(selectedDay);
     final statusHelper = CalendarDayStatusHelper(
       daysMap: daysMap,
@@ -50,9 +52,11 @@ class HistoryModeCalendarView extends StatelessWidget {
       Container(
         clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: colorScheme.surface,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.borderLight),
+          border: Border.all(
+            color: isDark ? AppColors.primaryLight30 : AppColors.borderLight,
+          ),
           boxShadow: const [
             BoxShadow(
               color: AppColors.shadow,
@@ -96,8 +100,8 @@ class HistoryModeCalendarView extends StatelessWidget {
           ),
           calendarStyle: CalendarStyle(
             outsideDaysVisible: false,
-            disabledTextStyle: const TextStyle(
-              color: Colors.black,
+            disabledTextStyle: TextStyle(
+              color: colorScheme.onSurface.withValues(alpha: 0.38),
             ),
             todayDecoration: BoxDecoration(
               color: AppColors.primaryLight10,

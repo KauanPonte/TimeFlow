@@ -49,17 +49,10 @@ class _NoInternetPageState extends State<NoInternetPage>
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              AppColors.bgLight,
-              Color(0xFFDCE3F8),
-              Color(0xFFD3DCF7),
-            ],
-          ),
-        ),
+        decoration: BoxDecoration(
+            gradient: Theme.of(context).brightness == Brightness.dark
+                ? AppColors.techDarkBackground
+                : AppColors.appBackground),
         child: SafeArea(
           child: Stack(
             children: [

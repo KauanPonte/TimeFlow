@@ -6,8 +6,11 @@ import 'package:image_cropper/image_cropper.dart';
 import 'package:flutter_application_appdeponto/blocs/profile/profile_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/profile/profile_event.dart';
 import 'package:flutter_application_appdeponto/blocs/profile/profile_state.dart';
+import 'package:flutter_application_appdeponto/blocs/ponto_today/ponto_today_cubit.dart';
+import 'package:flutter_application_appdeponto/blocs/ponto_today/ponto_today_state.dart';
 import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/theme/app_text_styles.dart';
+import 'package:flutter_application_appdeponto/theme/theme_controller.dart';
 import 'package:flutter_application_appdeponto/widgets/app_dialog_components.dart';
 import 'package:flutter_application_appdeponto/widgets/custom_snackbar.dart';
 import 'package:flutter_application_appdeponto/widgets/main_app_bar.dart';
@@ -70,6 +73,10 @@ class _ProfilePageViewState extends State<_ProfilePageView> {
     final profileBloc = context.read<ProfileBloc>();
     if (profileBloc.state is ProfileInitial) {
       profileBloc.add(const LoadProfileEvent());
+    }
+    final pontoTodayCubit = context.read<PontoTodayCubit>();
+    if (!pontoTodayCubit.hasLoadedOnce) {
+      pontoTodayCubit.load();
     }
   }
 
@@ -246,164 +253,197 @@ class _ProfilePageViewState extends State<_ProfilePageView> {
         ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
 
     return Scaffold(
-      backgroundColor: AppColors.bgLight,
+      backgroundColor: Colors.transparent,
       appBar: const MainAppBar(subtitle: 'Meu Perfil'),
-      body: BlocConsumer<ProfileBloc, ProfileState>(
-        listener: (context, state) {
-          if (state is ProfileActionSuccess) {
-            CustomSnackbar.showSuccess(context, state.message);
-          } else if (state is ProfileError) {
-            CustomSnackbar.showError(context, state.message);
-          }
-        },
-        builder: (context, state) {
-          if (state is ProfileLoading) {
-            return const Center(
-              child: CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
-              ),
-            );
-          }
-
-          if (state is ProfileError && state.previousData == null) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.error_outline,
-                      size: 64, color: AppColors.error),
-                  const SizedBox(height: 16),
-                  Text(
-                    state.message,
-                    style: AppTextStyles.bodyLarge
-                        .copyWith(color: AppColors.error),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () {
-                      context.read<ProfileBloc>().add(const LoadProfileEvent());
-                    },
-                    child: const Text('Tentar novamente'),
-                  ),
-                ],
-              ),
-            );
-          }
-
-          // Extrair dados do perfil de qualquer estado que os contenha
-          ProfileLoaded? profileData;
-          bool isUploading = false;
-
-          if (state is ProfileLoaded) {
-            profileData = state;
-          } else if (state is ProfileImageUploading) {
-            profileData = state.previousData;
-            isUploading = true;
-          } else if (state is ProfileActionSuccess) {
-            profileData = state.updatedData;
-          } else if (state is ProfileError && state.previousData != null) {
-            profileData = state.previousData;
-          }
-
-          if (profileData == null) {
-            return const Center(child: Text('Carregando...'));
-          }
-
-          final isAdmin = _isAdminRole(profileData.role);
-
-          return ListView(
-            padding: const EdgeInsets.all(24),
-            children: [
-              const SizedBox(height: 16),
-
-              // Avatar
-              Center(
-                child: ProfileAvatar(
-                  imageData: profileData.profileImageUrl,
-                  isUploading: isUploading,
-                  onTap: () => _showImageOptions(
-                    context,
-                    hasImage: profileData!.profileImageUrl.isNotEmpty,
-                  ),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: Theme.of(context).brightness == Brightness.dark
+              ? AppColors.techDarkBackground
+              : AppColors.appBackground,
+        ),
+        child: BlocConsumer<ProfileBloc, ProfileState>(
+          listener: (context, state) {
+            if (state is ProfileActionSuccess) {
+              CustomSnackbar.showSuccess(context, state.message);
+            } else if (state is ProfileError) {
+              CustomSnackbar.showError(context, state.message);
+            }
+          },
+          builder: (context, state) {
+            if (state is ProfileLoading) {
+              return const Center(
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
                 ),
-              ),
+              );
+            }
 
-              const SizedBox(height: 24),
-
-              Center(
-                child: ProfileHeader(
-                  name: profileData.name,
-                  role: profileData.role,
-                ),
-              ),
-
-              const SizedBox(height: 32),
-
-              ProfileInfoCard(
-                name: profileData.name,
-                email: profileData.email,
-                role: profileData.role,
-                workloadMinutes: profileData.workloadMinutes,
-                isAdmin: isAdmin,
-                onEdit: () => _showEditProfileDialog(profileData!),
-              ),
-
-              const SizedBox(height: 16),
-
-              Container(
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.borderLight),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: AppColors.shadow,
-                      blurRadius: 8,
-                      offset: Offset(0, 2),
+            if (state is ProfileError && state.previousData == null) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.error_outline,
+                        size: 64, color: AppColors.error),
+                    const SizedBox(height: 16),
+                    Text(
+                      state.message,
+                      style: AppTextStyles.bodyLarge
+                          .copyWith(color: AppColors.error),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: () {
+                        context
+                            .read<ProfileBloc>()
+                            .add(const LoadProfileEvent());
+                      },
+                      child: const Text('Tentar novamente'),
                     ),
                   ],
                 ),
-                child: ListTile(
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 4,
-                  ),
-                  leading: Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryLight10,
-                      borderRadius: BorderRadius.circular(10),
+              );
+            }
+
+            // Extrair dados do perfil de qualquer estado que os contenha
+            ProfileLoaded? profileData;
+            bool isUploading = false;
+
+            if (state is ProfileLoaded) {
+              profileData = state;
+            } else if (state is ProfileImageUploading) {
+              profileData = state.previousData;
+              isUploading = true;
+            } else if (state is ProfileActionSuccess) {
+              profileData = state.updatedData;
+            } else if (state is ProfileError && state.previousData != null) {
+              profileData = state.previousData;
+            }
+
+            if (profileData == null) {
+              return const Center(child: Text('Carregando...'));
+            }
+
+            final isAdmin = _isAdminRole(profileData.role);
+
+            return ListView(
+              padding: const EdgeInsets.all(24),
+              children: [
+                const SizedBox(height: 16),
+
+                // Avatar
+                Center(
+                  child: ProfileAvatar(
+                    imageData: profileData.profileImageUrl,
+                    isUploading: isUploading,
+                    onTap: () => _showImageOptions(
+                      context,
+                      hasImage: profileData!.profileImageUrl.isNotEmpty,
                     ),
-                    child: const Icon(
-                      Icons.notifications_active_rounded,
-                      color: AppColors.primary,
-                    ),
                   ),
-                  title: Text(
-                    'Lembretes personalizados',
-                    style: AppTextStyles.bodyLarge.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  subtitle: Text(
-                    'Entrada, pausa, volta e saída',
-                    style: AppTextStyles.bodyMedium.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                  trailing: const Icon(
-                    Icons.chevron_right_rounded,
-                    color: AppColors.textSecondary,
-                  ),
-                  onTap: () => ScheduledRemindersModal.show(context),
                 ),
-              ),
-            ],
-          );
-        },
+
+                const SizedBox(height: 24),
+
+                Center(
+                  child: ProfileHeader(
+                    name: profileData.name,
+                    role: profileData.role,
+                  ),
+                ),
+
+                const SizedBox(height: 32),
+
+                BlocBuilder<PontoTodayCubit, PontoTodayState>(
+                  builder: (context, pontoState) {
+                    final hasPunchToday = pontoState.eventosHoje.isNotEmpty;
+                    final isOnline = pontoState.ultimoTipo == 'entrada' ||
+                        pontoState.ultimoTipo == 'retorno';
+
+                    return ProfileInfoCard(
+                      name: profileData!.name,
+                      email: profileData.email,
+                      role: profileData.role,
+                      workloadMinutes: profileData.workloadMinutes,
+                      isAdmin: isAdmin,
+                      onEdit: () => _showEditProfileDialog(profileData!),
+                      showPresence: hasPunchToday,
+                      isOnline: isOnline,
+                    );
+                  },
+                ),
+
+                const SizedBox(height: 16),
+
+                Container(
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surface,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? AppColors.primaryLight30
+                          : AppColors.borderLight,
+                    ),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: AppColors.shadow,
+                        blurRadius: 8,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 4,
+                    ),
+                    leading: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryLight10,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(
+                        Icons.notifications_active_rounded,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    title: Text(
+                      'Lembretes personalizados',
+                      style: AppTextStyles.bodyLarge.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                    ),
+                    subtitle: Text(
+                      'Entrada, pausa, volta e saída',
+                      style: AppTextStyles.bodyMedium.copyWith(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withValues(alpha: 0.68),
+                      ),
+                    ),
+                    trailing: Icon(
+                      Icons.chevron_right_rounded,
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withValues(alpha: 0.68),
+                    ),
+                    onTap: () => ScheduledRemindersModal.show(context),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                const _ThemePreferenceCard(),
+              ],
+            );
+          },
+        ),
       ),
       bottomNavigationBar: BottomNav(
         index: (args?['employeeRole'] ?? '')
@@ -417,6 +457,184 @@ class _ProfilePageViewState extends State<_ProfilePageView> {
             .toUpperCase()
             .contains('ADM'),
         args: args,
+      ),
+    );
+  }
+}
+
+class _ThemePreferenceCard extends StatelessWidget {
+  const _ThemePreferenceCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Theme.of(context).brightness == Brightness.dark
+              ? AppColors.primaryLight30
+              : AppColors.borderLight,
+        ),
+        boxShadow: const [
+          BoxShadow(
+            color: AppColors.shadow,
+            blurRadius: 8,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: ValueListenableBuilder<ThemeMode>(
+        valueListenable: AppThemeController.mode,
+        builder: (context, mode, _) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryLight10,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.palette_outlined,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Aparência',
+                          style: AppTextStyles.bodyLarge.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: colorScheme.onSurface,
+                          ),
+                        ),
+                        Text(
+                          'Tema do aplicativo',
+                          style: AppTextStyles.bodyMedium.copyWith(
+                            color:
+                                colorScheme.onSurface.withValues(alpha: 0.68),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  Expanded(
+                    child: _ThemeChoiceButton(
+                      icon: Icons.light_mode_outlined,
+                      label: 'Claro',
+                      selected: mode == ThemeMode.light,
+                      onTap: () => AppThemeController.setMode(ThemeMode.light),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _ThemeChoiceButton(
+                      icon: Icons.dark_mode_outlined,
+                      label: 'Escuro',
+                      selected: mode == ThemeMode.dark,
+                      onTap: () => AppThemeController.setMode(ThemeMode.dark),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _ThemeChoiceButton(
+                      icon: Icons.auto_awesome_outlined,
+                      label: 'Sistema',
+                      selected: mode == ThemeMode.system,
+                      onTap: () => AppThemeController.setMode(ThemeMode.system),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _ThemeChoiceButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _ThemeChoiceButton({
+    required this.icon,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: selected
+                ? (isDark ? AppColors.primaryLight : AppColors.primary)
+                : (isDark
+                    ? AppColors.darkSurfaceAlt
+                    : AppColors.primaryLight10),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: selected
+                  ? Colors.transparent
+                  : (isDark ? AppColors.primaryLight30 : AppColors.borderLight),
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                size: 20,
+                color: selected
+                    ? (isDark ? AppColors.navy : AppColors.white)
+                    : (isDark ? AppColors.darkTextPrimary : AppColors.primary),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppTextStyles.bodySmall.copyWith(
+                  color: selected
+                      ? (isDark ? AppColors.navy : AppColors.white)
+                      : (isDark
+                          ? AppColors.darkTextPrimary
+                          : AppColors.textPrimary),
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

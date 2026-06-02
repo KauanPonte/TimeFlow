@@ -13,7 +13,6 @@ import 'package:flutter_application_appdeponto/pages/admin/settings/widgets/sett
 import 'package:flutter_application_appdeponto/pages/admin/settings/widgets/settings_page_content.dart';
 import 'package:flutter_application_appdeponto/pages/admin/settings/widgets/settings_search_field.dart';
 import 'package:flutter_application_appdeponto/pages/admin/settings/widgets/settings_suggestions_card.dart';
-import 'package:flutter_application_appdeponto/theme/app_colors.dart';
 import 'package:flutter_application_appdeponto/widgets/app_dialog_components.dart';
 import 'package:flutter_application_appdeponto/widgets/custom_snackbar.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -432,7 +431,7 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.bgLight,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: const SettingsAppBar(),
       body: SettingsPageContent(
         loading: _loading,

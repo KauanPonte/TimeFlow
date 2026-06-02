@@ -41,8 +41,11 @@ class AdminJustificativaDialog {
             children: [
               Text(
                 'A justificativa será salva diretamente sem necessidade de aprovação.',
-                style: AppTextStyles.bodySmall
-                    .copyWith(color: AppColors.textSecondary),
+                style: AppTextStyles.bodySmall.copyWith(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: 0.68)),
               ),
               const SizedBox(height: 12),
               TextField(
@@ -52,22 +55,22 @@ class AdminJustificativaDialog {
                 autofocus: true,
                 decoration: InputDecoration(
                   hintText: 'Descreva a justificativa...',
-                  hintStyle: AppTextStyles.bodySmall
-                      .copyWith(color: AppColors.textSecondary),
+                  hintStyle: AppTextStyles.bodySmall.copyWith(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withValues(alpha: 0.68)),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
-                    borderSide:
-                        const BorderSide(color: AppColors.borderLight),
+                    borderSide: const BorderSide(color: AppColors.borderLight),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
-                    borderSide:
-                        const BorderSide(color: AppColors.borderLight),
+                    borderSide: const BorderSide(color: AppColors.borderLight),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
-                    borderSide:
-                        const BorderSide(color: AppColors.primary),
+                    borderSide: const BorderSide(color: AppColors.primary),
                   ),
                 ),
               ),
@@ -97,13 +100,12 @@ class AdminJustificativaDialog {
                   );
                   onSaved();
                   if (context.mounted) {
-                    CustomSnackbar.showSuccess(
-                        context, 'Justificativa salva.');
+                    CustomSnackbar.showSuccess(context, 'Justificativa salva.');
                   }
                 } catch (e) {
                   if (context.mounted) {
-                    CustomSnackbar.showError(context,
-                        e.toString().replaceAll('Exception: ', ''));
+                    CustomSnackbar.showError(
+                        context, e.toString().replaceAll('Exception: ', ''));
                   }
                 }
               },

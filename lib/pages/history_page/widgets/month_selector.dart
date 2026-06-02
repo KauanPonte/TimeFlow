@@ -24,6 +24,8 @@ class MonthSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final formatter = DateFormat("MMMM 'de' yyyy", 'pt_BR');
     final label = formatter.format(currentMonth);
     final displayLabel = label[0].toUpperCase() + label.substring(1);
@@ -32,9 +34,11 @@ class MonthSelector extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.borderLight),
+        border: Border.all(
+          color: isDark ? AppColors.primaryLight30 : AppColors.borderLight,
+        ),
         boxShadow: const [
           BoxShadow(
             color: AppColors.shadow,
@@ -48,21 +52,26 @@ class MonthSelector extends StatelessWidget {
         children: [
           IconButton(
             onPressed: onPrevious,
-            icon: const Icon(Icons.chevron_left, color: AppColors.primary),
+            icon: Icon(
+              Icons.chevron_left,
+              color: isDark ? colorScheme.onSurface : AppColors.primary,
+            ),
             tooltip: 'Mês anterior',
           ),
           Text(
             displayLabel,
             style: AppTextStyles.bodyLarge.copyWith(
               fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary,
+              color: colorScheme.onSurface,
             ),
           ),
           IconButton(
             onPressed: _canGoNext ? onNext : null,
             icon: Icon(
               Icons.chevron_right,
-              color: _canGoNext ? AppColors.primary : AppColors.borderLight,
+              color: _canGoNext
+                  ? (isDark ? colorScheme.onSurface : colorScheme.primary)
+                  : colorScheme.onSurface.withValues(alpha: 0.28),
             ),
             tooltip: 'Próximo mês',
           ),

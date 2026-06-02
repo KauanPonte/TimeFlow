@@ -40,12 +40,16 @@ class TodayTimeline extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (eventos.isEmpty) return const SizedBox.shrink();
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.borderLight),
+        border: Border.all(
+          color: isDark ? AppColors.primaryLight30 : AppColors.borderLight,
+        ),
         boxShadow: const [
           BoxShadow(
               color: AppColors.shadow, blurRadius: 8, offset: Offset(0, 2)),
@@ -90,7 +94,9 @@ class TodayTimeline extends StatelessWidget {
                           child: Container(
                             width: 2,
                             margin: const EdgeInsets.symmetric(vertical: 4),
-                            color: AppColors.borderLight,
+                            color: isDark
+                                ? AppColors.primaryLight30
+                                : AppColors.borderLight,
                           ),
                         ),
                       if (isLast) const SizedBox(height: 16),
@@ -116,7 +122,7 @@ class TodayTimeline extends StatelessWidget {
                                 label,
                                 style: AppTextStyles.bodyLarge.copyWith(
                                   fontWeight: FontWeight.w600,
-                                  color: AppColors.textPrimary,
+                                  color: colorScheme.onSurface,
                                 ),
                               ),
                               Container(

@@ -75,16 +75,10 @@ class _LoginPageState extends State<LoginPage> {
           final isLoading = fieldsState.isLoading;
 
           return Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  AppColors.bgLight,
-                  AppColors.surface,
-                ],
-              ),
-            ),
+            decoration: BoxDecoration(
+                gradient: Theme.of(context).brightness == Brightness.dark
+                    ? AppColors.techDarkBackground
+                    : AppColors.appBackground),
             child: SafeArea(
               child: Center(
                 child: SingleChildScrollView(
@@ -162,8 +156,8 @@ class _LoginPageState extends State<LoginPage> {
                             _obscurePassword
                                 ? Icons.visibility_off
                                 : Icons.visibility,
-                            color: fieldsState
-                                        .fieldErrors[AuthFields.passwordLogin] !=
+                            color: fieldsState.fieldErrors[
+                                        AuthFields.passwordLogin] !=
                                     null
                                 ? Colors.red
                                 : (fieldsState.fieldValid[

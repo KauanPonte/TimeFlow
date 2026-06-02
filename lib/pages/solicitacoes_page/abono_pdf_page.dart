@@ -93,15 +93,18 @@ class _AbonoPdfPageState extends State<AbonoPdfPage> {
         }
       },
       child: Scaffold(
-        backgroundColor: AppColors.bgLight,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         appBar: AppBar(
           titleSpacing: 0,
-          backgroundColor: AppColors.surface,
+          backgroundColor: Theme.of(context).colorScheme.surface,
           elevation: 0,
           scrolledUnderElevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new_rounded,
-                color: AppColors.textPrimary, size: 20),
+            icon: Icon(
+              Icons.arrow_back_ios_new_rounded,
+              color: Theme.of(context).colorScheme.onSurface,
+              size: 20,
+            ),
             onPressed: () => Navigator.pop(context),
           ),
           title: Row(
@@ -117,7 +120,8 @@ class _AbonoPdfPageState extends State<AbonoPdfPage> {
               const SizedBox(width: 12),
               Text(
                 widget.titulo,
-                style: AppTextStyles.h3.copyWith(color: AppColors.textPrimary),
+                style: AppTextStyles.h3
+                    .copyWith(color: Theme.of(context).colorScheme.onSurface),
               ),
             ],
           ),
@@ -128,7 +132,7 @@ class _AbonoPdfPageState extends State<AbonoPdfPage> {
             Text(
               'Declaração (PDF)',
               style: AppTextStyles.titleSmall.copyWith(
-                color: AppColors.textPrimary,
+                color: Theme.of(context).colorScheme.onSurface,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -140,7 +144,7 @@ class _AbonoPdfPageState extends State<AbonoPdfPage> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: AppColors.surface,
+                  color: Theme.of(context).colorScheme.surface,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: AppColors.borderLight,
@@ -159,7 +163,14 @@ class _AbonoPdfPageState extends State<AbonoPdfPage> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
-                  disabledBackgroundColor: AppColors.border,
+                  disabledBackgroundColor:
+                      Theme.of(context).brightness == Brightness.dark
+                          ? AppColors.darkSurfaceAlt
+                          : AppColors.border,
+                  disabledForegroundColor:
+                      Theme.of(context).brightness == Brightness.dark
+                          ? AppColors.darkTextSecondary
+                          : AppColors.textSecondary,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
@@ -186,8 +197,11 @@ class _AbonoPdfPageState extends State<AbonoPdfPage> {
             Center(
               child: Text(
                 'A declaração será revisada pela administração.',
-                style: AppTextStyles.bodySmall
-                    .copyWith(color: AppColors.textSecondary),
+                style: AppTextStyles.bodySmall.copyWith(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: 0.68)),
               ),
             ),
           ],
@@ -205,15 +219,18 @@ class _AbonoPdfPageState extends State<AbonoPdfPage> {
         Text(
           'Toque para selecionar o PDF',
           style: AppTextStyles.bodyMedium.copyWith(
-            color: AppColors.textPrimary,
+            color: Theme.of(context).colorScheme.onSurface,
             fontWeight: FontWeight.w600,
           ),
         ),
         const SizedBox(height: 4),
         Text(
           'Apenas arquivos PDF são aceitos',
-          style:
-              AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
+          style: AppTextStyles.bodySmall.copyWith(
+              color: Theme.of(context)
+                  .colorScheme
+                  .onSurface
+                  .withValues(alpha: 0.68)),
         ),
       ],
     );
@@ -232,14 +249,17 @@ class _AbonoPdfPageState extends State<AbonoPdfPage> {
               Text(
                 'Arquivo selecionado',
                 style: AppTextStyles.bodySmall.copyWith(
-                  color: AppColors.textSecondary,
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.68),
                   fontWeight: FontWeight.w600,
                 ),
               ),
               Text(
                 _fileName!,
                 style: AppTextStyles.bodyMedium
-                    .copyWith(color: AppColors.textPrimary),
+                    .copyWith(color: Theme.of(context).colorScheme.onSurface),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -248,8 +268,11 @@ class _AbonoPdfPageState extends State<AbonoPdfPage> {
         ),
         IconButton(
           onPressed: _clearFile,
-          icon: const Icon(Icons.close_rounded,
-              color: AppColors.textSecondary),
+          icon: Icon(Icons.close_rounded,
+              color: Theme.of(context)
+                  .colorScheme
+                  .onSurface
+                  .withValues(alpha: 0.68)),
         ),
       ],
     );

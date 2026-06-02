@@ -18,7 +18,7 @@ class MonthlySummaryCard extends StatelessWidget {
     if (mesResumoFuture == null && !isLoading) return const SizedBox.shrink();
 
     if (isLoading) {
-      return _buildLoadingCard();
+      return _buildLoadingCard(context);
     }
 
     return FutureBuilder<MesResumo>(
@@ -26,7 +26,7 @@ class MonthlySummaryCard extends StatelessWidget {
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting ||
             snapshot.connectionState == ConnectionState.active) {
-          return _buildLoadingCard();
+          return _buildLoadingCard(context);
         }
         if (!snapshot.hasData) return const SizedBox.shrink();
         final r = snapshot.data!;
@@ -38,13 +38,18 @@ class MonthlySummaryCard extends StatelessWidget {
         final balM = r.monthBalance.abs().toInt() % 60;
         final prefix = r.monthBalance >= 0 ? "+" : "-";
 
+        final colorScheme = Theme.of(context).colorScheme;
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+
         return Container(
           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: colorScheme.surface,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.borderLight),
+            border: Border.all(
+              color: isDark ? AppColors.primaryLight30 : AppColors.borderLight,
+            ),
             boxShadow: const [
               BoxShadow(
                 color: AppColors.shadow,
@@ -59,17 +64,20 @@ class MonthlySummaryCard extends StatelessWidget {
               _buildMiniStat(
                 'Trabalhado',
                 '${h}h ${m.toString().padLeft(2, '0')}m',
-                AppColors.textPrimary,
+                colorScheme.onSurface,
+                context,
               ),
               _buildMiniStat(
                 'Esperado',
                 '${eH}h ${eM.toString().padLeft(2, '0')}m',
-                AppColors.textSecondary,
+                colorScheme.onSurface.withValues(alpha: 0.68),
+                context,
               ),
               _buildMiniStat(
                 'Saldo',
                 '$prefix ${balH}h ${balM.toString().padLeft(2, '0')}m',
                 r.monthBalance >= 0 ? AppColors.success : AppColors.error,
+                context,
               ),
             ],
           ),
@@ -78,13 +86,20 @@ class MonthlySummaryCard extends StatelessWidget {
     );
   }
 
-  Widget _buildMiniStat(String label, String value, Color valueColor) {
+  Widget _buildMiniStat(
+    String label,
+    String value,
+    Color valueColor,
+    BuildContext context,
+  ) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Column(
       children: [
         Text(
           label,
-          style:
-              AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
+          style: AppTextStyles.bodySmall.copyWith(
+            color: colorScheme.onSurface.withValues(alpha: 0.68),
+          ),
         ),
         const SizedBox(height: 4),
         Text(
@@ -96,14 +111,18 @@ class MonthlySummaryCard extends StatelessWidget {
     );
   }
 
-  Widget _buildLoadingCard() {
+  Widget _buildLoadingCard(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.borderLight),
+        border: Border.all(
+          color: isDark ? AppColors.primaryLight30 : AppColors.borderLight,
+        ),
         boxShadow: const [
           BoxShadow(
             color: AppColors.shadow,
