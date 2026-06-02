@@ -102,7 +102,8 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
       final uid = widget.uid ?? FirebaseAuth.instance.currentUser?.uid;
       if (uid == null) return;
       final list = await _abonoRepository.getMyAbonos();
-      if (mounted) setState(() => _myAbonos = {for (final a in list) a.diaId: a});
+      if (mounted)
+        setState(() => _myAbonos = {for (final a in list) a.diaId: a});
     } catch (_) {}
   }
 
@@ -630,7 +631,6 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
             },
           ),
         ],
-        ),
       ),
     );
   }

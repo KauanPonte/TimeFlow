@@ -684,7 +684,7 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                             ),
                             onTap: () {
                               Navigator.pop(sheetCtx);
-                              _openAbonoReview(context, a);
+                              _openJustificativaReview(context, j);
                             },
                           );
                         }),
@@ -1638,7 +1638,7 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Período de ausência',
+                            'Documento anexado',
                             style: AppTextStyles.bodySmall.copyWith(
                               color: Theme.of(context)
                                   .colorScheme
@@ -1648,50 +1648,14 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                             ),
                           ),
                           const SizedBox(height: 6),
-                          Row(
-                            children: [
-                              const Icon(Icons.login_rounded,
-                                  size: 14, color: AppColors.primary),
-                              const SizedBox(width: 6),
-                              Text('Saída: ${just.dataInicio}',
-                                  style: AppTextStyles.bodySmall.copyWith(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurface)),
-                              const SizedBox(width: 16),
-                              const Icon(Icons.logout_rounded,
-                                  size: 14, color: AppColors.primary),
-                              const SizedBox(width: 6),
-                              Text(
-                                just.dataFim != null
-                                    ? 'Retorno: ${just.dataFim}'
-                                    : 'Retorno: não informado',
-                                style: AppTextStyles.bodySmall.copyWith(
-                                  color: just.dataFim != null
-                                      ? AppColors.textPrimary
-                                      : AppColors.textSecondary,
-                                ),
-                              ),
-                            ],
-                          ),
-                          if (just.abonoMinutes != null &&
-                              just.abonoMinutes! > 0) ...[
-                            const SizedBox(height: 4),
-                            Row(
-                              children: [
-                                const Icon(Icons.timer_outlined,
-                                    size: 14, color: AppColors.primary),
-                                const SizedBox(width: 6),
-                                Text(
-                                  'Abono: ${just.abonoMinutes! ~/ 60}h ${just.abonoMinutes! % 60}min',
-                                  style: AppTextStyles.bodySmall.copyWith(
-                                    color: AppColors.primary,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ],
+                          Text(
+                            just.fileName != null
+                                ? 'Arquivo: ${just.fileName}'
+                                : 'Um documento foi enviado com a justificativa.',
+                            style: AppTextStyles.bodySmall.copyWith(
+                              color: Theme.of(context).colorScheme.onSurface,
                             ),
-                          ],
+                          ),
                         ],
                       ),
                     ),
@@ -1841,7 +1805,8 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('Revisar Abono', style: AppTextStyles.h3),
+                            const Text('Revisar Abono',
+                                style: AppTextStyles.h3),
                             Text(
                               abono.employeeName,
                               style: AppTextStyles.bodySmall.copyWith(
@@ -1878,7 +1843,8 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(color: AppColors.borderLight),
                     ),
-                    child: Text(abono.observacao, style: AppTextStyles.bodyMedium),
+                    child:
+                        Text(abono.observacao, style: AppTextStyles.bodyMedium),
                   ),
                   if (abono.abonoMinutes > 0) ...[
                     const SizedBox(height: 8),
@@ -1980,7 +1946,8 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                               const BorderSide(color: AppColors.borderLight)),
                       focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(color: AppColors.primary)),
+                          borderSide:
+                              const BorderSide(color: AppColors.primary)),
                     ),
                     style: AppTextStyles.bodySmall,
                   ),
@@ -1994,7 +1961,8 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                             Navigator.pop(dialogCtx);
                             context.read<AbonoBloc>().add(
                                   RejectAbonoEvent(abono.id,
-                                      reason: reason.isNotEmpty ? reason : null),
+                                      reason:
+                                          reason.isNotEmpty ? reason : null),
                                 );
                           },
                           style: OutlinedButton.styleFrom(

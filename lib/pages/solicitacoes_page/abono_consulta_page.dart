@@ -37,7 +37,7 @@ class _AbonoConsultaPageState extends State<AbonoConsultaPage> {
   bool _loadingDay = true;
   bool _submitting = false;
   bool _isAdmin = false;
-  bool _hasExistingAbono = false;     // true se já existe abono para o dia
+  bool _hasExistingAbono = false; // true se já existe abono para o dia
   bool _hasSaidaRegistrada = false;
   String? _saidaRegistradaStr;
   int _workedMinutes = 0;
@@ -95,7 +95,7 @@ class _AbonoConsultaPageState extends State<AbonoConsultaPage> {
       final hasExisting = abonoSnap.docs.isNotEmpty;
 
       final userSnap = results[0];
-      final daySnap  = results[1];
+      final daySnap = results[1];
 
       // Lê carga horária com fallback para 8h (480 min)
       final workload = (userSnap.data()?['workloadMinutes'] as int?) ??
@@ -114,8 +114,8 @@ class _AbonoConsultaPageState extends State<AbonoConsultaPage> {
             if (dt != null) eventos.add({...e, 'at': dt});
           }
         }
-        eventos.sort((a, b) =>
-            (a['at'] as DateTime).compareTo(b['at'] as DateTime));
+        eventos.sort(
+            (a, b) => (a['at'] as DateTime).compareTo(b['at'] as DateTime));
       }
 
       // Calcula minutos trabalhados e verifica se há batida de saída
@@ -125,7 +125,7 @@ class _AbonoConsultaPageState extends State<AbonoConsultaPage> {
 
       for (final ev in eventos) {
         final tipo = (ev['tipo'] ?? '').toString();
-        final at   = ev['at'] as DateTime;
+        final at = ev['at'] as DateTime;
 
         if (tipo == 'entrada' || tipo == 'retorno') {
           openWork ??= at;
@@ -143,12 +143,12 @@ class _AbonoConsultaPageState extends State<AbonoConsultaPage> {
 
       if (mounted) {
         setState(() {
-          _workloadMinutes    = workload;
-          _workedMinutes      = totalMin;
+          _workloadMinutes = workload;
+          _workedMinutes = totalMin;
           _hasSaidaRegistrada = saidaStr != null;
           _saidaRegistradaStr = saidaStr;
-          _hasExistingAbono   = hasExisting;
-          _loadingDay         = false;
+          _hasExistingAbono = hasExisting;
+          _loadingDay = false;
         });
       }
     } catch (_) {
@@ -178,9 +178,9 @@ class _AbonoConsultaPageState extends State<AbonoConsultaPage> {
   // - Sem retorno + sem batida: null (retorno obrigatório neste caso)
   int? get _abonoMinutes {
     if (_horaRetorno != null && _saidaEfetiva != null) {
-      final parts    = _saidaEfetiva!.split(':');
+      final parts = _saidaEfetiva!.split(':');
       final saidaMin = int.parse(parts[0]) * 60 + int.parse(parts[1]);
-      final retMin   = _horaRetorno!.hour * 60 + _horaRetorno!.minute;
+      final retMin = _horaRetorno!.hour * 60 + _horaRetorno!.minute;
       if (retMin <= saidaMin) return null;
       return retMin - saidaMin;
     }
@@ -193,8 +193,8 @@ class _AbonoConsultaPageState extends State<AbonoConsultaPage> {
   }
 
   Future<void> _pickSaidaManual() async {
-    final picked = await showTimePicker24h(
-        context, _horaSaidaManual ?? TimeOfDay.now());
+    final picked =
+        await showTimePicker24h(context, _horaSaidaManual ?? TimeOfDay.now());
     if (picked != null) {
       setState(() {
         _horaSaidaManual = picked;
@@ -213,12 +213,23 @@ class _AbonoConsultaPageState extends State<AbonoConsultaPage> {
     TimeOfDay initial = TimeOfDay.now();
     if (_saidaEfetiva != null) {
       final p = _saidaEfetiva!.split(':');
-      initial =
-          TimeOfDay(hour: int.parse(p[0]), minute: int.parse(p[1]));
+      initial = TimeOfDay(hour: int.parse(p[0]), minute: int.parse(p[1]));
     }
     final picked = await showTimePicker24h(context, initial);
     if (picked != null) setState(() => _horaRetorno = picked);
   }
+
+  Future<void> _pickTime({required bool isSaida}) async {
+    if (isSaida) {
+      await _pickSaidaManual();
+    } else {
+      await _pickRetorno();
+    }
+  }
+
+  int? get _durationMinutes => _abonoMinutes;
+
+  String _formatDuration(int minutes) => _formatMinutes(minutes);
 
   Future<void> _pickPDF() async {
     final result = await FilePicker.platform.pickFiles(
@@ -228,14 +239,14 @@ class _AbonoConsultaPageState extends State<AbonoConsultaPage> {
     );
     if (result != null && result.files.single.bytes != null) {
       setState(() {
-        _fileName  = result.files.single.name;
+        _fileName = result.files.single.name;
         _fileBytes = result.files.single.bytes;
       });
     }
   }
 
   void _clearFile() => setState(() {
-        _fileName  = null;
+        _fileName = null;
         _fileBytes = null;
       });
 
@@ -260,7 +271,7 @@ class _AbonoConsultaPageState extends State<AbonoConsultaPage> {
     if (date == null) return;
 
     final diaId = _fmtId.format(date);
-    final uid   = FirebaseAuth.instance.currentUser?.uid;
+    final uid = FirebaseAuth.instance.currentUser?.uid;
 
     if (_isAdmin && uid != null) {
       setState(() => _submitting = true);
@@ -378,7 +389,9 @@ class _AbonoConsultaPageState extends State<AbonoConsultaPage> {
                   child: _TimeField(
                     label: 'Saída',
                     required: true,
-                    value: _horaSaida != null ? _formatTime(_horaSaida!) : null,
+                    value: _horaSaidaManual != null
+                        ? _formatTime(_horaSaidaManual!)
+                        : null,
                     onTap: () => _pickTime(isSaida: true),
                   ),
                 ),
@@ -428,7 +441,7 @@ class _AbonoConsultaPageState extends State<AbonoConsultaPage> {
                 ),
               ),
             ],
-            if (_horaRetorno == null && _horaSaida != null) ...[
+            if (_horaRetorno == null && _horaSaidaManual != null) ...[
               const SizedBox(height: 10),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -526,8 +539,7 @@ class _AbonoConsultaPageState extends State<AbonoConsultaPage> {
   Widget _buildSaidaField() {
     if (_hasSaidaRegistrada && _saidaRegistradaStr != null) {
       return Container(
-        padding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(12),
@@ -564,9 +576,7 @@ class _AbonoConsultaPageState extends State<AbonoConsultaPage> {
     return _TimeField(
       label: 'Saída',
       required: true,
-      value: _horaSaidaManual != null
-          ? _formatTime(_horaSaidaManual!)
-          : null,
+      value: _horaSaidaManual != null ? _formatTime(_horaSaidaManual!) : null,
       onTap: _pickSaidaManual,
     );
   }
@@ -584,19 +594,17 @@ class _AbonoConsultaPageState extends State<AbonoConsultaPage> {
         decoration: BoxDecoration(
           color: AppColors.warning.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-              color: AppColors.warning.withValues(alpha: 0.3)),
+          border: Border.all(color: AppColors.warning.withValues(alpha: 0.3)),
         ),
         child: Row(
           children: [
-            const Icon(Icons.info_outline,
-                size: 15, color: AppColors.warning),
+            const Icon(Icons.info_outline, size: 15, color: AppColors.warning),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
                 'A carga horária já foi cumprida — não há horas a abonar.',
-                style: AppTextStyles.bodySmall
-                    .copyWith(color: AppColors.warning),
+                style:
+                    AppTextStyles.bodySmall.copyWith(color: AppColors.warning),
               ),
             ),
           ],
@@ -605,8 +613,7 @@ class _AbonoConsultaPageState extends State<AbonoConsultaPage> {
     }
 
     return Container(
-      padding:
-          const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         color: AppColors.primaryLight10,
         borderRadius: BorderRadius.circular(12),
@@ -614,11 +621,11 @@ class _AbonoConsultaPageState extends State<AbonoConsultaPage> {
       child: Column(
         children: [
           if (autoCalc) ...[
-            _previewRow('Horas trabalhadas',
-                _formatMinutes(_workedMinutes), AppColors.textSecondary),
+            _previewRow('Horas trabalhadas', _formatMinutes(_workedMinutes),
+                AppColors.textSecondary),
             const SizedBox(height: 4),
-            _previewRow('Carga horária',
-                _formatMinutes(_workloadMinutes), AppColors.textSecondary),
+            _previewRow('Carga horária', _formatMinutes(_workloadMinutes),
+                AppColors.textSecondary),
             const Divider(height: 16),
           ],
           _previewRow(
@@ -709,8 +716,7 @@ class _TimeField extends StatelessWidget {
                     style: AppTextStyles.bodyMedium.copyWith(
                       color: value != null
                           ? AppColors.textPrimary
-                          : AppColors.textSecondary
-                              .withValues(alpha: 0.6),
+                          : AppColors.textSecondary.withValues(alpha: 0.6),
                     ),
                   ),
                 ),
@@ -750,9 +756,7 @@ class _FilePickerBox extends StatelessWidget {
           color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-              color: AppColors.borderLight,
-              style: BorderStyle.solid,
-              width: 2),
+              color: AppColors.borderLight, style: BorderStyle.solid, width: 2),
         ),
         child: Column(
           children: [

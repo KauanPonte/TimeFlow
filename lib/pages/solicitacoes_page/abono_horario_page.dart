@@ -94,7 +94,7 @@ class _AbonoHorarioPageState extends State<AbonoHorarioPage> {
       final hasExisting = abonoSnap.docs.isNotEmpty;
 
       final userSnap = results[0];
-      final daySnap  = results[1];
+      final daySnap = results[1];
 
       final workload = (userSnap.data()?['workloadMinutes'] as int?) ??
           (userSnap.data()?['cargaHorariaMinutos'] as int?) ??
@@ -112,8 +112,8 @@ class _AbonoHorarioPageState extends State<AbonoHorarioPage> {
             if (dt != null) eventos.add({...e, 'at': dt});
           }
         }
-        eventos.sort((a, b) =>
-            (a['at'] as DateTime).compareTo(b['at'] as DateTime));
+        eventos.sort(
+            (a, b) => (a['at'] as DateTime).compareTo(b['at'] as DateTime));
       }
 
       DateTime? openWork;
@@ -122,7 +122,7 @@ class _AbonoHorarioPageState extends State<AbonoHorarioPage> {
 
       for (final ev in eventos) {
         final tipo = (ev['tipo'] ?? '').toString();
-        final at   = ev['at'] as DateTime;
+        final at = ev['at'] as DateTime;
 
         if (tipo == 'entrada' || tipo == 'retorno') {
           openWork ??= at;
@@ -140,12 +140,12 @@ class _AbonoHorarioPageState extends State<AbonoHorarioPage> {
 
       if (mounted) {
         setState(() {
-          _workloadMinutes    = workload;
-          _workedMinutes      = totalMin;
+          _workloadMinutes = workload;
+          _workedMinutes = totalMin;
           _hasSaidaRegistrada = saidaStr != null;
-          _hasExistingAbono   = hasExisting;
+          _hasExistingAbono = hasExisting;
           _saidaRegistradaStr = saidaStr;
-          _loadingDay         = false;
+          _loadingDay = false;
         });
       }
     } catch (_) {
@@ -174,9 +174,9 @@ class _AbonoHorarioPageState extends State<AbonoHorarioPage> {
   // Sem retorno + sem batida: null (retorno obrigatório)
   int? get _abonoMinutes {
     if (_horaRetorno != null && _saidaEfetiva != null) {
-      final parts    = _saidaEfetiva!.split(':');
+      final parts = _saidaEfetiva!.split(':');
       final saidaMin = int.parse(parts[0]) * 60 + int.parse(parts[1]);
-      final retMin   = _horaRetorno!.hour * 60 + _horaRetorno!.minute;
+      final retMin = _horaRetorno!.hour * 60 + _horaRetorno!.minute;
       if (retMin <= saidaMin) return null;
       return retMin - saidaMin;
     }
@@ -188,8 +188,8 @@ class _AbonoHorarioPageState extends State<AbonoHorarioPage> {
   }
 
   Future<void> _pickSaidaManual() async {
-    final picked = await showTimePicker24h(
-        context, _horaSaidaManual ?? TimeOfDay.now());
+    final picked =
+        await showTimePicker24h(context, _horaSaidaManual ?? TimeOfDay.now());
     if (picked != null) {
       setState(() {
         _horaSaidaManual = picked;
@@ -206,12 +206,23 @@ class _AbonoHorarioPageState extends State<AbonoHorarioPage> {
     TimeOfDay initial = TimeOfDay.now();
     if (_saidaEfetiva != null) {
       final p = _saidaEfetiva!.split(':');
-      initial =
-          TimeOfDay(hour: int.parse(p[0]), minute: int.parse(p[1]));
+      initial = TimeOfDay(hour: int.parse(p[0]), minute: int.parse(p[1]));
     }
     final picked = await showTimePicker24h(context, initial);
     if (picked != null) setState(() => _horaRetorno = picked);
   }
+
+  Future<void> _pickTime({required bool isSaida}) async {
+    if (isSaida) {
+      await _pickSaidaManual();
+    } else {
+      await _pickRetorno();
+    }
+  }
+
+  int? get _durationMinutes => _abonoMinutes;
+
+  String _formatDuration(int minutes) => _formatMinutes(minutes);
 
   bool get _canSubmit {
     if (_loadingDay || _hasExistingAbono) return false;
@@ -227,7 +238,7 @@ class _AbonoHorarioPageState extends State<AbonoHorarioPage> {
     if (date == null) return;
 
     final diaId = _fmtId.format(date);
-    final uid   = FirebaseAuth.instance.currentUser?.uid;
+    final uid = FirebaseAuth.instance.currentUser?.uid;
 
     if (_isAdmin && uid != null) {
       setState(() => _submitting = true);
@@ -301,8 +312,7 @@ class _AbonoHorarioPageState extends State<AbonoHorarioPage> {
                   color: AppColors.primaryLight10,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(widget.icone,
-                    color: AppColors.primary, size: 20),
+                child: Icon(widget.icone, color: AppColors.primary, size: 20),
               ),
               const SizedBox(width: 12),
               Text(
@@ -339,7 +349,9 @@ class _AbonoHorarioPageState extends State<AbonoHorarioPage> {
                   child: _TimeField(
                     label: 'Saída',
                     required: true,
-                    value: _horaSaida != null ? _formatTime(_horaSaida!) : null,
+                    value: _horaSaidaManual != null
+                        ? _formatTime(_horaSaidaManual!)
+                        : null,
                     onTap: () => _pickTime(isSaida: true),
                   ),
                 ),
@@ -389,7 +401,7 @@ class _AbonoHorarioPageState extends State<AbonoHorarioPage> {
                 ),
               ),
             ],
-            if (_horaRetorno == null && _horaSaida != null) ...[
+            if (_horaRetorno == null && _horaSaidaManual != null) ...[
               const SizedBox(height: 10),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -468,8 +480,7 @@ class _AbonoHorarioPageState extends State<AbonoHorarioPage> {
   Widget _buildSaidaField() {
     if (_hasSaidaRegistrada && _saidaRegistradaStr != null) {
       return Container(
-        padding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(12),
@@ -505,9 +516,7 @@ class _AbonoHorarioPageState extends State<AbonoHorarioPage> {
     return _TimeField(
       label: 'Saída',
       required: true,
-      value: _horaSaidaManual != null
-          ? _formatTime(_horaSaidaManual!)
-          : null,
+      value: _horaSaidaManual != null ? _formatTime(_horaSaidaManual!) : null,
       onTap: _pickSaidaManual,
     );
   }
@@ -524,19 +533,17 @@ class _AbonoHorarioPageState extends State<AbonoHorarioPage> {
         decoration: BoxDecoration(
           color: AppColors.warning.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-              color: AppColors.warning.withValues(alpha: 0.3)),
+          border: Border.all(color: AppColors.warning.withValues(alpha: 0.3)),
         ),
         child: Row(
           children: [
-            const Icon(Icons.info_outline,
-                size: 15, color: AppColors.warning),
+            const Icon(Icons.info_outline, size: 15, color: AppColors.warning),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
                 'A carga horária já foi cumprida — não há horas a abonar.',
-                style: AppTextStyles.bodySmall
-                    .copyWith(color: AppColors.warning),
+                style:
+                    AppTextStyles.bodySmall.copyWith(color: AppColors.warning),
               ),
             ),
           ],
@@ -545,8 +552,7 @@ class _AbonoHorarioPageState extends State<AbonoHorarioPage> {
     }
 
     return Container(
-      padding:
-          const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         color: AppColors.primaryLight10,
         borderRadius: BorderRadius.circular(12),
@@ -554,11 +560,11 @@ class _AbonoHorarioPageState extends State<AbonoHorarioPage> {
       child: Column(
         children: [
           if (autoCalc) ...[
-            _previewRow('Horas trabalhadas',
-                _formatMinutes(_workedMinutes), AppColors.textSecondary),
+            _previewRow('Horas trabalhadas', _formatMinutes(_workedMinutes),
+                AppColors.textSecondary),
             const SizedBox(height: 4),
-            _previewRow('Carga horária',
-                _formatMinutes(_workloadMinutes), AppColors.textSecondary),
+            _previewRow('Carga horária', _formatMinutes(_workloadMinutes),
+                AppColors.textSecondary),
             const Divider(height: 16),
           ],
           _previewRow(
@@ -649,8 +655,7 @@ class _TimeField extends StatelessWidget {
                     style: AppTextStyles.bodyMedium.copyWith(
                       color: value != null
                           ? AppColors.textPrimary
-                          : AppColors.textSecondary
-                              .withValues(alpha: 0.6),
+                          : AppColors.textSecondary.withValues(alpha: 0.6),
                     ),
                   ),
                 ),

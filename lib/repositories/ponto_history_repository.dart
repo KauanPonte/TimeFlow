@@ -359,8 +359,13 @@ class PontoHistoryRepository {
 
   /// Estado do dia lido do cache local: `eventosCache` cru (`at` como
   /// Timestamp), se o doc do dia existe, e o delta atual do dia.
-  Future<({List<Map<String, dynamic>> cache, bool dayExists, int oldDelta, int abonoMinutes})>
-      _loadDayCache(String uid, String diaId) async {
+  Future<
+      ({
+        List<Map<String, dynamic>> cache,
+        bool dayExists,
+        int oldDelta,
+        int abonoMinutes
+      })> _loadDayCache(String uid, String diaId) async {
     final refDia =
         _firestore.collection(_root).doc(uid).collection('dias').doc(diaId);
 
@@ -372,7 +377,12 @@ class PontoHistoryRepository {
     }
 
     if (!diaSnap.exists) {
-      return (cache: <Map<String, dynamic>>[], dayExists: false, oldDelta: 0, abonoMinutes: 0);
+      return (
+        cache: <Map<String, dynamic>>[],
+        dayExists: false,
+        oldDelta: 0,
+        abonoMinutes: 0
+      );
     }
 
     final data = diaSnap.data() ?? {};
@@ -381,7 +391,12 @@ class PontoHistoryRepository {
     final raw = data['eventosCache'];
 
     if (raw is List && raw.isNotEmpty) {
-      return (cache: _rawCacheList(raw), dayExists: true, oldDelta: oldDelta, abonoMinutes: abonoMin);
+      return (
+        cache: _rawCacheList(raw),
+        dayExists: true,
+        oldDelta: oldDelta,
+        abonoMinutes: abonoMin
+      );
     }
 
     // Dado legado sem eventosCache → busca a subcoleção no servidor (1x).
@@ -400,7 +415,12 @@ class PontoHistoryRepository {
         'origin': (ev['origin'] ?? 'registrado').toString(),
       };
     }).toList();
-    return (cache: cache, dayExists: true, oldDelta: oldDelta, abonoMinutes: abonoMin);
+    return (
+      cache: cache,
+      dayExists: true,
+      oldDelta: oldDelta,
+      abonoMinutes: abonoMin
+    );
   }
 
   /// Lê a carga horária do usuário em minutos, com fallback de 480 (8h).
@@ -509,7 +529,7 @@ class PontoHistoryRepository {
     final lastAt = lastEvento['at'];
     final diaFechado = lastTipo == 'saida';
     final workedMinutes = _computeWorkedMinutes(novoCache);
-    final deltaMinutes = diaFechado ? (workedMinutes - targetMinutesPerDay) : 0;
+    final deltaMinutes = diaFechado ? (workedMinutes - workloadMinutes) : 0;
     final balanceDiff = deltaMinutes - oldDelta;
 
     final diaUpdate = <String, dynamic>{

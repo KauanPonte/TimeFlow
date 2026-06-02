@@ -70,6 +70,11 @@ class EmptyDayCard extends StatelessWidget {
     return 'Sem registros';
   }
 
+  bool get _isFullDayAbonoApproved =>
+      abono != null &&
+      abono!.status == AbonoStatus.approved &&
+      abono!.isFullDay;
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
@@ -159,7 +164,10 @@ class EmptyDayCard extends StatelessWidget {
             _buildJustificativaChip(context),
 
           // Admin: adicionar justificativa de falta quando não há nenhuma
-          if (_isAbsentDay && isAdmin && justificativa == null && onJustify != null)
+          if (_isAbsentDay &&
+              isAdmin &&
+              justificativa == null &&
+              onJustify != null)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
               child: InkWell(
@@ -386,7 +394,8 @@ class EmptyDayCard extends StatelessWidget {
                     fontSize: 11,
                   ),
                 ),
-                if (onDeleteAbono != null || (isAdmin && onApplyAbono != null)) ...[
+                if (onDeleteAbono != null ||
+                    (isAdmin && onApplyAbono != null)) ...[
                   const Spacer(),
                   if (onDeleteAbono != null)
                     GestureDetector(
@@ -462,8 +471,8 @@ class EmptyDayCard extends StatelessWidget {
         context: context,
         builder: (ctx) => AlertDialog(
           title: const Text('Remover justificativa'),
-          content: const Text(
-              'Tem certeza que deseja remover esta justificativa?'),
+          content:
+              const Text('Tem certeza que deseja remover esta justificativa?'),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
@@ -514,8 +523,6 @@ class EmptyDayCard extends StatelessWidget {
                   ),
                   if (onDeleteJustificativa != null ||
                       (isAdmin && onJustify != null)) ...[
-                  if (onDeleteJustificativa != null ||
-                      (isAdmin && onJustify != null)) ...[
                     const Spacer(),
                     if (isAdmin && onJustify != null)
                       Icon(Icons.edit_outlined,
@@ -525,8 +532,6 @@ class EmptyDayCard extends StatelessWidget {
                               .onSurface
                               .withValues(alpha: 0.68)),
                     if (onDeleteJustificativa != null) ...[
-                      if (isAdmin && onJustify != null)
-                        const SizedBox(width: 6),
                       if (isAdmin && onJustify != null)
                         const SizedBox(width: 6),
                       GestureDetector(
