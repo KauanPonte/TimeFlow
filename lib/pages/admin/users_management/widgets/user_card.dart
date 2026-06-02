@@ -271,7 +271,7 @@ class UserCard extends StatelessWidget {
                     if (showActions)
                       Theme(
                         data: Theme.of(context).copyWith(
-                          dividerColor: colorScheme.onSurface.withOpacity(0.12),
+                          dividerColor: colorScheme.onSurface.withValues(alpha: 0.12),
                         ),
                         child: PopupMenuButton<String>(
                           icon: Icon(

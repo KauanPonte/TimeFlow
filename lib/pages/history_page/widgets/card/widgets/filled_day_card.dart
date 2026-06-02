@@ -193,8 +193,7 @@ class _FilledDayCardState extends State<FilledDayCard> {
                 children: [
                   const Divider(height: 1),
                   const SizedBox(height: 8),
-                  if (widget.abono != null)
-                    _buildAbonoRetornoCard(),
+                  if (widget.abono != null) _buildAbonoRetornoCard(),
                   if (widget.holidayName != null)
                     buildHolidayBanner(widget.holidayName!),
                   ..._buildEventoRows(incomplete),
@@ -265,8 +264,7 @@ class _FilledDayCardState extends State<FilledDayCard> {
           _badge(null, '$count pendencia${count != 1 ? 's' : ''}',
               AppColors.warning),
         // Badge de abono pendente
-        if (widget.abono != null &&
-            widget.abono!.status == AbonoStatus.pending)
+        if (widget.abono != null && widget.abono!.status == AbonoStatus.pending)
           _badge(
               Icons.hourglass_top_rounded, 'Abono pendente', AppColors.warning),
         // Badge de abono aprovado: mostra as horas compensadas
@@ -330,8 +328,8 @@ class _FilledDayCardState extends State<FilledDayCard> {
               Navigator.pop(ctx);
               widget.onDeleteAbono?.call();
             },
-            child: const Text('Remover',
-                style: TextStyle(color: AppColors.error)),
+            child:
+                const Text('Remover', style: TextStyle(color: AppColors.error)),
           ),
         ],
       ),
@@ -584,25 +582,6 @@ class _FilledDayCardState extends State<FilledDayCard> {
     );
   }
 
-  String _computeWorkedWithAbono() {
-    final base = computeWorked(widget.eventos);
-    final abonoMin = widget.abono?.status == AbonoStatus.approved
-        ? widget.abono!.abonoMinutes
-        : 0;
-    if (abonoMin <= 0) return base;
-
-    final parts = base.split('h ');
-    int totalMin = 0;
-    if (parts.length == 2) {
-      totalMin = (int.tryParse(parts[0]) ?? 0) * 60 +
-          (int.tryParse(parts[1].replaceAll('m', '')) ?? 0);
-    }
-    totalMin += abonoMin;
-    final h = totalMin ~/ 60;
-    final m = totalMin % 60;
-    return '${h}h ${m}m';
-  }
-
   Widget _buildAbonoRetornoCard() {
     final a = widget.abono!;
     final isPending = a.status == AbonoStatus.pending;
@@ -639,93 +618,121 @@ class _FilledDayCardState extends State<FilledDayCard> {
     return GestureDetector(
       onTap: () => _showAbonoDetail(a),
       child: Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.verified_outlined, size: 14, color: color),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  a.observacao.isNotEmpty ? a.observacao : descLabel,
-                  style: AppTextStyles.bodySmall.copyWith(
-                    color: color,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 12,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              const SizedBox(width: 6),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  statusLabel,
-                  style: AppTextStyles.bodySmall.copyWith(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    color: color,
-                  ),
-                ),
-              ),
-              if (widget.onDeleteAbono != null) ...[
-                const SizedBox(width: 4),
-                GestureDetector(
-                  onTap: _confirmDeleteAbono,
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      color: AppColors.error.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(6),
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.06),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: color.withValues(alpha: 0.3)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.verified_outlined, size: 14, color: color),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    a.observacao.isNotEmpty ? a.observacao : descLabel,
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: color,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 12,
                     ),
-                    child: const Icon(Icons.delete_outline,
-                        size: 14, color: AppColors.error),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
+                const SizedBox(width: 6),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    statusLabel,
+                    style: AppTextStyles.bodySmall.copyWith(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      color: color,
+                    ),
+                  ),
+                ),
+                if (widget.onDeleteAbono != null) ...[
+                  const SizedBox(width: 4),
+                  GestureDetector(
+                    onTap: _confirmDeleteAbono,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: AppColors.error.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Icon(Icons.delete_outline,
+                          size: 14, color: AppColors.error),
+                    ),
+                  ),
+                ],
               ],
+            ),
+            if (a.dataInicio != null && a.dataFim != null) ...[
+              const SizedBox(height: 6),
+              Builder(builder: (_) {
+                final p1 = a.dataInicio!.split(':');
+                final p2 = a.dataFim!.split(':');
+                final startMin = int.tryParse(p1[0]) != null && p1.length == 2
+                    ? int.parse(p1[0]) * 60 + int.parse(p1[1])
+                    : 0;
+                final endMin = int.tryParse(p2[0]) != null && p2.length == 2
+                    ? int.parse(p2[0]) * 60 + int.parse(p2[1])
+                    : 0;
+                final diff = (endMin - startMin).clamp(0, 1440);
+                final h = diff ~/ 60;
+                final m = diff % 60;
+                final label = h > 0 && m > 0
+                    ? '${h}h ${m}min'
+                    : h > 0
+                        ? '${h}h'
+                        : '${m}min';
+                return Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.schedule_rounded, size: 13, color: color),
+                    const SizedBox(width: 4),
+                    Text(
+                      isPending ? '~$label a abonar' : label,
+                      style: AppTextStyles.bodySmall.copyWith(
+                        fontSize: 11,
+                        color: color,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                );
+              }),
             ],
-          ),
-          if (a.dataInicio != null && a.dataFim != null) ...[
-            const SizedBox(height: 6),
-            Builder(builder: (_) {
-              final p1 = a.dataInicio!.split(':');
-              final p2 = a.dataFim!.split(':');
-              final startMin =
-                  int.tryParse(p1[0]) != null && p1.length == 2
-                      ? int.parse(p1[0]) * 60 + int.parse(p1[1])
-                      : 0;
-              final endMin =
-                  int.tryParse(p2[0]) != null && p2.length == 2
-                      ? int.parse(p2[0]) * 60 + int.parse(p2[1])
-                      : 0;
-              final diff = (endMin - startMin).clamp(0, 1440);
-              final h = diff ~/ 60;
-              final m = diff % 60;
-              final label = h > 0 && m > 0
-                  ? '${h}h ${m}min'
-                  : h > 0
-                      ? '${h}h'
-                      : '${m}min';
-              return Row(
+            // Sem dataFim mas com abonoMinutes calculado (ex: sem retorno)
+            if (a.dataFim == null && a.abonoMinutes > 0) ...[
+              const SizedBox(height: 6),
+              Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(Icons.schedule_rounded, size: 13, color: color),
                   const SizedBox(width: 4),
                   Text(
-                    isPending ? '~$label a abonar' : label,
+                    () {
+                      final h = a.abonoMinutes ~/ 60;
+                      final m = a.abonoMinutes % 60;
+                      final label = h > 0 && m > 0
+                          ? '${h}h ${m}min'
+                          : h > 0
+                              ? '${h}h'
+                              : '${m}min';
+                      return isPending ? '~$label a abonar' : label;
+                    }(),
                     style: AppTextStyles.bodySmall.copyWith(
                       fontSize: 11,
                       color: color,
@@ -733,50 +740,25 @@ class _FilledDayCardState extends State<FilledDayCard> {
                     ),
                   ),
                 ],
-              );
-            }),
-          ],
-          // Sem dataFim mas com abonoMinutes calculado (ex: sem retorno)
-          if (a.dataFim == null && a.abonoMinutes > 0) ...[
-            const SizedBox(height: 6),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.schedule_rounded, size: 13, color: color),
-                const SizedBox(width: 4),
-                Text(
-                  () {
-                    final h = a.abonoMinutes ~/ 60;
-                    final m = a.abonoMinutes % 60;
-                    final label = h > 0 && m > 0
-                        ? '${h}h ${m}min'
-                        : h > 0 ? '${h}h' : '${m}min';
-                    return isPending ? '~$label a abonar' : label;
-                  }(),
-                  style: AppTextStyles.bodySmall.copyWith(
-                    fontSize: 11,
-                    color: color,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ],
-          if (!isApproved && a.rejectionReason != null && a.rejectionReason!.isNotEmpty) ...[
-            const SizedBox(height: 4),
-            Text(
-              'Motivo: ${a.rejectionReason}',
-              style: AppTextStyles.bodySmall.copyWith(
-                color: AppColors.textSecondary,
-                fontSize: 10,
-                fontStyle: FontStyle.italic,
               ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
+            ],
+            if (!isApproved &&
+                a.rejectionReason != null &&
+                a.rejectionReason!.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text(
+                'Motivo: ${a.rejectionReason}',
+                style: AppTextStyles.bodySmall.copyWith(
+                  color: AppColors.textSecondary,
+                  fontSize: 10,
+                  fontStyle: FontStyle.italic,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
           ],
-        ],
-      ),
+        ),
       ),
     );
   }
@@ -805,8 +787,7 @@ class _FilledDayCardState extends State<FilledDayCard> {
       context: context,
       builder: (ctx) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        insetPadding:
-            const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+        insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
           child: Column(
@@ -822,16 +803,15 @@ class _FilledDayCardState extends State<FilledDayCard> {
                       color: color.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Icon(Icons.verified_outlined,
-                        color: color, size: 20),
+                    child:
+                        Icon(Icons.verified_outlined, color: color, size: 20),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Detalhes do Abono',
-                            style: AppTextStyles.h3),
+                        const Text('Detalhes do Abono', style: AppTextStyles.h3),
                         Container(
                           margin: const EdgeInsets.only(top: 2),
                           padding: const EdgeInsets.symmetric(
@@ -865,8 +845,7 @@ class _FilledDayCardState extends State<FilledDayCard> {
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: AppColors.borderLight),
                 ),
-                child: Text(a.observacao,
-                    style: AppTextStyles.bodyMedium),
+                child: Text(a.observacao, style: AppTextStyles.bodyMedium),
               ),
 
               // Tempo abonado
@@ -874,8 +853,7 @@ class _FilledDayCardState extends State<FilledDayCard> {
                 const SizedBox(height: 10),
                 Row(
                   children: [
-                    Icon(Icons.schedule_rounded,
-                        size: 15, color: color),
+                    Icon(Icons.schedule_rounded, size: 15, color: color),
                     const SizedBox(width: 6),
                     Text('Tempo: ',
                         style: AppTextStyles.bodySmall
@@ -922,8 +900,7 @@ class _FilledDayCardState extends State<FilledDayCard> {
                           mode: LaunchMode.externalApplication);
                     } catch (_) {}
                   },
-                  icon: const Icon(Icons.picture_as_pdf_outlined,
-                      size: 16),
+                  icon: const Icon(Icons.picture_as_pdf_outlined, size: 16),
                   label: const Text('Ver documento'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.primary,

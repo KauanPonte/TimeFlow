@@ -32,7 +32,6 @@ import '../../history_page/widgets/monthly_summary_card.dart';
 import '../../history_page/widgets/dialogs/day_edit_dialog.dart';
 import 'package:flutter_application_appdeponto/blocs/abono/abono_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/abono/abono_event.dart';
-import 'package:flutter_application_appdeponto/blocs/abono/abono_state.dart';
 import 'package:flutter_application_appdeponto/models/abono_model.dart';
 import 'package:flutter_application_appdeponto/repositories/abono_repository.dart';
 import 'package:flutter_application_appdeponto/pages/solicitacoes_page/request_abono_page.dart';
@@ -102,8 +101,9 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
       final uid = widget.uid ?? FirebaseAuth.instance.currentUser?.uid;
       if (uid == null) return;
       final list = await _abonoRepository.getMyAbonos();
-      if (mounted)
+      if (mounted) {
         setState(() => _myAbonos = {for (final a in list) a.diaId: a});
+      }
     } catch (_) {}
   }
 

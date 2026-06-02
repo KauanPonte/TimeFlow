@@ -29,8 +29,6 @@ import 'package:flutter_application_appdeponto/blocs/justificativa/justificativa
 import 'package:flutter_application_appdeponto/blocs/justificativa/justificativa_state.dart';
 import 'package:flutter_application_appdeponto/repositories/justificativa_repository.dart';
 import 'package:flutter_application_appdeponto/blocs/abono/abono_bloc.dart';
-import 'package:flutter_application_appdeponto/blocs/abono/abono_event.dart';
-import 'package:flutter_application_appdeponto/blocs/abono/abono_state.dart';
 import 'package:flutter_application_appdeponto/repositories/abono_repository.dart';
 import 'package:flutter_application_appdeponto/repositories/auth_repository.dart';
 import 'package:flutter_application_appdeponto/repositories/history_view_preference_repository.dart';
