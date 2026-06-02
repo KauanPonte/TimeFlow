@@ -139,6 +139,8 @@ class _StatusCardState extends State<StatusCard>
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final now = ServerTimeService.nowBrazilUtc();
 
     // Calcula o primeiro e último dia do mês conforme sua lógica
@@ -157,9 +159,11 @@ class _StatusCardState extends State<StatusCard>
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.borderLight),
+        border: Border.all(
+          color: isDark ? AppColors.primaryLight30 : AppColors.borderLight,
+        ),
         boxShadow: const [
           BoxShadow(
             color: AppColors.shadow,
@@ -191,7 +195,7 @@ class _StatusCardState extends State<StatusCard>
                         widget.statusLabel,
                         style: AppTextStyles.bodyLarge.copyWith(
                           fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
+                          color: colorScheme.onSurface,
                         ),
                       ),
                     ],
@@ -199,7 +203,9 @@ class _StatusCardState extends State<StatusCard>
                   const SizedBox(height: 8),
                   Text(
                     widget.todayWorkedDisplay,
-                    style: AppTextStyles.h2.copyWith(color: AppColors.primary),
+                    style: AppTextStyles.h2.copyWith(
+                      color: colorScheme.primary,
+                    ),
                   ),
                 ],
               ),
@@ -232,8 +238,9 @@ class _StatusCardState extends State<StatusCard>
           const SizedBox(height: 4),
           Text(
             'trabalhado hoje',
-            style: AppTextStyles.bodySmall
-                .copyWith(color: AppColors.textSecondary),
+            style: AppTextStyles.bodySmall.copyWith(
+              color: colorScheme.onSurface.withValues(alpha: 0.68),
+            ),
           ),
           const SizedBox(height: 12),
           ClipRRect(
@@ -241,7 +248,8 @@ class _StatusCardState extends State<StatusCard>
             child: LinearProgressIndicator(
               value: widget.workProgress,
               minHeight: 8,
-              backgroundColor: AppColors.borderLight,
+              backgroundColor:
+                  isDark ? AppColors.darkSurfaceAlt : AppColors.borderLight,
               valueColor:
                   const AlwaysStoppedAnimation<Color>(AppColors.primary),
             ),
@@ -249,8 +257,9 @@ class _StatusCardState extends State<StatusCard>
           const SizedBox(height: 6),
           Text(
             '${(widget.workProgress * 100).toStringAsFixed(0)}% da jornada diária',
-            style: AppTextStyles.bodySmall
-                .copyWith(color: AppColors.textSecondary),
+            style: AppTextStyles.bodySmall.copyWith(
+              color: colorScheme.onSurface.withValues(alpha: 0.68),
+            ),
           ),
 
           // --- SEÇÃO DE DATAS E MÊS ---
@@ -259,7 +268,7 @@ class _StatusCardState extends State<StatusCard>
             '$formattedFirstDay à $formattedLastDay',
             style: AppTextStyles.bodySmall.copyWith(
               fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
+              color: colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 2),
@@ -267,7 +276,7 @@ class _StatusCardState extends State<StatusCard>
             Text(
               monthlyProgress,
               style: AppTextStyles.bodySmall.copyWith(
-                color: AppColors.textSecondary,
+                color: colorScheme.onSurface.withValues(alpha: 0.68),
                 fontSize: 11,
               ),
             ),

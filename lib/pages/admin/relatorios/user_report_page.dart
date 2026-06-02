@@ -87,18 +87,20 @@ class _UserReportPageState extends State<UserReportPage> {
     final role = widget.user['role']?.toString() ?? '';
 
     return Scaffold(
-      backgroundColor: AppColors.bgLight,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: AppColors.surface,
+        backgroundColor: Theme.of(context).colorScheme.surface,
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
+          icon: Icon(Icons.arrow_back,
+              color: Theme.of(context).colorScheme.onSurface),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           'RDA',
-          style: AppTextStyles.h3.copyWith(color: AppColors.textPrimary),
+          style: AppTextStyles.h3
+              .copyWith(color: Theme.of(context).colorScheme.onSurface),
         ),
       ),
       body: FutureBuilder<_RadData>(
@@ -181,7 +183,7 @@ class _ReportHeader extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.all(18),
-      decoration: _panelDecoration(),
+      decoration: _panelDecoration(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -200,7 +202,10 @@ class _ReportHeader extends StatelessWidget {
                     Text(
                       'Relatorio de Acompanhamento de Desempenho',
                       style: AppTextStyles.bodySmall.copyWith(
-                        color: AppColors.textSecondary,
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withValues(alpha: 0.68),
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -208,7 +213,7 @@ class _ReportHeader extends StatelessWidget {
                     Text(
                       name,
                       style: AppTextStyles.h3.copyWith(
-                        color: AppColors.textPrimary,
+                        color: Theme.of(context).colorScheme.onSurface,
                         fontSize: 22,
                       ),
                     ),
@@ -217,7 +222,10 @@ class _ReportHeader extends StatelessWidget {
                       '$role - $email',
                       overflow: TextOverflow.ellipsis,
                       style: AppTextStyles.bodySmall.copyWith(
-                        color: AppColors.textSecondary,
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withValues(alpha: 0.68),
                       ),
                     ),
                   ],
@@ -231,14 +239,17 @@ class _ReportHeader extends StatelessWidget {
               IconButton(
                 tooltip: 'Mes anterior',
                 onPressed: onPrevious,
-                icon: const Icon(Icons.chevron_left),
+                icon: Icon(
+                  Icons.chevron_left,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
               ),
               Expanded(
                 child: Text(
                   monthLabel[0].toUpperCase() + monthLabel.substring(1),
                   textAlign: TextAlign.center,
                   style: AppTextStyles.bodyLarge.copyWith(
-                    color: AppColors.textPrimary,
+                    color: Theme.of(context).colorScheme.onSurface,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -246,7 +257,10 @@ class _ReportHeader extends StatelessWidget {
               IconButton(
                 tooltip: 'Proximo mes',
                 onPressed: onNext,
-                icon: const Icon(Icons.chevron_right),
+                icon: Icon(
+                  Icons.chevron_right,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
               ),
             ],
           ),
@@ -284,7 +298,7 @@ class _StatusBanner extends StatelessWidget {
                 Text(
                   'RDA - $status',
                   style: AppTextStyles.bodyLarge.copyWith(
-                    color: AppColors.textPrimary,
+                    color: Theme.of(context).colorScheme.onSurface,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -292,7 +306,10 @@ class _StatusBanner extends StatelessWidget {
                 Text(
                   report.statusDescription,
                   style: AppTextStyles.bodySmall.copyWith(
-                    color: AppColors.textSecondary,
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: 0.68),
                   ),
                 ),
               ],
@@ -363,9 +380,12 @@ class _KpiTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       padding: const EdgeInsets.all(14),
-      decoration: _panelDecoration(),
+      decoration: _panelDecoration(context),
       child: Row(
         children: [
           Container(
@@ -388,7 +408,7 @@ class _KpiTile extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: AppTextStyles.bodyLarge.copyWith(
-                    color: AppColors.textPrimary,
+                    color: Theme.of(context).colorScheme.onSurface,
                     fontWeight: FontWeight.w900,
                     fontSize: 20,
                   ),
@@ -398,7 +418,10 @@ class _KpiTile extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: AppTextStyles.bodySmall.copyWith(
-                    color: AppColors.textSecondary,
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: 0.68),
                   ),
                 ),
               ],
@@ -417,9 +440,12 @@ class _HoursChartCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: _panelDecoration(),
+      decoration: _panelDecoration(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -490,9 +516,12 @@ class _WorkModeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: _panelDecoration(),
+      decoration: _panelDecoration(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -517,7 +546,7 @@ class _WorkModeCard extends StatelessWidget {
                   child: Text(
                     '${report.remotePercent}%',
                     style: AppTextStyles.h3.copyWith(
-                      color: AppColors.textPrimary,
+                      color: Theme.of(context).colorScheme.onSurface,
                       fontSize: 34,
                     ),
                   ),
@@ -549,7 +578,7 @@ class _ProjectsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: _panelDecoration(),
+      decoration: _panelDecoration(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -575,7 +604,10 @@ class _ProjectsCard extends StatelessWidget {
           Text(
             'Para medir horas por projeto, registre o projeto no momento do ponto ou em lancamentos de atividade.',
             style: AppTextStyles.bodySmall.copyWith(
-              color: AppColors.textSecondary,
+              color: Theme.of(context)
+                  .colorScheme
+                  .onSurface
+                  .withValues(alpha: 0.68),
             ),
           ),
         ],
@@ -606,7 +638,7 @@ class _ProjectRow extends StatelessWidget {
               project,
               overflow: TextOverflow.ellipsis,
               style: AppTextStyles.bodyMedium.copyWith(
-                color: AppColors.textPrimary,
+                color: Theme.of(context).colorScheme.onSurface,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -626,7 +658,7 @@ class _WeeklyTable extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: _panelDecoration(),
+      decoration: _panelDecoration(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -645,11 +677,12 @@ class _WeeklyTable extends StatelessWidget {
             },
             children: [
               _tableRow(
+                context,
                 ['Semana', 'Dias', 'Horas', 'Saldo'],
                 isHeader: true,
               ),
               ...report.weeklyStats.map(
-                (week) => _tableRow([
+                (week) => _tableRow(context, [
                   'S${week.weekIndex}',
                   week.days.toString(),
                   _formatDuration(week.workedMinutes),
@@ -663,10 +696,14 @@ class _WeeklyTable extends StatelessWidget {
     );
   }
 
-  TableRow _tableRow(List<String> cells, {bool isHeader = false}) {
+  TableRow _tableRow(BuildContext context, List<String> cells,
+      {bool isHeader = false}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return TableRow(
       decoration: BoxDecoration(
-        color: isHeader ? AppColors.borderLight : Colors.transparent,
+        color: isHeader
+            ? (isDark ? AppColors.primaryLight20 : AppColors.borderLight)
+            : Colors.transparent,
       ),
       children: cells
           .map(
@@ -675,7 +712,7 @@ class _WeeklyTable extends StatelessWidget {
               child: Text(
                 cell,
                 style: AppTextStyles.bodySmall.copyWith(
-                  color: AppColors.textPrimary,
+                  color: Theme.of(context).colorScheme.onSurface,
                   fontWeight: isHeader ? FontWeight.w800 : FontWeight.w500,
                 ),
               ),
@@ -710,14 +747,17 @@ class _SectionTitle extends StatelessWidget {
               Text(
                 title,
                 style: AppTextStyles.bodyLarge.copyWith(
-                  color: AppColors.textPrimary,
+                  color: Theme.of(context).colorScheme.onSurface,
                   fontWeight: FontWeight.w800,
                 ),
               ),
               Text(
                 subtitle,
                 style: AppTextStyles.bodySmall.copyWith(
-                  color: AppColors.textSecondary,
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.68),
                 ),
               ),
             ],
@@ -751,7 +791,8 @@ class _LegendDot extends StatelessWidget {
         Text(
           label,
           style: AppTextStyles.bodySmall.copyWith(
-            color: AppColors.textSecondary,
+            color:
+                Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.68),
             fontWeight: FontWeight.w700,
           ),
         ),
@@ -775,18 +816,32 @@ class _EmptyInline extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.greyLight,
+        color: Theme.of(context).brightness == Brightness.dark
+            ? AppColors.darkSurfaceAlt
+            : AppColors.greyLight,
         borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: Theme.of(context).brightness == Brightness.dark
+              ? AppColors.primaryLight30
+              : AppColors.borderLight,
+        ),
       ),
       child: Row(
         children: [
-          Icon(icon, color: AppColors.textSecondary),
+          Icon(icon,
+              color: Theme.of(context)
+                  .colorScheme
+                  .onSurface
+                  .withValues(alpha: 0.68)),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               text,
               style: AppTextStyles.bodySmall.copyWith(
-                color: AppColors.textSecondary,
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurface
+                    .withValues(alpha: 0.68),
               ),
             ),
           ),
@@ -821,7 +876,7 @@ class _ErrorState extends StatelessWidget {
               message,
               textAlign: TextAlign.center,
               style: AppTextStyles.bodyLarge.copyWith(
-                color: AppColors.textPrimary,
+                color: Theme.of(context).colorScheme.onSurface,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -830,7 +885,10 @@ class _ErrorState extends StatelessWidget {
               details,
               textAlign: TextAlign.center,
               style: AppTextStyles.bodySmall.copyWith(
-                color: AppColors.textSecondary,
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurface
+                    .withValues(alpha: 0.68),
               ),
             ),
             const SizedBox(height: 16),
@@ -1173,11 +1231,14 @@ class _WeekAccumulator {
   int expectedMinutes = 0;
 }
 
-BoxDecoration _panelDecoration() {
+BoxDecoration _panelDecoration(BuildContext context) {
+  final isDark = Theme.of(context).brightness == Brightness.dark;
   return BoxDecoration(
-    color: AppColors.surface,
+    color: Theme.of(context).colorScheme.surface,
     borderRadius: BorderRadius.circular(8),
-    border: Border.all(color: AppColors.borderLight),
+    border: Border.all(
+      color: isDark ? AppColors.primaryLight30 : AppColors.borderLight,
+    ),
     boxShadow: const [
       BoxShadow(
         color: AppColors.shadow,

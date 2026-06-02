@@ -9,6 +9,25 @@ class PontoHistoryRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   static const String _root = 'pontos';
 
+  String _readWorkMode(Map<String, dynamic> data,
+      [Map<String, dynamic>? fallback]) {
+    final value = (data['workMode'] ??
+            data['work_mode'] ??
+            data['modoTrabalho'] ??
+            data['modalidade'] ??
+            '')
+        .toString();
+    if (value.isNotEmpty || fallback == null) return value;
+    return _readWorkMode(fallback);
+  }
+
+  bool _readHomeOffice(Map<String, dynamic> data,
+      [Map<String, dynamic>? fallback]) {
+    return data['homeOffice'] == true ||
+        data['isHomeOffice'] == true ||
+        (fallback != null && _readHomeOffice(fallback));
+  }
+
   /// Carrega todos os dias com eventos para o uid informado (ou o logado).
   /// Retorna lista ordenada por data decrescente.
   /// Cada item: { diaId, eventos: [ { id, tipo, at (DateTime) } ] }
@@ -29,6 +48,7 @@ class PontoHistoryRepository {
 
     for (final diaDoc in diasSnap.docs) {
       final diaId = diaDoc.id;
+      final dayData = diaDoc.data();
       var eventos = _extractEventos(diaDoc);
 
       // Fallback: se não há cache, busca da subcollection
@@ -49,7 +69,8 @@ class PontoHistoryRepository {
             'id': e.id,
             'tipo': (data['tipo'] ?? '').toString(),
             'at': ServerTimeService.timestampToBrazil(ts),
-            'workMode': (data['workMode'] ?? '').toString(),
+            'workMode': _readWorkMode(data, dayData),
+            'homeOffice': _readHomeOffice(data, dayData),
             'origin': (data['origin'] ?? 'registrado').toString(),
           };
         }).toList();
@@ -70,11 +91,8 @@ class PontoHistoryRepository {
   /// apenas se o doc não estiver em cache.
   Future<List<Map<String, dynamic>>> loadEventsForDay(
       String uid, String diaId) async {
-    final diaRef = _firestore
-        .collection(_root)
-        .doc(uid)
-        .collection('dias')
-        .doc(diaId);
+    final diaRef =
+        _firestore.collection(_root).doc(uid).collection('dias').doc(diaId);
 
     DocumentSnapshot<Map<String, dynamic>> doc;
     try {
@@ -85,6 +103,7 @@ class PontoHistoryRepository {
     }
 
     if (!doc.exists) return [];
+    final dayData = doc.data();
 
     final cached = _extractEventos(doc);
     if (cached.isNotEmpty) return cached;
@@ -101,7 +120,8 @@ class PontoHistoryRepository {
         'id': e.id,
         'tipo': (data['tipo'] ?? '').toString(),
         'at': ts?.toDate(),
-        'workMode': (data['workMode'] ?? '').toString(),
+        'workMode': _readWorkMode(data, dayData),
+        'homeOffice': _readHomeOffice(data, dayData),
         'origin': (data['origin'] ?? 'registrado').toString(),
       };
     }).toList();
@@ -154,7 +174,8 @@ class PontoHistoryRepository {
               'id': (m['id'] ?? '').toString(),
               'tipo': (m['tipo'] ?? '').toString(),
               'at': ServerTimeService.timestampToBrazil(ts),
-              'workMode': (m['workMode'] ?? '').toString(),
+              'workMode': _readWorkMode(m, data),
+              'homeOffice': _readHomeOffice(m, data),
               'origin': (m['origin'] ?? 'registrado').toString(),
             };
           }).toList();
@@ -182,7 +203,8 @@ class PontoHistoryRepository {
           'id': e.id,
           'tipo': (evData['tipo'] ?? '').toString(),
           'at': ts?.toDate(),
-          'workMode': (evData['workMode'] ?? '').toString(),
+          'workMode': _readWorkMode(evData, data),
+          'homeOffice': _readHomeOffice(evData, data),
           'origin': (evData['origin'] ?? 'registrado').toString(),
         };
       }).toList();
@@ -232,7 +254,8 @@ class PontoHistoryRepository {
                 'id': (m['id'] ?? '').toString(),
                 'tipo': (m['tipo'] ?? '').toString(),
                 'at': ServerTimeService.timestampToBrazil(ts),
-                'workMode': (m['workMode'] ?? '').toString(),
+                'workMode': _readWorkMode(m, data),
+                'homeOffice': _readHomeOffice(m, data),
                 'origin': (m['origin'] ?? 'registrado').toString(),
               };
             }).toList();
@@ -258,7 +281,8 @@ class PontoHistoryRepository {
             'id': e.id,
             'tipo': (evData['tipo'] ?? '').toString(),
             'at': ServerTimeService.timestampToBrazil(ts),
-            'workMode': (evData['workMode'] ?? '').toString(),
+            'workMode': _readWorkMode(evData, data),
+            'homeOffice': _readHomeOffice(evData, data),
             'origin': (evData['origin'] ?? 'registrado').toString(),
           };
         }).toList();
@@ -289,7 +313,8 @@ class PontoHistoryRepository {
           'id': (m['id'] ?? '').toString(),
           'tipo': (m['tipo'] ?? '').toString(),
           'at': ts?.toDate(),
-          'workMode': (m['workMode'] ?? '').toString(),
+          'workMode': _readWorkMode(m, data),
+          'homeOffice': _readHomeOffice(m, data),
           'origin': (m['origin'] ?? 'registrado').toString(),
         };
       }).toList();
@@ -334,8 +359,13 @@ class PontoHistoryRepository {
 
   /// Estado do dia lido do cache local: `eventosCache` cru (`at` como
   /// Timestamp), se o doc do dia existe, e o delta atual do dia.
-  Future<({List<Map<String, dynamic>> cache, bool dayExists, int oldDelta, int abonoMinutes})>
-      _loadDayCache(String uid, String diaId) async {
+  Future<
+      ({
+        List<Map<String, dynamic>> cache,
+        bool dayExists,
+        int oldDelta,
+        int abonoMinutes
+      })> _loadDayCache(String uid, String diaId) async {
     final refDia =
         _firestore.collection(_root).doc(uid).collection('dias').doc(diaId);
 
@@ -347,7 +377,12 @@ class PontoHistoryRepository {
     }
 
     if (!diaSnap.exists) {
-      return (cache: <Map<String, dynamic>>[], dayExists: false, oldDelta: 0, abonoMinutes: 0);
+      return (
+        cache: <Map<String, dynamic>>[],
+        dayExists: false,
+        oldDelta: 0,
+        abonoMinutes: 0
+      );
     }
 
     final data = diaSnap.data() ?? {};
@@ -356,7 +391,12 @@ class PontoHistoryRepository {
     final raw = data['eventosCache'];
 
     if (raw is List && raw.isNotEmpty) {
-      return (cache: _rawCacheList(raw), dayExists: true, oldDelta: oldDelta, abonoMinutes: abonoMin);
+      return (
+        cache: _rawCacheList(raw),
+        dayExists: true,
+        oldDelta: oldDelta,
+        abonoMinutes: abonoMin
+      );
     }
 
     // Dado legado sem eventosCache → busca a subcoleção no servidor (1x).
@@ -370,11 +410,17 @@ class PontoHistoryRepository {
         'id': d.id,
         'tipo': (ev['tipo'] ?? '').toString(),
         'at': ev['at'],
-        'workMode': (ev['workMode'] ?? '').toString(),
+        'workMode': _readWorkMode(ev, data),
+        'homeOffice': _readHomeOffice(ev, data),
         'origin': (ev['origin'] ?? 'registrado').toString(),
       };
     }).toList();
-    return (cache: cache, dayExists: true, oldDelta: oldDelta, abonoMinutes: abonoMin);
+    return (
+      cache: cache,
+      dayExists: true,
+      oldDelta: oldDelta,
+      abonoMinutes: abonoMin
+    );
   }
 
   /// Lê a carga horária do usuário em minutos, com fallback de 480 (8h).
@@ -405,7 +451,8 @@ class PontoHistoryRepository {
         'id': (m['id'] ?? '').toString(),
         'tipo': (m['tipo'] ?? '').toString(),
         'at': m['at'],
-        'workMode': (m['workMode'] ?? '').toString(),
+        'workMode': _readWorkMode(m),
+        'homeOffice': _readHomeOffice(m),
         'origin': (m['origin'] ?? 'registrado').toString(),
       };
     }).toList();
@@ -482,8 +529,7 @@ class PontoHistoryRepository {
     final lastAt = lastEvento['at'];
     final diaFechado = lastTipo == 'saida';
     final workedMinutes = _computeWorkedMinutes(novoCache);
-    final deltaMinutes =
-        diaFechado ? (workedMinutes + abonoMinutes - workloadMinutes) : 0;
+    final deltaMinutes = diaFechado ? (workedMinutes - workloadMinutes) : 0;
     final balanceDiff = deltaMinutes - oldDelta;
 
     final diaUpdate = <String, dynamic>{
@@ -646,8 +692,7 @@ class PontoHistoryRepository {
     );
     if (erro != null) throw Exception(erro);
 
-    final novoCache =
-        estado.cache.where((m) => m['id'] != eventoId).toList();
+    final novoCache = estado.cache.where((m) => m['id'] != eventoId).toList();
 
     final batch = _firestore.batch();
     batch.delete(refEventos.doc(eventoId));
@@ -679,7 +724,8 @@ class PontoHistoryRepository {
     for (final ev in eventos) {
       final tipo = (ev['tipo'] ?? '').toString();
       final ts = ev['at'];
-      final at = ts is Timestamp ? ServerTimeService.timestampToBrazil(ts) : null;
+      final at =
+          ts is Timestamp ? ServerTimeService.timestampToBrazil(ts) : null;
       if (at == null) continue;
 
       if (tipo == 'entrada' || tipo == 'retorno') {
@@ -746,9 +792,8 @@ class PontoHistoryRepository {
         estadoFinal.add({
           'id': id,
           'tipo': m['tipo'],
-          'at': ts is Timestamp
-              ? ServerTimeService.timestampToBrazil(ts)
-              : null,
+          'at':
+              ts is Timestamp ? ServerTimeService.timestampToBrazil(ts) : null,
         });
         novoCache.add(m);
       }

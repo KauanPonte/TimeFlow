@@ -63,13 +63,14 @@ class _ControlePontoViewState extends State<_ControlePontoView>
   Widget build(BuildContext context) {
     super.build(context);
     return Scaffold(
-      backgroundColor: AppColors.bgLight,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: AppColors.surface,
+        backgroundColor: Theme.of(context).colorScheme.surface,
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
+          icon: Icon(Icons.arrow_back,
+              color: Theme.of(context).colorScheme.onSurface),
           onPressed: () => Navigator.pop(context),
         ),
         title: Row(
@@ -89,7 +90,8 @@ class _ControlePontoViewState extends State<_ControlePontoView>
             const SizedBox(width: 12),
             Text(
               'Controle de Ponto',
-              style: AppTextStyles.h3.copyWith(color: AppColors.textPrimary),
+              style: AppTextStyles.h3
+                  .copyWith(color: Theme.of(context).colorScheme.onSurface),
             ),
           ],
         ),
@@ -159,7 +161,7 @@ class _ControlePontoViewState extends State<_ControlePontoView>
                             color: AppColors.primary, width: 2),
                       ),
                       filled: true,
-                      fillColor: AppColors.surface,
+                      fillColor: Theme.of(context).colorScheme.surface,
                       contentPadding: const EdgeInsets.symmetric(
                           horizontal: 14, vertical: 12),
                     ),

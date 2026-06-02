@@ -112,14 +112,14 @@ class _TimePickerDialogState extends State<_TimePickerDialog> {
   // Header
 
   Widget _buildHeader() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final headerTextColor = isDark ? AppColors.white : AppColors.textPrimary;
+
     return Container(
       width: double.infinity,
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [AppColors.primary, Color(0xFF3949AB)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+      decoration: BoxDecoration(
+        gradient:
+            isDark ? AppColors.brandGradient : AppColors.softBrandGradient,
       ),
       padding: const EdgeInsets.fromLTRB(24, 18, 24, 18),
       child: Column(
@@ -128,14 +128,15 @@ class _TimePickerDialogState extends State<_TimePickerDialog> {
           Row(
             children: [
               Icon(Icons.schedule_rounded,
-                  size: 15, color: Colors.white.withValues(alpha: 0.75)),
+                  size: 15, color: headerTextColor.withValues(alpha: 0.78)),
               const SizedBox(width: 6),
               Text(
                 'Selecionar horário',
                 style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.85),
+                  color: headerTextColor.withValues(alpha: 0.88),
                   fontSize: 13,
                   letterSpacing: 0.4,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ],
@@ -153,6 +154,7 @@ class _TimePickerDialogState extends State<_TimePickerDialog> {
                 focusNode: _hourFocus,
                 editing: _editingHour,
                 maxValue: 23,
+                textColor: headerTextColor,
                 onTap: _startHourEditing,
                 onChanged: _updateHourFromInput,
                 onSubmitted: _finishHourEditing,
@@ -164,7 +166,7 @@ class _TimePickerDialogState extends State<_TimePickerDialog> {
                   style: TextStyle(
                     fontSize: 44,
                     fontWeight: FontWeight.w200,
-                    color: Colors.white.withValues(alpha: 0.8),
+                    color: headerTextColor.withValues(alpha: 0.82),
                     height: 1,
                   ),
                 ),
@@ -177,6 +179,7 @@ class _TimePickerDialogState extends State<_TimePickerDialog> {
                 focusNode: _minuteFocus,
                 editing: _editingMinute,
                 maxValue: 59,
+                textColor: headerTextColor,
                 onTap: _startMinuteEditing,
                 onChanged: _updateMinuteFromInput,
                 onSubmitted: _finishMinuteEditing,
@@ -309,7 +312,7 @@ class _TimePickerDialogState extends State<_TimePickerDialog> {
         children: [
           TextButton(
             style: TextButton.styleFrom(
-              foregroundColor: AppColors.textSecondary,
+              foregroundColor: Theme.of(context).colorScheme.onSurface,
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10)),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -321,8 +324,8 @@ class _TimePickerDialogState extends State<_TimePickerDialog> {
           const SizedBox(width: 4),
           TextButton(
             style: TextButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              foregroundColor: Theme.of(context).colorScheme.onPrimary,
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10)),
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
@@ -348,6 +351,7 @@ class _HeaderUnit extends StatelessWidget {
   final FocusNode focusNode;
   final bool editing;
   final int maxValue;
+  final Color textColor;
   final VoidCallback onTap;
   final ValueChanged<String> onChanged;
   final VoidCallback onSubmitted;
@@ -360,6 +364,7 @@ class _HeaderUnit extends StatelessWidget {
     required this.focusNode,
     required this.editing,
     required this.maxValue,
+    required this.textColor,
     required this.onTap,
     required this.onChanged,
     required this.onSubmitted,
@@ -377,7 +382,7 @@ class _HeaderUnit extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             decoration: BoxDecoration(
               color: active
-                  ? Colors.white.withValues(alpha: 0.22)
+                  ? textColor.withValues(alpha: 0.18)
                   : Colors.transparent,
               borderRadius: BorderRadius.circular(10),
             ),
@@ -394,10 +399,10 @@ class _HeaderUnit extends StatelessWidget {
                         FilteringTextInputFormatter.digitsOnly,
                         LengthLimitingTextInputFormatter(2),
                       ],
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 46,
                         fontWeight: FontWeight.w300,
-                        color: Colors.white,
+                        color: textColor,
                         height: 1,
                       ),
                       decoration: const InputDecoration(
@@ -406,7 +411,7 @@ class _HeaderUnit extends StatelessWidget {
                         counterText: '',
                         contentPadding: EdgeInsets.zero,
                       ),
-                      cursorColor: Colors.white,
+                      cursorColor: textColor,
                       onChanged: onChanged,
                       onSubmitted: (_) => onSubmitted(),
                       onEditingComplete: onSubmitted,
@@ -418,8 +423,8 @@ class _HeaderUnit extends StatelessWidget {
                         fontSize: 46,
                         fontWeight: FontWeight.w300,
                         color: active
-                            ? Colors.white
-                            : Colors.white.withValues(alpha: 0.45),
+                            ? textColor
+                            : textColor.withValues(alpha: 0.55),
                         height: 1,
                       ),
                     ),
@@ -432,8 +437,8 @@ class _HeaderUnit extends StatelessWidget {
               fontSize: 10,
               letterSpacing: 1.0,
               color: active
-                  ? Colors.white.withValues(alpha: 0.9)
-                  : Colors.white.withValues(alpha: 0.4),
+                  ? textColor.withValues(alpha: 0.92)
+                  : textColor.withValues(alpha: 0.56),
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -477,7 +482,9 @@ class _ModeChip extends StatelessWidget {
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w600,
-            color: active ? AppColors.primary : Colors.grey.shade500,
+            color: active
+                ? AppColors.primary
+                : Theme.of(context).colorScheme.onSurface.withAlpha(0x88),
             letterSpacing: 0.3,
           ),
         ),
@@ -675,6 +682,7 @@ class _ClockDialState extends State<_ClockDial> with TickerProviderStateMixin {
             final handAngle = _handFrom +
                 (_handTo - _handFrom) *
                     Curves.easeOut.transform(_handCtrl.value);
+            final isDark = Theme.of(context).brightness == Brightness.dark;
             return CustomPaint(
               size: const Size(_kSize, _kSize),
               painter: _ClockPainter(
@@ -684,6 +692,17 @@ class _ClockDialState extends State<_ClockDial> with TickerProviderStateMixin {
                 handAngle: handAngle,
                 ringT: _ringCtrl.value,
                 contentAlpha: Curves.easeInOut.transform(_modeCtrl.value),
+                bgColor: isDark ? AppColors.darkSurfaceAlt : AppColors.white,
+                ringColor:
+                    isDark ? AppColors.primaryLight30 : const Color(0xFFE3E6F8),
+                tickMinorColor: isDark
+                    ? AppColors.darkTextSecondary.withValues(alpha: 0.55)
+                    : const Color(0xFFBDBDBD),
+                tickMajorColor: isDark
+                    ? AppColors.darkTextSecondary.withValues(alpha: 0.88)
+                    : const Color(0xFF9E9E9E),
+                normalTextColor:
+                    isDark ? AppColors.darkTextPrimary : Colors.black87,
               ),
             );
           },
@@ -716,12 +735,18 @@ class _ClockPainter extends CustomPainter {
     required this.handAngle,
     required this.ringT,
     this.contentAlpha = 1.0,
+    this.bgColor = const Color(0xFFF0F2FF),
+    this.ringColor = const Color(0xFFE3E6F8),
+    this.tickMinorColor = const Color(0xFFBDBDBD),
+    this.tickMajorColor = const Color(0xFF9E9E9E),
+    this.normalTextColor = Colors.black87,
   });
 
-  static const _bgColor = Color(0xFFF0F2FF);
-  static const _ringColor = Color(0xFFE3E6F8);
-  static const _tickMinor = Color(0xFFBDBDBD);
-  static const _tickMajor = Color(0xFF9E9E9E);
+  final Color bgColor;
+  final Color ringColor;
+  final Color tickMinorColor;
+  final Color tickMajorColor;
+  final Color normalTextColor;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -760,14 +785,14 @@ class _ClockPainter extends CustomPainter {
     canvas.drawCircle(center.translate(0, 3), radius - 1, shadow);
 
     // Fundo
-    canvas.drawCircle(center, radius - 1, Paint()..color = _bgColor);
+    canvas.drawCircle(center, radius - 1, Paint()..color = bgColor);
 
     // Aro externo
     canvas.drawCircle(
       center,
       radius - 1,
       Paint()
-        ..color = _ringColor
+        ..color = ringColor
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.5,
     );
@@ -795,8 +820,8 @@ class _ClockPainter extends CustomPainter {
         inner,
         outer,
         Paint()
-          ..color =
-              (major ? _tickMajor : _tickMinor).withValues(alpha: contentAlpha)
+          ..color = (major ? tickMajorColor : tickMinorColor)
+              .withValues(alpha: contentAlpha)
           ..strokeWidth = tickW
           ..strokeCap = StrokeCap.round,
       );
@@ -810,8 +835,8 @@ class _ClockPainter extends CustomPainter {
     final isInner = hour == 0 || hour >= 13;
     final selPos = _hourToPos(hour);
 
-    final outerAlpha = contentAlpha * lerpDouble(1.0, 0.28, ringT)!;
-    final innerAlpha = contentAlpha * lerpDouble(0.28, 1.0, ringT)!;
+    final outerAlpha = contentAlpha * lerpDouble(1.0, 0.55, ringT)!;
+    final innerAlpha = contentAlpha * lerpDouble(0.55, 1.0, ringT)!;
 
     // Passagem 1: cores normais
     for (int i = 0; i < 12; i++) {
@@ -974,7 +999,7 @@ class _ClockPainter extends CustomPainter {
     // Cor do texto: selecionado = branco (por cima da bolinha do ponteiro)
     final textColor = selected
         ? Colors.white.withValues(alpha: contentAlpha)
-        : Colors.black87.withValues(alpha: ringAlpha);
+        : normalTextColor.withValues(alpha: ringAlpha);
 
     final tp = TextPainter(
       text: TextSpan(

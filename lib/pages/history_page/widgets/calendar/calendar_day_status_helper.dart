@@ -106,17 +106,20 @@ class CalendarDayStatusHelper {
     return CalendarBuilders<Map<String, dynamic>>(
       markerBuilder: (context, day, _) => const SizedBox.shrink(),
       defaultBuilder: (context, day, _) => _buildDayCell(
+        context: context,
         day: day,
         status: statusForDay(day),
         isHoliday: isHoliday(day),
       ),
       todayBuilder: (context, day, _) => _buildDayCell(
+        context: context,
         day: day,
         status: statusForDay(day),
         isToday: true,
         isHoliday: isHoliday(day),
       ),
       selectedBuilder: (context, day, _) => _buildDayCell(
+        context: context,
         day: day,
         status: statusForDay(day),
         isSelected: isSameDay(day, selectedDay),
@@ -126,6 +129,7 @@ class CalendarDayStatusHelper {
   }
 
   Widget _buildDayCell({
+    required BuildContext context,
     required DateTime day,
     required CalendarDayStatus status,
     bool isToday = false,
@@ -173,17 +177,19 @@ class CalendarDayStatusHelper {
       );
     }
 
+    final colorScheme = Theme.of(context).colorScheme;
+
     Color textColor = isHoliday
         ? Colors.green[700]!
         : isJustified
             ? _justifiedColor
             : isWarning
                 ? AppColors.warning
-                : Colors.black;
+                : colorScheme.onSurface.withValues(alpha: 0.78);
 
     // Se for futuro e não for feriado, acinzenta
     if (isFuture) {
-      textColor = AppColors.textSecondary.withValues(alpha: 0.4);
+      textColor = colorScheme.onSurface.withValues(alpha: 0.32);
     }
 
     return Column(

@@ -11,7 +11,6 @@ import '../../blocs/ponto_today/ponto_today_state.dart';
 import '../../widgets/bottom_nav.dart';
 import '../../widgets/custom_snackbar.dart';
 import '../../services/notification_service.dart';
-import '../../services/ponto_service.dart';
 import '../../services/ponto_validator.dart';
 import '../../services/location_service.dart';
 
@@ -198,6 +197,8 @@ class _PontoPageState extends State<PontoPage> {
 
   Widget _buildWorkModeButton(
       String label, String value, PontoTodayState state) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final effective = _effectiveWorkMode(state);
     final isSelected = effective == value;
     final locked = _isLocked(state);
@@ -213,10 +214,14 @@ class _PontoPageState extends State<PontoPage> {
           child: Container(
             padding: const EdgeInsets.symmetric(vertical: 12),
             decoration: BoxDecoration(
-              color: isSelected ? AppColors.primary : Colors.white,
+              color: isSelected ? colorScheme.primary : colorScheme.surface,
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
-                color: isSelected ? AppColors.primary : AppColors.borderLight,
+                color: isSelected
+                    ? colorScheme.primary
+                    : (isDark
+                        ? AppColors.primaryLight30
+                        : AppColors.borderLight),
               ),
             ),
             child: Row(
@@ -225,7 +230,8 @@ class _PontoPageState extends State<PontoPage> {
                 if (locked && isSelected) ...[
                   Icon(Icons.lock,
                       size: 14,
-                      color: isSelected ? Colors.white : AppColors.textPrimary),
+                      color:
+                          isSelected ? AppColors.white : colorScheme.onSurface),
                   const SizedBox(width: 6),
                 ],
                 if (_validatingLocation && label == 'Presencial') ...[
@@ -234,7 +240,8 @@ class _PontoPageState extends State<PontoPage> {
                     height: 14,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      color: isSelected ? Colors.white : AppColors.textPrimary,
+                      color:
+                          isSelected ? AppColors.white : colorScheme.onSurface,
                     ),
                   ),
                   const SizedBox(width: 6),
@@ -243,7 +250,7 @@ class _PontoPageState extends State<PontoPage> {
                   label,
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    color: isSelected ? Colors.white : AppColors.textPrimary,
+                    color: isSelected ? AppColors.white : colorScheme.onSurface,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -257,6 +264,8 @@ class _PontoPageState extends State<PontoPage> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final args =
         ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>?;
     final isAdmin =
@@ -270,12 +279,12 @@ class _PontoPageState extends State<PontoPage> {
         effectiveMode != null && !pontoState.isFeriadoHoje;
 
     return Scaffold(
-      backgroundColor: AppColors.bgLight,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: AppColors.surface,
+        backgroundColor: Theme.of(context).colorScheme.surface,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
+          icon: Icon(Icons.arrow_back, color: colorScheme.onSurface),
           onPressed: () => Navigator.pop(context),
         ),
         title: Row(
@@ -291,7 +300,7 @@ class _PontoPageState extends State<PontoPage> {
             ),
             const SizedBox(width: 12),
             Text('Bater Ponto',
-                style: AppTextStyles.h3.copyWith(color: AppColors.textPrimary)),
+                style: AppTextStyles.h3.copyWith(color: colorScheme.onSurface)),
           ],
         ),
       ),
@@ -320,8 +329,10 @@ class _PontoPageState extends State<PontoPage> {
 
                     //  SELEÇÃO DE MODO DE TRABALHO
                     Text('Selecione o modo de trabalho',
-                        style: AppTextStyles.bodyMedium
-                            .copyWith(fontWeight: FontWeight.bold)),
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: colorScheme.onSurface,
+                        )),
                     const SizedBox(height: 12),
                     Row(
                       children: [
@@ -342,8 +353,8 @@ class _PontoPageState extends State<PontoPage> {
                       style: AppTextStyles.bodyLarge.copyWith(
                         fontWeight: FontWeight.w600,
                         color: isPanelAccessible
-                            ? AppColors.textPrimary
-                            : Colors.grey,
+                            ? colorScheme.onSurface
+                            : colorScheme.onSurface.withValues(alpha: 0.38),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -354,9 +365,13 @@ class _PontoPageState extends State<PontoPage> {
                         absorbing: !isPanelAccessible,
                         child: Container(
                           decoration: BoxDecoration(
-                            color: AppColors.surface,
+                            color: colorScheme.surface,
                             borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: AppColors.borderLight),
+                            border: Border.all(
+                              color: isDark
+                                  ? AppColors.primaryLight30
+                                  : AppColors.borderLight,
+                            ),
                             boxShadow: const [
                               BoxShadow(
                                   color: AppColors.shadow,
@@ -422,7 +437,7 @@ class _PontoPageState extends State<PontoPage> {
                         'Registros de hoje',
                         style: AppTextStyles.bodyLarge.copyWith(
                             fontWeight: FontWeight.w600,
-                            color: AppColors.textPrimary),
+                            color: colorScheme.onSurface),
                       ),
                       const SizedBox(height: 12),
                       TodayTimeline(eventos: pontoState.eventosHojeFormatados),

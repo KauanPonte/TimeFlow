@@ -98,7 +98,7 @@ class _HomeAdminViewState extends State<HomeAdminView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.bgLight,
+      backgroundColor: Colors.transparent,
       appBar: const MainAppBar(subtitle: 'Painel Admin'),
       bottomNavigationBar: BottomNav(
         index: 0,
@@ -161,134 +161,141 @@ class _HomeAdminViewState extends State<HomeAdminView> {
                   .read<AtestadoBloc>()
                   .add(const SilentLoadAtestadosEvent());
             },
-            child: BlocListener<SolicitationBloc, SolicitationState>(
-              listener: (context, solState) {
-                if (solState is SolicitationActionSuccess) {
-                  CustomSnackbar.showSuccess(context, solState.message);
-                } else if (solState is SolicitationError &&
-                    solState.message.isNotEmpty) {
-                  CustomSnackbar.showError(context, solState.message);
-                }
-              },
-              child: ListView(
-                padding: const EdgeInsets.all(20),
-                children: [
-                  // Welcome Section
-                  AdminWelcomeCard(employeeName: widget.employeeName),
-                  const SizedBox(height: 24),
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: Theme.of(context).brightness == Brightness.dark
+                    ? AppColors.techDarkBackground
+                    : AppColors.appBackground,
+              ),
+              child: BlocListener<SolicitationBloc, SolicitationState>(
+                listener: (context, solState) {
+                  if (solState is SolicitationActionSuccess) {
+                    CustomSnackbar.showSuccess(context, solState.message);
+                  } else if (solState is SolicitationError &&
+                      solState.message.isNotEmpty) {
+                    CustomSnackbar.showError(context, solState.message);
+                  }
+                },
+                child: ListView(
+                  padding: const EdgeInsets.all(20),
+                  children: [
+                    // Welcome Section
+                    AdminWelcomeCard(employeeName: widget.employeeName),
+                    const SizedBox(height: 24),
 
-                  // Stats Cards
-                  BlocBuilder<AtestadoBloc, AtestadoState>(
-                    builder: (context, atestadoState) {
-                      final atestadosPendentes = switch (atestadoState) {
-                        AtestadoLoaded(:final atestados) => atestados
-                            .where((a) => a.status == AtestadoStatus.pending)
-                            .length,
-                        AtestadoActionSuccess(:final atestados) => atestados
-                            .where((a) => a.status == AtestadoStatus.pending)
-                            .length,
-                        _ => 0,
-                      };
-                      return BlocBuilder<SolicitationBloc, SolicitationState>(
-                        builder: (context, solState) {
-                          final solPendentes = solState is SolicitationLoaded
-                              ? solState.pendingCount
-                              : 0;
-                          return BlocBuilder<JustificativaBloc,
-                              JustificativaState>(
-                            builder: (context, justState) {
-                              final justPendentes =
-                                  justState is JustificativaLoaded
-                                      ? justState.justificativas.length
-                                      : 0;
-                              final totalPendencias = atestadosPendentes +
-                                  solPendentes +
-                                  justPendentes +
-                                  stats.pendingRequests;
-                              return Row(
-                                children: [
-                                  Expanded(
-                                    child: AdminStatCard(
-                                      icon: Icons.people,
-                                      label: 'Usuários',
-                                      value: '${stats.totalUsers}',
+                    // Stats Cards
+                    BlocBuilder<AtestadoBloc, AtestadoState>(
+                      builder: (context, atestadoState) {
+                        final atestadosPendentes = switch (atestadoState) {
+                          AtestadoLoaded(:final atestados) => atestados
+                              .where((a) => a.status == AtestadoStatus.pending)
+                              .length,
+                          AtestadoActionSuccess(:final atestados) => atestados
+                              .where((a) => a.status == AtestadoStatus.pending)
+                              .length,
+                          _ => 0,
+                        };
+                        return BlocBuilder<SolicitationBloc, SolicitationState>(
+                          builder: (context, solState) {
+                            final solPendentes = solState is SolicitationLoaded
+                                ? solState.pendingCount
+                                : 0;
+                            return BlocBuilder<JustificativaBloc,
+                                JustificativaState>(
+                              builder: (context, justState) {
+                                final justPendentes =
+                                    justState is JustificativaLoaded
+                                        ? justState.justificativas.length
+                                        : 0;
+                                final totalPendencias = atestadosPendentes +
+                                    solPendentes +
+                                    justPendentes +
+                                    stats.pendingRequests;
+                                return Row(
+                                  children: [
+                                    Expanded(
+                                      child: AdminStatCard(
+                                        icon: Icons.people,
+                                        label: 'Usuários',
+                                        value: '${stats.totalUsers}',
+                                      ),
                                     ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: AdminStatCard(
-                                      icon: Icons.pending_actions_outlined,
-                                      label: 'Pendências',
-                                      value: '$totalPendencias',
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: AdminStatCard(
+                                        icon: Icons.pending_actions_outlined,
+                                        label: 'Pendências',
+                                        value: '$totalPendencias',
+                                      ),
                                     ),
-                                  ),
-                                ],
-                              );
-                            },
-                          );
-                        },
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 24),
+                                  ],
+                                );
+                              },
+                            );
+                          },
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 24),
 
-                  // Section Title
-                  Padding(
-                    padding: const EdgeInsets.only(left: 4, bottom: 12),
-                    child: Text(
-                      'Ações Rápidas',
-                      style: AppTextStyles.h3.copyWith(
-                        color: AppColors.textPrimary,
-                        fontSize: 20,
+                    // Section Title
+                    Padding(
+                      padding: const EdgeInsets.only(left: 4, bottom: 12),
+                      child: Text(
+                        'Ações Rápidas',
+                        style: AppTextStyles.h3.copyWith(
+                          color: Theme.of(context).colorScheme.onSurface,
+                          fontSize: 20,
+                        ),
                       ),
                     ),
-                  ),
 
-                  // Menu Items
-                  AdminMenuItem(
-                    icon: Icons.schedule,
-                    title: 'Gestão de Ponto',
-                    onTap: () async {
-                      await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const ControlePontoPage(),
-                        ),
-                      );
-                      if (context.mounted) {
-                        context
-                            .read<AdminHomeBloc>()
-                            .add(const RefreshAdminStatsEvent());
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 8),
-                  AdminMenuItem(
-                    icon: Icons.person_add,
-                    title: 'Cadastros',
-                    onTap: () async {
-                      final result = await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const CadastrosPage(),
-                        ),
-                      );
-                      if (result == true && context.mounted) {
-                        context
-                            .read<AdminHomeBloc>()
-                            .add(const RefreshAdminStatsEvent());
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 8),
-                  AdminMenuItem(
-                    icon: Icons.assessment,
-                    title: 'Relatórios',
-                    onTap: () {
-                      Navigator.pushNamed(context, '/admin/users');
-                    },
-                  ),
-                ],
+                    // Menu Items
+                    AdminMenuItem(
+                      icon: Icons.schedule,
+                      title: 'Gestão de Ponto',
+                      onTap: () async {
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const ControlePontoPage(),
+                          ),
+                        );
+                        if (context.mounted) {
+                          context
+                              .read<AdminHomeBloc>()
+                              .add(const RefreshAdminStatsEvent());
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                    AdminMenuItem(
+                      icon: Icons.person_add,
+                      title: 'Cadastros',
+                      onTap: () async {
+                        final result = await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const CadastrosPage(),
+                          ),
+                        );
+                        if (result == true && context.mounted) {
+                          context
+                              .read<AdminHomeBloc>()
+                              .add(const RefreshAdminStatsEvent());
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                    AdminMenuItem(
+                      icon: Icons.assessment,
+                      title: 'Relatórios',
+                      onTap: () {
+                        Navigator.pushNamed(context, '/admin/users');
+                      },
+                    ),
+                  ],
+                ),
               ),
             ),
           );

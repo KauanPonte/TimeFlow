@@ -93,12 +93,13 @@ class _ProfileImagePickerState extends State<ProfileImagePicker> {
                 decoration: BoxDecoration(
                   color: AppColors.primary,
                   shape: BoxShape.circle,
-                  border: Border.all(color: AppColors.surface, width: 2),
+                  border: Border.all(
+                      color: Theme.of(context).colorScheme.surface, width: 2),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.camera_alt,
                   size: 20,
-                  color: AppColors.surface,
+                  color: Theme.of(context).colorScheme.surface,
                 ),
               ),
             ),

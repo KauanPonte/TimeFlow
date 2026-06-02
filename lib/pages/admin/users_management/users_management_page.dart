@@ -19,6 +19,7 @@ class UsersManagementPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final isEmployeesMode = mode == UsersManagementMode.employees;
 
     return BlocProvider(
@@ -47,13 +48,13 @@ class UsersManagementPage extends StatelessWidget {
           }
         },
         child: Scaffold(
-          backgroundColor: AppColors.bgLight,
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           appBar: AppBar(
-            backgroundColor: AppColors.surface,
+            backgroundColor: Theme.of(context).colorScheme.surface,
             elevation: 0,
             scrolledUnderElevation: 0,
             leading: IconButton(
-              icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
+              icon: Icon(Icons.arrow_back, color: colorScheme.onSurface),
               onPressed: () => Navigator.pop(context),
             ),
             title: Row(
@@ -76,7 +77,7 @@ class UsersManagementPage extends StatelessWidget {
                 Text(
                   isEmployeesMode ? 'Funcionários' : 'Relatórios',
                   style:
-                      AppTextStyles.h3.copyWith(color: AppColors.textPrimary),
+                      AppTextStyles.h3.copyWith(color: colorScheme.onSurface),
                 ),
               ],
             ),

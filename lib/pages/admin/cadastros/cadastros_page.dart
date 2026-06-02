@@ -10,16 +10,17 @@ class CadastrosPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: AppColors.bgLight,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         titleSpacing: 0,
-        backgroundColor: AppColors.surface,
+        backgroundColor: Theme.of(context).colorScheme.surface,
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded,
-              color: AppColors.textPrimary, size: 20),
+          icon: Icon(Icons.arrow_back_ios_new_rounded,
+              color: colorScheme.onSurface, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
         title: Row(
@@ -39,7 +40,7 @@ class CadastrosPage extends StatelessWidget {
             const SizedBox(width: 12),
             Text(
               'Cadastros',
-              style: AppTextStyles.h3.copyWith(color: AppColors.textPrimary),
+              style: AppTextStyles.h3.copyWith(color: colorScheme.onSurface),
             ),
           ],
         ),
@@ -52,7 +53,7 @@ class CadastrosPage extends StatelessWidget {
             Text(
               'Selecione uma opção',
               style: AppTextStyles.titleSmall.copyWith(
-                color: AppColors.textPrimary,
+                color: colorScheme.onSurface,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -114,6 +115,9 @@ class _CadastroCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -122,9 +126,12 @@ class _CadastroCard extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: colorScheme.surface,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.borderLight, width: 1),
+            border: Border.all(
+              color: isDark ? AppColors.primaryLight30 : AppColors.borderLight,
+              width: 1,
+            ),
           ),
           child: Row(
             children: [
@@ -148,7 +155,7 @@ class _CadastroCard extends StatelessWidget {
                     Text(
                       title,
                       style: AppTextStyles.bodyLarge.copyWith(
-                        color: AppColors.textPrimary,
+                        color: colorScheme.onSurface,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -156,15 +163,15 @@ class _CadastroCard extends StatelessWidget {
                     Text(
                       description,
                       style: AppTextStyles.bodySmall.copyWith(
-                        color: AppColors.textSecondary,
+                        color: colorScheme.onSurface.withValues(alpha: 0.68),
                       ),
                     ),
                   ],
                 ),
               ),
-              const Icon(
+              Icon(
                 Icons.arrow_forward_ios_rounded,
-                color: AppColors.textSecondary,
+                color: colorScheme.onSurface.withValues(alpha: 0.68),
                 size: 20,
               ),
             ],

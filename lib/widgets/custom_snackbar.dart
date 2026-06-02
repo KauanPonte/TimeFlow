@@ -53,7 +53,7 @@ class CustomSnackbar {
     required IconData icon,
   }) {
     final overlay = Overlay.of(context);
-    
+
     late OverlayEntry entry;
     entry = OverlayEntry(
       builder: (context) => _SnackbarOverlayWidget(

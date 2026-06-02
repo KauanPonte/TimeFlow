@@ -198,7 +198,7 @@ class _PendingRequestsTabState extends State<PendingRequestsTab>
                             color: AppColors.primary, width: 2),
                       ),
                       filled: true,
-                      fillColor: AppColors.surface,
+                      fillColor: Theme.of(context).colorScheme.surface,
                       contentPadding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 14),
                     ),
@@ -226,18 +226,18 @@ class _PendingRequestsTabState extends State<PendingRequestsTab>
                               ...atestados.map(
                                   (a) => _AtestadoPendingCard(atestado: a)),
                               // Solicitações de cadastro
-                              ...filteredRequests.map((request) =>
-                                  PendingRequestCard(
-                                    request: request,
-                                    onApprove: () => _showApproveDialog(
-                                      request['id'],
-                                      request['name'],
-                                    ),
-                                    onReject: () => _showRejectDialog(
-                                      request['id'],
-                                      request['name'],
-                                    ),
-                                  )),
+                              ...filteredRequests
+                                  .map((request) => PendingRequestCard(
+                                        request: request,
+                                        onApprove: () => _showApproveDialog(
+                                          request['id'],
+                                          request['name'],
+                                        ),
+                                        onReject: () => _showRejectDialog(
+                                          request['id'],
+                                          request['name'],
+                                        ),
+                                      )),
                             ],
                           ),
                         ),
@@ -339,8 +339,8 @@ class _AtestadoPendingCard extends StatelessWidget {
                     ),
                   );
             },
-            child: const Text('Recusar',
-                style: TextStyle(color: AppColors.error)),
+            child:
+                const Text('Recusar', style: TextStyle(color: AppColors.error)),
           ),
         ],
       ),
@@ -353,8 +353,10 @@ class _AtestadoPendingCard extends StatelessWidget {
     final inicio = fmt.format(DateTime.parse(atestado.dataInicio));
     final fim = fmt.format(DateTime.parse(atestado.dataFim));
     final mesmodia = atestado.dataInicio == atestado.dataFim;
-    final dias =
-        DateTime.parse(atestado.dataFim).difference(DateTime.parse(atestado.dataInicio)).inDays + 1;
+    final dias = DateTime.parse(atestado.dataFim)
+            .difference(DateTime.parse(atestado.dataInicio))
+            .inDays +
+        1;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
@@ -369,7 +371,8 @@ class _AtestadoPendingCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.person_outline, size: 16, color: AppColors.primary),
+              const Icon(Icons.person_outline,
+                  size: 16, color: AppColors.primary),
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
@@ -380,8 +383,11 @@ class _AtestadoPendingCard extends StatelessWidget {
               ),
               Text(
                 DateFormat('dd/MM/yy').format(atestado.createdAt),
-                style: AppTextStyles.bodySmall
-                    .copyWith(color: AppColors.textSecondary),
+                style: AppTextStyles.bodySmall.copyWith(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: 0.68)),
               ),
             ],
           ),
@@ -397,8 +403,7 @@ class _AtestadoPendingCard extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
                   color: AppColors.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),

@@ -12,12 +12,13 @@ class SettingsHubPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.bgLight,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: AppColors.surface,
+        backgroundColor: Theme.of(context).colorScheme.surface,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
+          icon: Icon(Icons.arrow_back,
+              color: Theme.of(context).colorScheme.onSurface),
           onPressed: () => Navigator.pop(context),
         ),
         title: Row(
@@ -37,7 +38,8 @@ class SettingsHubPage extends StatelessWidget {
             const SizedBox(width: 12),
             Text(
               'Configurações',
-              style: AppTextStyles.h3.copyWith(color: AppColors.textPrimary),
+              style: AppTextStyles.h3
+                  .copyWith(color: Theme.of(context).colorScheme.onSurface),
             ),
           ],
         ),
@@ -53,7 +55,10 @@ class SettingsHubPage extends StatelessWidget {
             child: Text(
               'Gerencie as configurações globais do sistema e regras do ambiente de trabalho para todos os usuários.',
               style: AppTextStyles.bodyMedium.copyWith(
-                color: AppColors.textSecondary,
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurface
+                    .withValues(alpha: 0.68),
               ),
             ),
           ),
@@ -112,7 +117,7 @@ class _SettingsMenuItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: AppColors.surface,
+      color: Theme.of(context).colorScheme.surface,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         onTap: onTap,
@@ -148,7 +153,10 @@ class _SettingsMenuItem extends StatelessWidget {
                     Text(
                       subtitle,
                       style: AppTextStyles.bodySmall.copyWith(
-                        color: AppColors.textSecondary,
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withValues(alpha: 0.68),
                       ),
                     ),
                   ],

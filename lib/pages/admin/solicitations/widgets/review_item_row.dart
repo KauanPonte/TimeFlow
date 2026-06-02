@@ -54,7 +54,7 @@ class ReviewItemRow extends StatelessWidget {
             children: [
               _buildHeader(isAccepted, acColor, color),
               const SizedBox(height: 8),
-              _buildBeforeAfter(),
+              _buildBeforeAfter(context),
             ],
           ),
         ),
@@ -124,7 +124,7 @@ class ReviewItemRow extends StatelessWidget {
     );
   }
 
-  Widget _buildBeforeAfter() {
+  Widget _buildBeforeAfter(BuildContext context) {
     return Row(
       children: [
         if (item.action == SolicitationAction.edit ||
@@ -136,8 +136,13 @@ class ReviewItemRow extends StatelessWidget {
             color: AppColors.error,
           ),
           const SizedBox(width: 8),
-          const Icon(Icons.arrow_forward_rounded,
-              size: 14, color: AppColors.textSecondary),
+          Icon(
+            Icons.arrow_forward_rounded,
+            size: 14,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Theme.of(context).colorScheme.onSurface
+                : AppColors.textSecondary,
+          ),
           const SizedBox(width: 8),
         ],
         if (item.action != SolicitationAction.delete)

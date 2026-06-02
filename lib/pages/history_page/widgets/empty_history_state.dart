@@ -26,13 +26,17 @@ class EmptyHistoryState extends StatelessWidget {
           const SizedBox(height: 24),
           Text(
             'Nenhum registro encontrado',
-            style: AppTextStyles.h3.copyWith(color: AppColors.textPrimary),
+            style: AppTextStyles.h3
+                .copyWith(color: Theme.of(context).colorScheme.onSurface),
           ),
           const SizedBox(height: 8),
           Text(
             'Os registros de ponto aparecerão aqui',
-            style: AppTextStyles.bodyMedium
-                .copyWith(color: AppColors.textSecondary),
+            style: AppTextStyles.bodyMedium.copyWith(
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurface
+                    .withValues(alpha: 0.68)),
           ),
         ],
       ),

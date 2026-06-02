@@ -15,7 +15,8 @@ class DeleteUserDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     return AppDialogScaffold(
       title: 'Excluir Usuário',
-      subtitle: 'Tem certeza que deseja excluir $userName?\nEsta ação não pode ser desfeita.',
+      subtitle:
+          'Tem certeza que deseja excluir $userName?\nEsta ação não pode ser desfeita.',
       icon: Icons.delete,
       isDestructive: true,
       confirmLabel: 'Excluir',
