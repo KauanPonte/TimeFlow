@@ -28,6 +28,7 @@ class ApproveRequestEvent extends UserManagementEvent {
   final String projectType;
   final List<String> projects;
   final DateTime startDate;
+  final bool isAdmin;
 
   const ApproveRequestEvent({
     required this.requestId,
@@ -39,6 +40,7 @@ class ApproveRequestEvent extends UserManagementEvent {
     required this.projectType,
     required this.projects,
     required this.startDate,
+    this.isAdmin = false,
   });
 
   @override
@@ -52,6 +54,7 @@ class ApproveRequestEvent extends UserManagementEvent {
         projectType,
         projects,
         startDate,
+        isAdmin,
       ];
 }
 
@@ -112,6 +115,7 @@ class UpdateUserProfileEvent extends UserManagementEvent {
   final String projectType;
   final List<String> projects;
   final DateTime? effectiveDate;
+  final bool isAdmin;
 
   const UpdateUserProfileEvent({
     required this.userId,
@@ -122,6 +126,7 @@ class UpdateUserProfileEvent extends UserManagementEvent {
     required this.workDays,
     required this.projectType,
     required this.projects,
+    required this.isAdmin,
     this.effectiveDate,
   });
 
@@ -136,6 +141,7 @@ class UpdateUserProfileEvent extends UserManagementEvent {
         projectType,
         projects,
         effectiveDate,
+        isAdmin,
       ];
 }
 

@@ -11,6 +11,7 @@ class EditUserDialog extends StatefulWidget {
   final List<String> currentWorkDays;
   final String currentProjectType;
   final List<String> currentProjects;
+  final bool currentIsAdmin;
 
   final void Function({
     required String role,
@@ -20,6 +21,7 @@ class EditUserDialog extends StatefulWidget {
     required String projectType,
     required List<String> projects,
     required DateTime? effectiveDate,
+    required bool isAdmin,
   }) onSave;
 
   const EditUserDialog({
@@ -32,6 +34,7 @@ class EditUserDialog extends StatefulWidget {
     this.currentWorkDays = const [],
     this.currentProjectType = '',
     this.currentProjects = const [],
+    this.currentIsAdmin = false,
   });
 
   @override
@@ -47,6 +50,7 @@ class _EditUserDialogState extends State<EditUserDialog> {
   late String _selectedBolsistaHour;
   late final List<String> _selectedWorkDays;
   late String _projectType;
+  late bool _isAdmin;
 
   String? _roleError;
   String? _contractTypeError;
@@ -70,6 +74,7 @@ class _EditUserDialogState extends State<EditUserDialog> {
     _contractType = widget.currentContractType;
     _selectedWorkDays = List.of(widget.currentWorkDays);
     _projectType = widget.currentProjectType;
+    _isAdmin = widget.currentIsAdmin;
 
     // Carga horária: converte minutos de volta para horas
     final currentHour = _minutesToHourString(widget.currentWorkloadMinutes);
@@ -226,6 +231,7 @@ class _EditUserDialogState extends State<EditUserDialog> {
       projectType: _projectType,
       projects: _projectControllers.map((c) => c.text).toList(),
       effectiveDate: effectiveDate,
+      isAdmin: _isAdmin,
     );
   }
 
@@ -248,6 +254,59 @@ class _EditUserDialogState extends State<EditUserDialog> {
           onChanged: (_) {
             if (_roleError != null) setState(() => _roleError = null);
           },
+        ),
+        const SizedBox(height: 16),
+        _SectionLabel(label: 'Permissão'),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(right: 4),
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    backgroundColor: !_isAdmin
+                        ? const Color(0xFF178573)
+                        : const Color(0xFF62C1B1),
+                    foregroundColor: Colors.white,
+                    side: BorderSide.none,
+                  ),
+                  onPressed: () => setState(() => _isAdmin = false),
+                  icon: const Icon(Icons.person_outline, size: 18),
+                  label: Text(
+                    'Usuário',
+                    style: AppTextStyles.bodyMedium.copyWith(
+                      color: Colors.white,
+                      fontWeight: !_isAdmin ? FontWeight.w700 : FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(left: 4),
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    backgroundColor: _isAdmin
+                        ? const Color(0xFF178573)
+                        : const Color(0xFF62C1B1),
+                    foregroundColor: Colors.white,
+                    side: BorderSide.none,
+                  ),
+                  onPressed: () => setState(() => _isAdmin = true),
+                  icon: const Icon(Icons.admin_panel_settings_outlined, size: 18),
+                  label: Text(
+                    'Administrador',
+                    style: AppTextStyles.bodyMedium.copyWith(
+                      color: Colors.white,
+                      fontWeight: _isAdmin ? FontWeight.w700 : FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 16),
         _SectionLabel(label: 'Tipo de Contrato', error: _contractTypeError),

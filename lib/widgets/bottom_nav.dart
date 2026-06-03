@@ -21,6 +21,7 @@ class BottomNav extends StatelessWidget {
       "employeeName": args?["employeeName"] ?? "",
       "profileImageUrl": args?["profileImageUrl"] ?? "",
       "employeeRole": args?["employeeRole"] ?? "",
+      if (isAdmin) "isAdmin": true,
     };
 
     if (isAdmin) {

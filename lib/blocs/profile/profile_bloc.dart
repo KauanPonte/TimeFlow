@@ -37,6 +37,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
         name: data['name'] ?? '',
         email: data['email'] ?? '',
         role: data['role'] ?? '',
+        isAdmin: data['isAdmin'] == true,
         profileImageUrl: data['profileImage'] ?? '',
         workloadMinutes: data['workloadMinutes'] as int?,
         contractType: (data['contractType'] ?? '') as String,

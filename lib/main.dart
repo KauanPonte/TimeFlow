@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
@@ -16,6 +18,7 @@ import 'package:flutter_application_appdeponto/blocs/ponto_data/ponto_data_chang
 import 'package:flutter_application_appdeponto/blocs/ponto_today/ponto_today_cubit.dart';
 import 'package:flutter_application_appdeponto/blocs/ponto_history/ponto_history_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/profile/profile_bloc.dart';
+import 'package:flutter_application_appdeponto/blocs/profile/profile_event.dart';
 import 'package:flutter_application_appdeponto/blocs/admin_home/admin_home_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/solicitations/solicitation_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/solicitations/solicitation_event.dart';
@@ -215,8 +218,7 @@ class TimeFlow extends StatelessWidget {
                     final solState = context.read<SolicitationBloc>().state;
                     bool isAdmin = state is AdminAuthenticated;
                     if (!isAdmin && state is UserAuthenticated) {
-                      final r = (state.userData['role'] ?? '').toString();
-                      isAdmin = r.toUpperCase().contains('ADM');
+                      isAdmin = state.userData['isAdmin'] == true;
                     }
                     if (solState is! SolicitationLoaded &&
                         solState is! SolicitationLoading) {
@@ -254,7 +256,9 @@ class TimeFlow extends StatelessWidget {
                 ),
               );
 
-              return ConnectivityGuard(child: appShell);
+              return ConnectivityGuard(
+                child: _UserProfileWatcher(child: appShell),
+              );
             },
             theme: _buildLightTheme(),
             darkTheme: _buildDarkTheme(),
@@ -268,8 +272,7 @@ class TimeFlow extends StatelessWidget {
                 final args = settings.arguments as Map<String, dynamic>;
                 final employeeRole = args["employeeRole"] ?? "";
 
-                // Redireciona para home admin se o cargo contém "ADM"
-                if (employeeRole.toUpperCase().contains("ADM")) {
+                if (args["isAdmin"] == true) {
                   return MaterialPageRoute(
                     builder: (context) => HomeAdminPage(
                       employeeName: args["employeeName"] ?? "",
@@ -284,6 +287,7 @@ class TimeFlow extends StatelessWidget {
                     employeeName: args["employeeName"] ?? "",
                     profileImageUrl: args["profileImageUrl"] ?? "",
                     employeeRole: args["employeeRole"] ?? "",
+                    isAdmin: args["isAdmin"] == true,
                     initialHistoryDate: args["initialHistoryDate"] as String?,
                   ),
                 );
@@ -298,6 +302,7 @@ class TimeFlow extends StatelessWidget {
                     employeeName: args["employeeName"] ?? "",
                     profileImageUrl: args["profileImageUrl"] ?? "",
                     employeeRole: args["employeeRole"] ?? "",
+                    isAdmin: args["isAdmin"] == true,
                     initialHistoryDate: args["initialHistoryDate"] as String?,
                   ),
                 );
@@ -321,6 +326,61 @@ class TimeFlow extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Escuta o documento Firestore do usuário logado em tempo real.
+/// Quando `isAdmin` muda (ex: admin edita o perfil de outro usuário),
+/// recarrega ProfileBloc e os blocs de notificações com o novo status.
+class _UserProfileWatcher extends StatefulWidget {
+  final Widget child;
+  const _UserProfileWatcher({required this.child});
+
+  @override
+  State<_UserProfileWatcher> createState() => _UserProfileWatcherState();
+}
+
+class _UserProfileWatcherState extends State<_UserProfileWatcher> {
+  StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _profileSub;
+  StreamSubscription<User?>? _authSub;
+  bool? _lastIsAdmin;
+
+  @override
+  void initState() {
+    super.initState();
+    _authSub = FirebaseAuth.instance.authStateChanges().listen((user) {
+      _profileSub?.cancel();
+      _lastIsAdmin = null;
+      if (user != null) _listenProfile(user.uid);
+    });
+  }
+
+  void _listenProfile(String uid) {
+    _profileSub = FirebaseFirestore.instance
+        .collection('usuarios')
+        .doc(uid)
+        .snapshots()
+        .listen((snap) {
+      if (!mounted) return;
+      final isAdmin = snap.data()?['isAdmin'] == true;
+      if (_lastIsAdmin != null && _lastIsAdmin != isAdmin) {
+        context.read<ProfileBloc>().add(const LoadProfileEvent());
+        context.read<SolicitationBloc>().add(LoadSolicitationsEvent(isAdmin: isAdmin));
+        context.read<AtestadoBloc>().add(LoadAtestadosEvent(isAdmin: isAdmin));
+        context.read<JustificativaBloc>().add(LoadJustificativasEvent(isAdmin: isAdmin));
+      }
+      _lastIsAdmin = isAdmin;
+    });
+  }
+
+  @override
+  void dispose() {
+    _profileSub?.cancel();
+    _authSub?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }
 
 ThemeData _buildLightTheme() {

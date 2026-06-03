@@ -192,8 +192,7 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
       );
       return;
     } else if (authState is UserAuthenticated) {
-      final role = (authState.userData['role'] ?? '').toString();
-      final isAdmin = role.toUpperCase().contains('ADM');
+      final isAdmin = authState.userData['isAdmin'] == true;
       _bootstrapAndNavigate(
         isAdmin: isAdmin,
         userData: authState.userData,
@@ -452,6 +451,7 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
         'employeeName': userData['name'],
         'profileImageUrl': userData['profileImage'] ?? '',
         'employeeRole': userData['role'],
+        'isAdmin': isAdmin,
       },
     );
   }
@@ -467,8 +467,7 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
             route: '/admin',
           );
         } else if (state is UserAuthenticated) {
-          final role = (state.userData['role'] ?? '').toString();
-          final isAdmin = role.toUpperCase().contains('ADM');
+          final isAdmin = state.userData['isAdmin'] == true;
           _bootstrapAndNavigate(
             isAdmin: isAdmin,
             userData: state.userData,

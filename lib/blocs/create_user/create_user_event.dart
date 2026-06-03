@@ -48,6 +48,7 @@ class CreateUserSubmitEvent extends CreateUserEvent {
   final String projectType;
   final List<String> projects;
   final DateTime startDate;
+  final bool isAdmin;
 
   const CreateUserSubmitEvent({
     required this.name,
@@ -61,6 +62,7 @@ class CreateUserSubmitEvent extends CreateUserEvent {
     required this.projectType,
     required this.projects,
     required this.startDate,
+    this.isAdmin = false,
   });
 
   @override
@@ -76,6 +78,7 @@ class CreateUserSubmitEvent extends CreateUserEvent {
         projectType,
         projects,
         startDate,
+        isAdmin,
       ];
 }
 

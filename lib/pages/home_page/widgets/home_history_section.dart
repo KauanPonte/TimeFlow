@@ -250,12 +250,19 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
     final uid = widget.uid ?? FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
 
-    final cached = _monthlySummaryCache.get(uid, widget.currentMonth);
-    if (cached != null) {
-      setState(() {
-        _mesResumoFuture = Future.value(cached);
-      });
-      return;
+    // Para o mês atual nunca usa cache em memória — workDays podem ter mudado.
+    final now = DateTime.now();
+    final isCurrentMonth = widget.currentMonth.year == now.year &&
+        widget.currentMonth.month == now.month;
+
+    if (!isCurrentMonth) {
+      final cached = _monthlySummaryCache.get(uid, widget.currentMonth);
+      if (cached != null) {
+        setState(() {
+          _mesResumoFuture = Future.value(cached);
+        });
+        return;
+      }
     }
 
     final future = PontoService.calcularResumoMensal(uid, widget.currentMonth)
