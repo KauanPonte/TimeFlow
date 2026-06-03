@@ -399,7 +399,7 @@ class _ScheduledRemindersModalState extends State<ScheduledRemindersModal> {
             Switch.adaptive(
               value: reminder.enabled,
               onChanged: (v) => _toggleReminder(reminder, v),
-              activeThumbColor: reminder.category.color,
+              // activeThumbColor: reminder.category.color,
             ),
             PopupMenuButton<String>(
               icon: Icon(
