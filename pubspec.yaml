@@ -74,19 +74,19 @@ flutter:
 flutter_launcher_icons:
   android: "launcher_icon"
   ios: true
-  image_path: "assets/app_icon/timeflow_launcher.png"
-  adaptive_icon_background: "#0B302D"
-  adaptive_icon_foreground: "assets/app_icon/timeflow_launcher.png"
+  image_path: "assets/app_icon/timeflow.png"
+  adaptive_icon_background: "assets/app_icon/background_gradient.png"
+  adaptive_icon_foreground: "assets/app_icon/timeflow.png"
   min_sdk_android: 21 # android min sdk min:16, default 21
   web:
     generate: true
-    image_path: "assets/app_icon/timeflow_launcher.png"
+    image_path: "assets/app_icon/timeflow.png"
     background_color: "#0B302D"
     theme_color: "#178573"
   windows:
     generate: true
-    image_path: "assets/app_icon/timeflow_launcher.png"
+    image_path: "assets/app_icon/timeflowr.png"
     icon_size: 48 # min:48, max:256, default: 48
   macos:
     generate: true
-    image_path: "assets/app_icon/timeflow_launcher.png"
+    image_path: "assets/app_icon/timeflow.png"
