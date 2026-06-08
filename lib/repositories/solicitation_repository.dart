@@ -210,6 +210,37 @@ class SolicitationRepository {
 
   //  Admin: solicitações pendentes de todos
 
+  /// Stream em tempo real de solicitações pendentes (admin).
+  Stream<List<SolicitationModel>> streamAllPendingSolicitations() {
+    return _firestore
+        .collection(_collection)
+        .where('status', isEqualTo: SolicitationStatus.pending.name)
+        .snapshots()
+        .map((snap) {
+      final list = snap.docs.map((d) => SolicitationModel.fromDoc(d)).toList()
+        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return list;
+    });
+  }
+
+  /// Stream em tempo real das solicitações do funcionário atual
+  /// (pendentes + revisadas recentes para notificação).
+  Stream<List<SolicitationModel>> streamMySolicitations() {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return Stream.value([]);
+    return _firestore
+        .collection(_collection)
+        .where('uid', isEqualTo: user.uid)
+        .where('status', whereIn: [
+          SolicitationStatus.pending.name,
+          SolicitationStatus.approved.name,
+          SolicitationStatus.rejected.name,
+        ])
+        .snapshots()
+        .map((snap) =>
+            snap.docs.map((d) => SolicitationModel.fromDoc(d)).toList());
+  }
+
   Future<List<SolicitationModel>> getAllPendingSolicitations(
       {bool preferCache = false}) async {
     final snap = await _firestore

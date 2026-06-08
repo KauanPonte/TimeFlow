@@ -313,7 +313,7 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
     profileBloc.add(const LoadProfileEvent());
     pontoHistoryBloc
         .add(LoadHistoryEvent(month: ServerTimeService.nowBrazilUtc()));
-    solicitationBloc.add(LoadSolicitationsEvent(isAdmin: isAdmin));
+    solicitationBloc.add(SubscribeSolicitationsEvent(isAdmin: isAdmin));
     atestadoBloc.add(LoadAtestadosEvent(isAdmin: isAdmin));
     if (isAdmin) {
       justificativaBloc.add(const SubscribeAdminJustificativasEvent());

@@ -81,6 +81,14 @@ class SilentReloadSolicitationsEvent extends SolicitationEvent {
   List<Object?> get props => [isAdmin];
 }
 
+/// Inicia stream em tempo real (admin: todas pendentes; funcionário: as suas).
+class SubscribeSolicitationsEvent extends SolicitationEvent {
+  final bool isAdmin;
+  const SubscribeSolicitationsEvent({this.isAdmin = false});
+  @override
+  List<Object?> get props => [isAdmin];
+}
+
 /// Reset no logout.
 class ResetSolicitationsEvent extends SolicitationEvent {
   const ResetSolicitationsEvent();

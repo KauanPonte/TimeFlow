@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/global_loading/global_loading_cubit.dart';
 import 'package:flutter_application_appdeponto/repositories/solicitation_repository.dart';
@@ -12,18 +13,23 @@ class SolicitationBloc extends Bloc<SolicitationEvent, SolicitationState> {
   List<SolicitationModel> _lastList = [];
   List<SolicitationModel> _lastReviewed = [];
 
+  StreamSubscription? _sub;
+
   SolicitationBloc({
     required this.repository,
     this.globalLoading,
   }) : super(const SolicitationInitial()) {
     on<LoadSolicitationsEvent>(_onLoad);
+    on<SubscribeSolicitationsEvent>(_onSubscribe);
     on<SilentReloadSolicitationsEvent>(_onSilentReload);
     on<CreateSolicitationEvent>(_onCreate);
     on<UpdateSolicitationEvent>(_onUpdate);
     on<CancelSolicitationEvent>(_onCancel);
     on<ProcessSolicitationEvent>(_onProcess);
     on<DismissReviewedSolicitationEvent>(_onDismiss);
-    on<ResetSolicitationsEvent>((_, emit) {
+    on<ResetSolicitationsEvent>((_, emit) async {
+      await _sub?.cancel();
+      _sub = null;
       _lastList = [];
       _lastReviewed = [];
       emit(const SolicitationInitial());
@@ -66,6 +72,59 @@ class SolicitationBloc extends Bloc<SolicitationEvent, SolicitationState> {
       emit(SolicitationError(
         message: e.toString().replaceAll('Exception: ', ''),
       ));
+    }
+  }
+
+  Future<void> _onSubscribe(
+    SubscribeSolicitationsEvent event,
+    Emitter<SolicitationState> emit,
+  ) async {
+    await _sub?.cancel();
+    _isAdmin = event.isAdmin;
+    if (_isAdmin) {
+      await emit.forEach<List<SolicitationModel>>(
+        repository.streamAllPendingSolicitations(),
+        onData: (list) {
+          _lastList = list;
+          return SolicitationLoaded(
+            solicitations: list,
+            reviewedSolicitations: const [],
+            isAdmin: true,
+          );
+        },
+        onError: (_, __) => state,
+      );
+    } else {
+      await emit.forEach<List<SolicitationModel>>(
+        repository.streamMySolicitations(),
+        onData: (all) {
+          _lastList = all
+              .where((s) => s.status == SolicitationStatus.pending)
+              .toList()
+            ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          final window = DateTime.now().subtract(const Duration(days: 7));
+          _lastReviewed = all
+              .where((s) =>
+                  (s.status == SolicitationStatus.approved ||
+                      s.status == SolicitationStatus.rejected) &&
+                  s.resolvedAt != null &&
+                  s.resolvedAt!.isAfter(window))
+              .toList()
+            ..sort((a, b) {
+              if (a.seenByEmployee != b.seenByEmployee) {
+                return a.seenByEmployee ? 1 : -1;
+              }
+              return (b.resolvedAt ?? b.createdAt)
+                  .compareTo(a.resolvedAt ?? a.createdAt);
+            });
+          return SolicitationLoaded(
+            solicitations: _lastList,
+            reviewedSolicitations: _visibleReviewed(),
+            isAdmin: false,
+          );
+        },
+        onError: (_, __) => state,
+      );
     }
   }
 

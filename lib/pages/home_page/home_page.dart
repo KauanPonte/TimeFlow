@@ -7,7 +7,6 @@ import 'package:flutter_application_appdeponto/blocs/ponto_history/ponto_history
 import 'package:flutter_application_appdeponto/blocs/ponto_history/ponto_history_state.dart';
 import 'package:flutter_application_appdeponto/blocs/ponto_today/ponto_today_cubit.dart';
 import 'package:flutter_application_appdeponto/blocs/solicitations/solicitation_bloc.dart';
-import 'package:flutter_application_appdeponto/blocs/solicitations/solicitation_event.dart';
 import 'package:flutter_application_appdeponto/blocs/solicitations/solicitation_state.dart';
 import 'package:flutter_application_appdeponto/models/solicitation_model.dart';
 import 'package:flutter_application_appdeponto/services/ponto_service.dart';
@@ -110,11 +109,8 @@ class _HomePageState extends State<HomePage> {
       historyBloc.add(LoadHistoryEvent(month: _currentMonth));
     }
 
-    // Solicitations/atestados/justificativas: apenas silent reload
-    // (splash já fez o load principal, aqui só atualiza em background).
-    context.read<SolicitationBloc>().add(
-          SilentReloadSolicitationsEvent(isAdmin: _isAdmin),
-        );
+    // Solicitações usam stream em tempo real (ativado no splash) — sem polling.
+    // Atestados e justificativas: silent reload + polling periódico.
     context.read<AtestadoBloc>().add(
           SilentLoadAtestadosEvent(isAdmin: _isAdmin),
         );
@@ -124,9 +120,6 @@ class _HomePageState extends State<HomePage> {
 
     _solTimer = Timer.periodic(const Duration(minutes: 2), (_) {
       if (mounted) {
-        context.read<SolicitationBloc>().add(
-              SilentReloadSolicitationsEvent(isAdmin: _isAdmin),
-            );
         context.read<AtestadoBloc>().add(
               SilentLoadAtestadosEvent(isAdmin: _isAdmin),
             );

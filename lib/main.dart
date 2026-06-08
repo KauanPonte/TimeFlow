@@ -222,7 +222,7 @@ class TimeFlow extends StatelessWidget {
                         solState is! SolicitationLoading) {
                       context
                           .read<SolicitationBloc>()
-                          .add(LoadSolicitationsEvent(isAdmin: isAdmin));
+                          .add(SubscribeSolicitationsEvent(isAdmin: isAdmin));
                     }
                     // Carrega atestados para funcionários (para notificações de resultado)
                     if (!isAdmin) {
