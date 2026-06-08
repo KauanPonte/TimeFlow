@@ -307,8 +307,7 @@ class _PontoPageState extends State<PontoPage> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final args =
         ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>?;
-    final isAdmin =
-        (args?['employeeRole'] ?? '').toString().toUpperCase().contains('ADM');
+    final isAdmin = args?['isAdmin'] == true;
 
     final pontoState = context.watch<PontoTodayCubit>().state;
     // Observa solicitações pendentes para recalcular botões bloqueados

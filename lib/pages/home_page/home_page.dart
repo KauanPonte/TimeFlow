@@ -33,6 +33,7 @@ class HomePage extends StatefulWidget {
   final String profileImageUrl;
   final String logoAsset;
   final String employeeRole;
+  final bool isAdmin;
 
   final String? initialHistoryDate;
 
@@ -41,6 +42,7 @@ class HomePage extends StatefulWidget {
     required this.employeeName,
     required this.profileImageUrl,
     required this.employeeRole,
+    this.isAdmin = false,
     this.logoAsset = 'assets/app_icon/timeflow_background.png',
     this.initialHistoryDate,
   });
@@ -64,7 +66,7 @@ class _HomePageState extends State<HomePage> {
   final GlobalKey _historySectionKey = GlobalKey();
   String? _highlightDayId;
 
-  bool get _isAdmin => widget.employeeRole.toUpperCase().contains('ADM');
+  bool get _isAdmin => widget.isAdmin;
 
   @override
   void initState() {

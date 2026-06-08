@@ -42,8 +42,7 @@ class _SolicitacoesPageState extends State<SolicitacoesPage> {
     final authState = context.read<AuthBloc>().state;
     if (authState is AdminAuthenticated) return true;
     if (authState is UserAuthenticated) {
-      final role = (authState.userData['role'] ?? '').toString();
-      return role.toUpperCase().contains('ADM');
+      return authState.userData['isAdmin'] == true;
     }
     return false;
   }

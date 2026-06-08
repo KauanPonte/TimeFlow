@@ -41,12 +41,8 @@ class _ProfilePageViewState extends State<_ProfilePageView> {
   final _picker = ImagePicker();
   File? _pendingImage;
 
-  bool _isAdminRole(String role) {
-    return role.toUpperCase().contains('ADM');
-  }
-
   void _showEditProfileDialog(ProfileLoaded profileData) {
-    final isAdmin = _isAdminRole(profileData.role);
+    final isAdmin = profileData.isAdmin;
 
     showDialog(
       context: context,
@@ -325,7 +321,7 @@ class _ProfilePageViewState extends State<_ProfilePageView> {
               return const Center(child: Text('Carregando...'));
             }
 
-            final isAdmin = _isAdminRole(profileData.role);
+            final isAdmin = profileData.isAdmin;
             final profile = profileData;
 
             return ListView(
@@ -452,16 +448,8 @@ class _ProfilePageViewState extends State<_ProfilePageView> {
         ),
       ),
       bottomNavigationBar: BottomNav(
-        index: (args?['employeeRole'] ?? '')
-                .toString()
-                .toUpperCase()
-                .contains('ADM')
-            ? 2
-            : 1,
-        isAdmin: (args?['employeeRole'] ?? '')
-            .toString()
-            .toUpperCase()
-            .contains('ADM'),
+        index: args?['isAdmin'] == true ? 2 : 1,
+        isAdmin: args?['isAdmin'] == true,
         args: args,
       ),
     );

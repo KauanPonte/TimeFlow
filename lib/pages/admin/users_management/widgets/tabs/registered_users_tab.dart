@@ -276,6 +276,7 @@ class _RegisteredUsersTabState extends State<RegisteredUsersTab>
                 ?.map((e) => e.toString())
                 .toList() ??
             [],
+        currentIsAdmin: user['isAdmin'] == true,
         onSave: ({
           required String role,
           required int workloadMinutes,
@@ -284,6 +285,7 @@ class _RegisteredUsersTabState extends State<RegisteredUsersTab>
           required String projectType,
           required List<String> projects,
           required DateTime? effectiveDate,
+          required bool isAdmin,
         }) {
           context.read<UserManagementBloc>().add(
                 UpdateUserProfileEvent(
@@ -296,6 +298,7 @@ class _RegisteredUsersTabState extends State<RegisteredUsersTab>
                   projectType: projectType,
                   projects: projects,
                   effectiveDate: effectiveDate,
+                  isAdmin: isAdmin,
                 ),
               );
         },

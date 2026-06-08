@@ -45,11 +45,16 @@ class PontoService {
     return (userSnap.data()?['workloadMinutes'] as int?) ?? (8 * 60);
   }
 
-  /// Retorna workloadMinutes + workDays para o usuário (cache-first).
+  /// Retorna workloadMinutes + workDays para o usuário (servidor com fallback para cache).
   static Future<({int workloadMinutes, List<String> workDays})>
       _getUserWorkload(String uid) async {
-    final snap = await _getDocCacheFirst(
-        FirebaseFirestore.instance.collection('usuarios').doc(uid));
+    final ref = FirebaseFirestore.instance.collection('usuarios').doc(uid);
+    DocumentSnapshot<Map<String, dynamic>> snap;
+    try {
+      snap = await ref.get(const GetOptions(source: Source.server));
+    } catch (_) {
+      snap = await ref.get(const GetOptions(source: Source.cache));
+    }
     final data = snap.data() ?? {};
     final minutes = (data['workloadMinutes'] as int?) ?? (8 * 60);
     final days = (data['workDays'] as List<dynamic>?)
@@ -1018,7 +1023,9 @@ class PontoService {
     if (createdAt == null) return 0;
 
     final now = ServerTimeService.now();
-    final workloadMinutes = await _getWorkloadMinutes(uid);
+    final userWorkload = await _getUserWorkload(uid);
+    final workloadMinutes = userWorkload.workloadMinutes;
+    final workDays = userWorkload.workDays;
     int totalBalance = 0;
 
     DateTime cursor = DateTime(createdAt.year, createdAt.month, 1);
@@ -1062,7 +1069,7 @@ class PontoService {
           final isWeekend = date.weekday == DateTime.saturday ||
               date.weekday == DateTime.sunday;
           final isFolga = folgas.contains(diaId);
-          if (!isWeekend && !isFolga && !daysWithPunch.contains(diaId)) {
+          if (!isWeekend && !isFolga && _isUserWorkDay(date, workDays) && !daysWithPunch.contains(diaId)) {
             // Dia útil sem ponto antes da criação: reverte a expectativa
             monthBalance += workloadMinutes;
           }

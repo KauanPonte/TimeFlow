@@ -30,16 +30,18 @@ class RegisterRequested extends AuthEvent {
   final String password;
   final String name;
   final File? profileImage;
+  final bool isAdmin;
 
   const RegisterRequested({
     required this.email,
     required this.password,
     required this.name,
     this.profileImage,
+    this.isAdmin = false,
   });
 
   @override
-  List<Object?> get props => [email, password, name, profileImage];
+  List<Object?> get props => [email, password, name, profileImage, isAdmin];
 }
 
 /// Event triggered when a user requests password recovery

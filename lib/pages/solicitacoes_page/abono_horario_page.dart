@@ -68,10 +68,7 @@ class _AbonoHorarioPageState extends State<AbonoHorarioPage> {
       final authState = context.read<AuthBloc>().state;
       _isAdmin = authState is AdminAuthenticated ||
           (authState is UserAuthenticated &&
-              (authState.userData['role'] ?? '')
-                  .toString()
-                  .toUpperCase()
-                  .contains('ADM'));
+              authState.userData['isAdmin'] == true);
     }
 
     try {

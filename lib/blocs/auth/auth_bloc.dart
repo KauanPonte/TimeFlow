@@ -134,6 +134,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         password: event.password,
         name: event.name,
         profileImage: event.profileImage,
+        isAdmin: event.isAdmin,
       );
 
       // Log analytics event

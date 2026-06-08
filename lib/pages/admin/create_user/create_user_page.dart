@@ -38,52 +38,44 @@ class _DatePickerField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: AppTextStyles.bodySmall.copyWith(
+    return InkWell(
+      onTap: () async {
+        final now = DateTime.now();
+        final picked = await showDatePicker(
+          context: context,
+          initialDate: date,
+          firstDate: DateTime(now.year - 5),
+          lastDate: DateTime(now.year + 2),
+          confirmText: 'Confirmar',
+          cancelText: 'Cancelar',
+        );
+        if (picked != null) onDateSelected(picked);
+      },
+      borderRadius: BorderRadius.circular(12),
+      child: InputDecorator(
+        decoration: InputDecoration(
+          labelText: label,
+          prefixIcon: const Icon(
+            Icons.calendar_today_outlined,
             color: AppColors.textSecondary,
           ),
-        ),
-        const SizedBox(height: 6),
-        InkWell(
-          onTap: () async {
-            final now = DateTime.now();
-            final picked = await showDatePicker(
-              context: context,
-              initialDate: date,
-              firstDate: DateTime(now.year - 5),
-              lastDate: DateTime(now.year + 2),
-              confirmText: 'Confirmar',
-              cancelText: 'Cancelar',
-            );
-            if (picked != null) onDateSelected(picked);
-          },
-          borderRadius: BorderRadius.circular(12),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            decoration: BoxDecoration(
-              border: Border.all(color: AppColors.borderLight),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.calendar_today_outlined,
-                    color: AppColors.primary, size: 20),
-                const SizedBox(width: 12),
-                Text(
-                  DateFormat('dd/MM/yyyy').format(date),
-                  style: AppTextStyles.bodyMedium.copyWith(
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-              ],
-            ),
+          filled: true,
+          fillColor: Theme.of(context).colorScheme.surface,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: AppColors.border, width: 1),
           ),
         ),
-      ],
+        child: Text(
+          DateFormat('dd/MM/yyyy').format(date),
+          style: AppTextStyles.bodyMedium.copyWith(
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
+        ),
+      ),
     );
   }
 }
@@ -109,6 +101,7 @@ class _CreateUserViewState extends State<CreateUserView> {
 
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  bool _isAdmin = false;
   String _contractType = '';
   String _projectType = '';
   String _selectedBolsistaHour = '4';
@@ -215,6 +208,7 @@ class _CreateUserViewState extends State<CreateUserView> {
             projectType: _projectType,
             projects: _projectControllers.map((c) => c.text).toList(),
             startDate: _startDate,
+            isAdmin: _isAdmin,
           ),
         );
   }
@@ -416,14 +410,6 @@ class _CreateUserViewState extends State<CreateUserView> {
                   ),
                   const SizedBox(height: 16),
 
-                  _DatePickerField(
-                    label: 'Data de início',
-                    date: _startDate,
-                    onDateSelected: (d) => setState(() => _startDate = d),
-                  ),
-
-                  const SizedBox(height: 16),
-
                   CustomTextField(
                     controller: _roleController,
                     labelText: 'Cargo',
@@ -447,6 +433,70 @@ class _CreateUserViewState extends State<CreateUserView> {
                         fontStyle: FontStyle.italic,
                       ),
                     ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  _DatePickerField(
+                    label: 'Data de início',
+                    date: _startDate,
+                    onDateSelected: (d) => setState(() => _startDate = d),
+                  ),
+                  const SizedBox(height: 24),
+
+                  Text(
+                    'Nível de Acesso',
+                    style: AppTextStyles.bodyMedium.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          style: OutlinedButton.styleFrom(
+                            backgroundColor: !_isAdmin
+                                ? AppColors.primary
+                                : AppColors.primaryLight,
+                            foregroundColor: Colors.white,
+                            side: BorderSide.none,
+                          ),
+                          onPressed: () => setState(() => _isAdmin = false),
+                          child: Text(
+                            'Usuário',
+                            style: AppTextStyles.bodyMedium.copyWith(
+                              color: Colors.white,
+                              fontWeight: !_isAdmin
+                                  ? FontWeight.w700
+                                  : FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: OutlinedButton(
+                          style: OutlinedButton.styleFrom(
+                            backgroundColor: _isAdmin
+                                ? AppColors.primary
+                                : AppColors.primaryLight,
+                            foregroundColor: Colors.white,
+                            side: BorderSide.none,
+                          ),
+                          onPressed: () => setState(() => _isAdmin = true),
+                          child: Text(
+                            'Administrador',
+                            style: AppTextStyles.bodyMedium.copyWith(
+                              color: Colors.white,
+                              fontWeight: _isAdmin
+                                  ? FontWeight.w700
+                                  : FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 24),
 
