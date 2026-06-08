@@ -8,6 +8,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../blocs/global_loading/global_loading_cubit.dart';
 import '../../blocs/ponto_today/ponto_today_cubit.dart';
 import '../../blocs/ponto_today/ponto_today_state.dart';
+import '../../blocs/solicitations/solicitation_bloc.dart';
+import '../../blocs/solicitations/solicitation_state.dart';
+import '../../models/solicitation_model.dart';
 import '../../widgets/bottom_nav.dart';
 import '../../widgets/custom_snackbar.dart';
 import '../../services/notification_service.dart';
@@ -190,9 +193,45 @@ class _PontoPageState extends State<PontoPage> {
     return map;
   }
 
-  /// Próximas ações possíveis com base no último tipo registrado.
+  /// Tipos com solicitação pendente de aprovação para hoje.
+  /// Impede que o funcionário bata um ponto que já está em análise
+  /// ou que dependa de uma solicitação pendente (evita quebrar a sequência
+  /// caso a solicitação seja recusada).
+  Set<String> _pendingTiposHoje() {
+    final todayId = ServerTimeService.todayId();
+    final solState = context.read<SolicitationBloc>().state;
+
+    List<SolicitationModel> solicitations = const [];
+    if (solState is SolicitationLoaded) {
+      solicitations = solState.solicitations;
+    } else if (solState is SolicitationActionSuccess) {
+      solicitations = solState.solicitations;
+    } else if (solState is SolicitationActionProcessing) {
+      solicitations = solState.solicitations;
+    } else if (solState is SolicitationError) {
+      solicitations = solState.solicitations;
+    }
+
+    final pendingTipos = <String>{};
+    for (final sol in solicitations) {
+      if (sol.diaId != todayId) continue;
+      if (sol.status != SolicitationStatus.pending) continue;
+      for (final item in sol.items) {
+        if (item.action == SolicitationAction.add &&
+            item.status == SolicitationItemStatus.pending) {
+          pendingTipos.add(item.tipo);
+        }
+      }
+    }
+    return pendingTipos;
+  }
+
+  /// Próximas ações possíveis com base no último tipo registrado,
+  /// excluindo tipos que já possuem solicitação pendente.
   Set<String> _proximasAcoes(PontoTodayState state) {
-    return PontoValidator.proximosPermitidos(state.ultimoTipo);
+    final real = PontoValidator.proximosPermitidos(state.ultimoTipo);
+    final pending = _pendingTiposHoje();
+    return real.difference(pending);
   }
 
   Widget _buildWorkModeButton(
@@ -271,8 +310,11 @@ class _PontoPageState extends State<PontoPage> {
     final isAdmin = args?['isAdmin'] == true;
 
     final pontoState = context.watch<PontoTodayCubit>().state;
+    // Observa solicitações pendentes para recalcular botões bloqueados
+    context.watch<SolicitationBloc>();
     final hoje = _hojeMapComputed(pontoState);
     final proximas = _proximasAcoes(pontoState);
+    final pendingTipos = _pendingTiposHoje();
     final effectiveMode = _effectiveWorkMode(pontoState);
     final bool isPanelAccessible =
         effectiveMode != null && !pontoState.isFeriadoHoje;
@@ -386,6 +428,8 @@ class _PontoPageState extends State<PontoPage> {
                                 accentColor: const Color(0xFF18A999),
                                 done: hoje['entrada'] != null,
                                 isNext: proximas.contains('entrada'),
+                                isPending: !hoje.containsKey('entrada') &&
+                                    pendingTipos.contains('entrada'),
                                 time: hoje['entrada'],
                                 isRegistering: registering,
                                 isLast: false,
@@ -397,6 +441,8 @@ class _PontoPageState extends State<PontoPage> {
                                 accentColor: const Color(0xFF3DB2FF),
                                 done: hoje['pausa'] != null,
                                 isNext: proximas.contains('pausa'),
+                                isPending: !hoje.containsKey('pausa') &&
+                                    pendingTipos.contains('pausa'),
                                 optional: true,
                                 time: hoje['pausa'],
                                 isRegistering: registering,
@@ -409,6 +455,8 @@ class _PontoPageState extends State<PontoPage> {
                                 accentColor: const Color(0xFFF7A500),
                                 done: hoje['retorno'] != null,
                                 isNext: proximas.contains('retorno'),
+                                isPending: !hoje.containsKey('retorno') &&
+                                    pendingTipos.contains('retorno'),
                                 time: hoje['retorno'],
                                 isRegistering: registering,
                                 isLast: false,
@@ -420,6 +468,8 @@ class _PontoPageState extends State<PontoPage> {
                                 accentColor: const Color(0xFFE53935),
                                 done: hoje['saida'] != null,
                                 isNext: proximas.contains('saida'),
+                                isPending: !hoje.containsKey('saida') &&
+                                    pendingTipos.contains('saida'),
                                 time: hoje['saida'],
                                 isRegistering: registering,
                                 isLast: true,

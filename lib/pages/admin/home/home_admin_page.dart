@@ -1,11 +1,9 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/admin_home/admin_home_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/admin_home/admin_home_event.dart';
 import 'package:flutter_application_appdeponto/blocs/admin_home/admin_home_state.dart';
 import 'package:flutter_application_appdeponto/blocs/solicitations/solicitation_bloc.dart';
-import 'package:flutter_application_appdeponto/blocs/solicitations/solicitation_event.dart';
 import 'package:flutter_application_appdeponto/blocs/solicitations/solicitation_state.dart';
 import 'package:flutter_application_appdeponto/blocs/atestado/atestado_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/atestado/atestado_event.dart';
@@ -63,8 +61,6 @@ class HomeAdminView extends StatefulWidget {
 }
 
 class _HomeAdminViewState extends State<HomeAdminView> {
-  Timer? _solTimer;
-
   @override
   void initState() {
     super.initState();
@@ -72,27 +68,9 @@ class _HomeAdminViewState extends State<HomeAdminView> {
     if (bloc.state is AdminHomeInitial) {
       bloc.add(const LoadAdminStatsEvent());
     }
-    // Atualiza silenciosamente (dados já carregados desde o splash).
-    context.read<SolicitationBloc>().add(
-          const SilentReloadSolicitationsEvent(isAdmin: true),
-        );
+    // Solicitações usam stream em tempo real (ativado no splash) — sem polling.
+    // Justificativas e abonos também usam stream em tempo real.
     context.read<AtestadoBloc>().add(const SilentLoadAtestadosEvent());
-    // Justificativas usam stream em tempo real (ativado no splash) — sem polling.
-    // Atualização periódica a cada 2 minutos para solicitações e atestados.
-    _solTimer = Timer.periodic(const Duration(minutes: 2), (_) {
-      if (mounted) {
-        context.read<SolicitationBloc>().add(
-              const SilentReloadSolicitationsEvent(isAdmin: true),
-            );
-        context.read<AtestadoBloc>().add(const SilentLoadAtestadosEvent());
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _solTimer?.cancel();
-    super.dispose();
   }
 
   @override
@@ -154,12 +132,7 @@ class _HomeAdminViewState extends State<HomeAdminView> {
           return RefreshIndicator(
             onRefresh: () async {
               context.read<AdminHomeBloc>().add(const RefreshAdminStatsEvent());
-              context.read<SolicitationBloc>().add(
-                    const SilentReloadSolicitationsEvent(isAdmin: true),
-                  );
-              context
-                  .read<AtestadoBloc>()
-                  .add(const SilentLoadAtestadosEvent());
+              context.read<AtestadoBloc>().add(const SilentLoadAtestadosEvent());
             },
             child: Container(
               decoration: BoxDecoration(

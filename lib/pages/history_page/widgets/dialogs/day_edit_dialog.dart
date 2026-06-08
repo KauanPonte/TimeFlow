@@ -282,6 +282,14 @@ class _DayEditDialogState extends State<DayEditDialog> {
     );
   }
 
+  // Converte um DateTime (possivelmente UTC "horas Brasil" de timestampToBrazil)
+  // para um DateTime local com os mesmos valores de hora/minuto.
+  // Necessário para que Timestamp.fromDate() armazene o UTC correto no Firestore.
+  DateTime? _toNaiveLocal(DateTime? at) {
+    if (at == null) return null;
+    return DateTime(at.year, at.month, at.day, at.hour, at.minute, at.second);
+  }
+
   void _submitSolicitation() {
     if (!_hasChanges) return;
     final date = _dateForDay();
@@ -297,16 +305,16 @@ class _DayEditDialogState extends State<DayEditDialog> {
           tipo: ev.tipo,
           horario: newDt,
           oldTipo: ev.originalTipo,
-          oldHorario: ev.originalAt,
+          oldHorario: _toNaiveLocal(ev.originalAt),
         ));
       } else if (ev.mode == RowMode.deleting) {
         items.add(SolicitationItem(
           eventoId: ev.id,
           action: SolicitationAction.delete,
           tipo: ev.originalTipo ?? ev.tipo,
-          horario: ev.originalAt ?? date,
+          horario: _toNaiveLocal(ev.originalAt) ?? date,
           oldTipo: ev.originalTipo,
-          oldHorario: ev.originalAt,
+          oldHorario: _toNaiveLocal(ev.originalAt),
         ));
       }
     }

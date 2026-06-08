@@ -31,10 +31,12 @@ class CalendarService {
       'type': eventType.toLowerCase().trim(),
       'userId': uid,
       'createdAt': FieldValue.serverTimestamp(),
-      'year':
-          cleanDate.year, // Guardamos o ano para facilitar a query de folgas
+      'year': cleanDate.year,
       'month': cleanDate.month,
     });
+
+    // Invalida cache para que os cálculos de saldo reflitam o novo feriado/recesso.
+    _workloadReductionCache.remove('${cleanDate.year}-${cleanDate.month}');
   }
 
   Future<List<String>> getDaysThatReduceWorkload(int year, int month) async {
@@ -43,37 +45,63 @@ class CalendarService {
       return _workloadReductionCache[cacheKey]!;
     }
 
-    // 1. Pega os feriados fixos da sua lógica (Brasil/CE)
+    // 1. Feriados fixos do código (Brasil/CE)
     final holidaysMap = getBrazilHolidays(year);
     List<String> list = [];
-
     holidaysMap.forEach((date, name) {
-      if (date.month == month) {
-        list.add(_formatDateId(date));
-      }
+      if (date.month == month) list.add(_formatDateId(date));
     });
 
-    // 2. Busca no Firestore os eventos que o Admin cadastrou como 'feriado' ou 'recesso'
+    // 2. Eventos do admin: filtra por range de data (índice automático de campo único).
+    // Não usa whereIn + outros filtros para evitar necessidade de índice composto.
+    final firstDay = DateTime(year, month, 1);
+    final lastDay = DateTime(year, month + 1, 0);
     final snap = await _db
         .collection(_collectionPath)
-        .where('year', isEqualTo: year)
-        .where('month', isEqualTo: month)
-        .where('type', whereIn: ['feriado', 'recesso']).get();
+        .where('date',
+            isGreaterThanOrEqualTo: Timestamp.fromDate(firstDay),
+            isLessThanOrEqualTo: Timestamp.fromDate(lastDay))
+        .get();
 
     for (var doc in snap.docs) {
       final data = doc.data();
-      if (data.containsKey('dateId')) {
-        list.add(data['dateId']);
+      final type = (data['type'] ?? '').toString().toLowerCase().trim();
+      if ((type == 'feriado' || type == 'recesso' || type == 'ponto_facultativo') &&
+          data.containsKey('dateId')) {
+        list.add(data['dateId'] as String);
       }
     }
 
-    final result = list.toSet().toList(); // Remove duplicados
+    final result = list.toSet().toList();
     _workloadReductionCache[cacheKey] = result;
     return result;
   }
 
   Future<void> deleteEvent(String docId) async {
     await _db.collection(_collectionPath).doc(docId).delete();
+    _workloadReductionCache.clear();
+  }
+
+  /// Stream em tempo real dos dateIds de feriado/recesso do ano dado.
+  /// Usa range de data (índice automático) para evitar necessidade de índice composto.
+  Stream<Set<String>> streamFolgaChanges(int year) {
+    final startOfYear = DateTime(year, 1, 1);
+    final endOfYear = DateTime(year, 12, 31, 23, 59, 59);
+    return _db
+        .collection(_collectionPath)
+        .where('date',
+            isGreaterThanOrEqualTo: Timestamp.fromDate(startOfYear),
+            isLessThanOrEqualTo: Timestamp.fromDate(endOfYear))
+        .snapshots()
+        .map((snap) => snap.docs
+            .where((d) {
+              final type =
+                  (d.data()['type'] ?? '').toString().toLowerCase().trim();
+              return type == 'feriado' || type == 'recesso' || type == 'ponto_facultativo';
+            })
+            .map((d) => (d.data()['dateId'] ?? '').toString())
+            .where((id) => id.isNotEmpty)
+            .toSet());
   }
 
   Stream<Map<DateTime, List<Map<String, dynamic>>>> getEventsStream(int year) {
@@ -115,16 +143,22 @@ class CalendarService {
   }
 
   Future<bool> isDayBlocked(DateTime date) async {
-    final dateId = _formatDateId(date);
+    final cleanDate = DateTime(date.year, date.month, date.day);
+    final nextDay = cleanDate.add(const Duration(days: 1));
 
+    // Range de 1 dia sobre o campo 'date' — índice automático, sem índice composto.
     final snapshot = await _db
         .collection(_collectionPath)
-        .where('dateId', isEqualTo: dateId)
-        .where('type', whereIn: ['feriado', 'recesso'])
-        .limit(1)
+        .where('date',
+            isGreaterThanOrEqualTo: Timestamp.fromDate(cleanDate),
+            isLessThan: Timestamp.fromDate(nextDay))
         .get();
 
-    return snapshot.docs.isNotEmpty;
+    for (final doc in snapshot.docs) {
+      final type = (doc.data()['type'] ?? '').toString().toLowerCase().trim();
+      if (type == 'feriado' || type == 'recesso' || type == 'ponto_facultativo') return true;
+    }
+    return false;
   }
 
   /// Lógica de Feriados movida para o Service para ser acessível globalmente

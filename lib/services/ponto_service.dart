@@ -546,6 +546,7 @@ class PontoService {
       const blockingTypes = {
         'feriado',
         'recesso',
+        'ponto_facultativo',
       };
 
       final query = FirebaseFirestore.instance
@@ -625,19 +626,26 @@ class PontoService {
     final bool isWeekend =
         date.weekday == DateTime.saturday || date.weekday == DateTime.sunday;
     final bool isHoliday = holidays.containsKey(date);
+    final calendarSvc = CalendarService();
+    final adminFolgas = await calendarSvc.getDaysThatReduceWorkload(date.year, date.month);
+    final bool isAdminFolga = adminFolgas.contains(diaId);
+    final bool isEffectiveHoliday = isHoliday || isAdminFolga;
     final bool isWorkDay = _isUserWorkDay(date, userWorkload.workDays);
 
     final bool falta =
-        !ehHoje && eventos.isEmpty && !isWeekend && !isHoliday && !isExcused && isWorkDay;
+        !ehHoje && eventos.isEmpty && !isWeekend && !isEffectiveHoliday && !isExcused && isWorkDay;
 
     final bool emAberto = !diaFechado && eventos.isNotEmpty;
 
+    // Em feriados/recessos a meta é 0h: horas trabalhadas viram saldo positivo puro.
     final int deltaMinutes = isExcused
         ? workedMinutes
         : (falta
             ? -workloadMinutes
             : (diaFechado && isWorkDay
-                ? (workedMinutes + abonoMinutes - workloadMinutes)
+                ? (isEffectiveHoliday
+                    ? (workedMinutes + abonoMinutes)
+                    : (workedMinutes + abonoMinutes - workloadMinutes))
                 : 0));
 
     // Função interna corrigida usando workloadMinutes
@@ -840,14 +848,15 @@ class PontoService {
   /// Resumo do mês: horas feitas vs horas previstas (dias úteis),
   /// descontando finais de semana e feriados (BR + CE).
   static Future<MesResumo> calcularResumoMensal(
-      String uid, DateTime month) async {
+      String uid, DateTime month, {bool forceRecalculate = false}) async {
     final now = ServerTimeService.now();
     final isCurrentMonth = month.year == now.year && month.month == now.month;
     final mesId = DateFormat('yyyy-MM').format(month);
     final refMes = _refMes(uid, mesId);
 
     // Se NÃO for o mês atual, tenta carregar o cache persistente do Firestore.
-    if (!isCurrentMonth) {
+    // forceRecalculate ignora esse cache (usado quando admin altera feriados).
+    if (!isCurrentMonth && !forceRecalculate) {
       try {
         final snap = await refMes.get();
         if (snap.exists && snap.data()!.containsKey('summaryCache')) {
@@ -1096,15 +1105,16 @@ class PontoService {
   static Future<void> recalcularFaltasMesAtual({
     int cutoffHour = 20,
     int cutoffMinute = 0,
+    bool force = false,
   }) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
     final uid = user.uid;
 
-    // Cache/Throttle: não recalcula se foi feito nos últimos 5 minutos
+    // Cache/Throttle: não recalcula se foi feito nos últimos 5 minutos (a menos que force=true).
     final lastTime = _recalcThrottleMap[uid];
     final now = ServerTimeService.now();
-    if (lastTime != null && now.difference(lastTime).inMinutes < 5) {
+    if (!force && lastTime != null && now.difference(lastTime).inMinutes < 5) {
       return;
     }
     _recalcThrottleMap[uid] = now;
@@ -1133,6 +1143,8 @@ class PontoService {
 
     final existingDays = diasSnap.docs.map((d) => d.id).toSet();
     final holidays = getBrazilHolidays(now.year);
+    final calendarService = CalendarService();
+    final adminFolgas = await calendarService.getDaysThatReduceWorkload(now.year, now.month);
     final today = _startOfDay(now);
     final cutoffReached = now.isAfter(
       DateTime(now.year, now.month, now.day, cutoffHour, cutoffMinute),
@@ -1162,10 +1174,28 @@ class PontoService {
       final isWeekend =
           day.weekday == DateTime.saturday || day.weekday == DateTime.sunday;
       final isHoliday = holidays.containsKey(day);
-      if (isWeekend || isHoliday || !_isUserWorkDay(day, userWorkDays)) continue;
-
       final diaId = _diaId(day);
+      final isAdminFolga = adminFolgas.contains(diaId);
+      if (isWeekend || isHoliday || isAdminFolga || !_isUserWorkDay(day, userWorkDays)) continue;
+
       if (!existingDays.contains(diaId)) {
+        await recalcularBancoDeHorasDoDia(uid: uid, diaId: diaId);
+      }
+    }
+
+    // Corrige docs de falta que existam em dias que o admin marcou como feriado/recesso
+    // depois que o registro de falta já havia sido criado.
+    for (final doc in diasSnap.docs) {
+      final diaId = doc.id;
+      if (!diaId.startsWith(prefix)) continue;
+      final isAbsent = (doc.data()['isAbsent'] as bool?) ?? false;
+      if (!isAbsent) continue;
+      final hasWork = ((doc.data()['workedMinutes'] as int?) ?? 0) > 0;
+      if (hasWork) continue;
+      final docDate = _startOfDay(DateTime.parse(diaId));
+      final isAdminFolga = adminFolgas.contains(diaId);
+      final isHoliday = holidays.containsKey(docDate);
+      if (isAdminFolga || isHoliday) {
         await recalcularBancoDeHorasDoDia(uid: uid, diaId: diaId);
       }
     }

@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/ponto_data/ponto_data_changed_cubit.dart';
+import 'package:flutter_application_appdeponto/pages/home_page/pages/calendar_service.dart';
 import 'package:flutter_application_appdeponto/services/ponto_service.dart';
 import 'package:flutter_application_appdeponto/services/server_time_service.dart';
 import 'ponto_today_state.dart';
@@ -14,6 +15,7 @@ class PontoTodayCubit extends Cubit<PontoTodayState> {
   final PontoDataChangedCubit _dataChangedCubit;
   StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _diaHojeSub;
   StreamSubscription<DateTime>? _dataChangedSub;
+  StreamSubscription<Set<String>>? _calendarSub;
   Timer? _cutoffTimer;
   String? _cutoffScheduledDayId;
   bool _loadedOnce = false;
@@ -77,6 +79,21 @@ class PontoTodayCubit extends Cubit<PontoTodayState> {
     PontoService.recalcularFaltasMesAtual().catchError((_) {});
     _updateBalanceInBackground();
     _reloadMonthData();
+
+    // Stream de feriados/recessos do admin — atualiza todos os usuários em tempo real.
+    // skip(1): ignora a emissão inicial (carga já feita acima).
+    final calYear = ServerTimeService.nowBrazilUtc().year;
+    _calendarSub?.cancel();
+    _calendarSub = CalendarService()
+        .streamFolgaChanges(calYear)
+        .skip(1)
+        .listen((_) {
+      if (isClosed) return;
+      CalendarService.clearStaticCache();
+      PontoService.recalcularFaltasMesAtual(force: true).catchError((_) {});
+      _reloadMonthData();
+      recalculateBalance();
+    });
 
     // Registros (todos os dias) carregados lazily para notificações de incompletos
     // Não bloqueia a UI — stream já cuida dos dados do dia atual
@@ -190,6 +207,8 @@ class PontoTodayCubit extends Cubit<PontoTodayState> {
     _isFeriadoHoje = false;
     _diaHojeSub?.cancel();
     _diaHojeSub = null;
+    _calendarSub?.cancel();
+    _calendarSub = null;
     _cutoffTimer?.cancel();
     _cutoffTimer = null;
     _cutoffScheduledDayId = null;
@@ -220,6 +239,7 @@ class PontoTodayCubit extends Cubit<PontoTodayState> {
   Future<void> close() {
     _diaHojeSub?.cancel();
     _dataChangedSub?.cancel();
+    _calendarSub?.cancel();
     _cutoffTimer?.cancel();
     return super.close();
   }

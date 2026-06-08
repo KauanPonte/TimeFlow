@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_application_appdeponto/pages/home_page/pages/calendar_service.dart';
 import 'package:flutter_application_appdeponto/services/ponto_service.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_application_appdeponto/blocs/ponto_history/ponto_history_bloc.dart';
@@ -78,6 +80,7 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
       HistoryViewPreferenceRepository.currentMode;
   final _excusedDaysCacheService = ExcusedDaysCacheService();
   final _monthlySummaryCache = MonthlySummaryCacheService();
+  StreamSubscription<Set<String>>? _calendarSub;
 
   Future<MesResumo>? _mesResumoFuture;
 
@@ -94,6 +97,27 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
     _loadExcusedDays();
     _loadMesResumo();
     _loadMyAbonos();
+    _startCalendarSubscription(widget.currentMonth.year);
+  }
+
+  void _startCalendarSubscription(int year) {
+    _calendarSub?.cancel();
+    _calendarSub = CalendarService()
+        .streamFolgaChanges(year)
+        .skip(1)
+        .listen((_) {
+      if (!mounted) return;
+      final uid = widget.uid ?? FirebaseAuth.instance.currentUser?.uid;
+      if (uid != null) {
+        _monthlySummaryCache.invalidateMonth(uid, widget.currentMonth);
+      }
+      // Recarrega eventos do calendário para atualizar cores/labels nos DayCards.
+      // Limpa o mapa existente para que eventos deletados não fiquem "presos".
+      _loadedFixedHolidaysYears.remove(year);
+      _allVisibleEvents = {};
+      _loadCalendarEvents();
+      _loadMesResumo(force: true);
+    });
   }
 
   Future<void> _loadMyAbonos() async {
@@ -246,7 +270,7 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
     }
   }
 
-  void _loadMesResumo() {
+  void _loadMesResumo({bool force = false}) {
     final uid = widget.uid ?? FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
 
@@ -255,7 +279,7 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
     final isCurrentMonth = widget.currentMonth.year == now.year &&
         widget.currentMonth.month == now.month;
 
-    if (!isCurrentMonth) {
+    if (!force && !isCurrentMonth) {
       final cached = _monthlySummaryCache.get(uid, widget.currentMonth);
       if (cached != null) {
         setState(() {
@@ -265,7 +289,8 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
       }
     }
 
-    final future = PontoService.calcularResumoMensal(uid, widget.currentMonth)
+    final future = PontoService.calcularResumoMensal(uid, widget.currentMonth,
+            forceRecalculate: force)
         .then((resumo) {
       _monthlySummaryCache.set(uid, widget.currentMonth, resumo);
       if (mounted) setState(() {});
@@ -312,6 +337,7 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
       _loadMesResumo();
       if (widget.currentMonth.year != oldWidget.currentMonth.year) {
         _loadCalendarEvents();
+        _startCalendarSubscription(widget.currentMonth.year);
       }
     }
 
@@ -326,6 +352,12 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
       }
       _requestScrollToDay(widget.highlightDayId!);
     }
+  }
+
+  @override
+  void dispose() {
+    _calendarSub?.cancel();
+    super.dispose();
   }
 
   bool _isWeekend(String diaId) {
