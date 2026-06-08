@@ -82,6 +82,7 @@ class UserManagementBloc
         projectType: event.projectType,
         projects: event.projects,
         startDate: event.startDate,
+        isAdmin: event.isAdmin,
       );
 
       // Recarrega as solicitações pendentes
@@ -238,6 +239,7 @@ class UserManagementBloc
         workDays: event.workDays,
         projectType: event.projectType,
         projects: event.projects,
+        isAdmin: event.isAdmin,
       );
 
       if (event.effectiveDate != null) {

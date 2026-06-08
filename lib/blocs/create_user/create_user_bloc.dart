@@ -139,6 +139,7 @@ class CreateUserBloc extends Bloc<CreateUserEvent, CreateUserState> {
         projectType: event.projectType,
         projects: event.projects,
         startDate: event.startDate,
+        isAdmin: event.isAdmin,
       );
 
       globalLoading?.hide();

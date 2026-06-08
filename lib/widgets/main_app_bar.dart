@@ -78,14 +78,11 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   static bool _resolveIsAdmin(BuildContext context) {
     final profileState = context.read<ProfileBloc>().state;
-    if (profileState is ProfileLoaded && profileState.role.isNotEmpty) {
-      return profileState.role.toUpperCase().contains('ADM');
-    }
+    if (profileState is ProfileLoaded) return profileState.isAdmin;
     final authState = context.read<AuthBloc>().state;
     if (authState is AdminAuthenticated) return true;
     if (authState is UserAuthenticated) {
-      final r = (authState.userData['role'] ?? '').toString();
-      return r.toUpperCase().contains('ADM');
+      return authState.userData['isAdmin'] == true;
     }
     return false;
   }
@@ -333,7 +330,7 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                                 }
 
                                 final isAdminUser =
-                                    chosenRole.toUpperCase().contains('ADM');
+                                    authUserData['isAdmin'] == true;
 
                                 final navArgs = <String, dynamic>{
                                   ...currentArgs,
@@ -2255,6 +2252,7 @@ class _PendingUsersSheetState extends State<_PendingUsersSheet> {
           required String projectType,
           required List<String> projects,
           required DateTime startDate,
+          required bool isAdmin,
         }) async {
           final success = await UserRepository.approveRequest(
             requestId: id,
@@ -2265,6 +2263,7 @@ class _PendingUsersSheetState extends State<_PendingUsersSheet> {
             projectType: projectType,
             projects: projects,
             startDate: startDate,
+            isAdmin: isAdmin,
           );
           if (success && mounted) {
             setState(() => _requests?.removeWhere((r) => r['id'] == id));

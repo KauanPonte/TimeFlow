@@ -264,6 +264,7 @@ class _PendingRequestsTabState extends State<PendingRequestsTab>
           required String projectType,
           required List<String> projects,
           required DateTime startDate,
+          required bool isAdmin,
         }) {
           bloc.add(
             ApproveRequestEvent(
@@ -276,6 +277,7 @@ class _PendingRequestsTabState extends State<PendingRequestsTab>
               projectType: projectType,
               projects: projects,
               startDate: startDate,
+              isAdmin: isAdmin,
             ),
           );
           Navigator.pop(dialogContext);

@@ -36,6 +36,7 @@ class CreateUserRepository {
     required String projectType,
     required List<String> projects,
     required DateTime startDate,
+    bool isAdmin = false,
   }) async {
     FirebaseApp? secondaryApp;
 
@@ -73,6 +74,7 @@ class CreateUserRepository {
         'projectType': projectType,
         'projects': projects.map((p) => p.trim()).where((p) => p.isNotEmpty).toList(),
         'status': 'active',
+        'isAdmin': isAdmin,
         'profileImage': '',
         'startDate': Timestamp.fromDate(startDate),
         'createdAt': FieldValue.serverTimestamp(),

@@ -159,12 +159,19 @@ class _HistoryViewState extends State<_HistoryView> {
     final uid = widget.targetUid ?? FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
 
-    final cached = _monthlySummaryCache.get(uid, _currentMonth);
-    if (cached != null) {
-      setState(() {
-        _mesResumoFuture = Future.value(cached);
-      });
-      return;
+    // Para o mês atual nunca usa cache em memória — workDays podem ter mudado.
+    final now = DateTime.now();
+    final isCurrentMonth =
+        _currentMonth.year == now.year && _currentMonth.month == now.month;
+
+    if (!isCurrentMonth) {
+      final cached = _monthlySummaryCache.get(uid, _currentMonth);
+      if (cached != null) {
+        setState(() {
+          _mesResumoFuture = Future.value(cached);
+        });
+        return;
+      }
     }
 
     final future =

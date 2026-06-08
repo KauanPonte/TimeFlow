@@ -65,13 +65,9 @@ class _AbonoConsultaPageState extends State<AbonoConsultaPage> {
     // Verifica se é admin pelo AuthBloc (já carregado no app)
     if (mounted) {
       final authState = context.read<AuthBloc>().state;
-      final isAdm = authState is AdminAuthenticated ||
+      _isAdmin = authState is AdminAuthenticated ||
           (authState is UserAuthenticated &&
-              (authState.userData['role'] ?? '')
-                  .toString()
-                  .toUpperCase()
-                  .contains('ADM'));
-      _isAdmin = isAdm;
+              authState.userData['isAdmin'] == true);
     }
 
     try {

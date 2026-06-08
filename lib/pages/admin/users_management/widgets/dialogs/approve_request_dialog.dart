@@ -14,6 +14,7 @@ class ApproveRequestDialog extends StatefulWidget {
     required String projectType,
     required List<String> projects,
     required DateTime startDate,
+    required bool isAdmin,
   }) onApprove;
 
   const ApproveRequestDialog({
@@ -33,6 +34,7 @@ class _ApproveRequestDialogState extends State<ApproveRequestDialog> {
     TextEditingController(),
   ];
 
+  bool _isAdmin = false;
   String _contractType = '';
   String _selectedBolsistaHour = '4';
   final List<String> _selectedWorkDays = [];
@@ -147,6 +149,7 @@ class _ApproveRequestDialogState extends State<ApproveRequestDialog> {
       projectType: _projectType,
       projects: _projectControllers.map((c) => c.text).toList(),
       startDate: _startDate,
+      isAdmin: _isAdmin,
     );
   }
 
@@ -169,6 +172,54 @@ class _ApproveRequestDialogState extends State<ApproveRequestDialog> {
           onChanged: (_) {
             if (_roleError != null) setState(() => _roleError = null);
           },
+        ),
+        const SizedBox(height: 16),
+        _SectionLabel(label: 'Nível de Acesso'),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton(
+                style: OutlinedButton.styleFrom(
+                  backgroundColor: !_isAdmin
+                      ? const Color(0xFF178573)
+                      : const Color(0xFF62C1B1),
+                  foregroundColor: Colors.white,
+                  side: BorderSide.none,
+                ),
+                onPressed: () => setState(() => _isAdmin = false),
+                child: Text(
+                  'Usuário',
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    color: Colors.white,
+                    fontWeight:
+                        !_isAdmin ? FontWeight.w700 : FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: OutlinedButton(
+                style: OutlinedButton.styleFrom(
+                  backgroundColor: _isAdmin
+                      ? const Color(0xFF178573)
+                      : const Color(0xFF62C1B1),
+                  foregroundColor: Colors.white,
+                  side: BorderSide.none,
+                ),
+                onPressed: () => setState(() => _isAdmin = true),
+                child: Text(
+                  'Administrador',
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    color: Colors.white,
+                    fontWeight:
+                        _isAdmin ? FontWeight.w700 : FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 16),
         _SectionLabel(label: 'Tipo de Contrato', error: _contractTypeError),
@@ -362,8 +413,6 @@ class _ApproveRequestDialogState extends State<ApproveRequestDialog> {
           ),
         ],
         const SizedBox(height: 16),
-        _SectionLabel(label: 'Data de início'),
-        const SizedBox(height: 8),
         InkWell(
           onTap: () async {
             final now = DateTime.now();
@@ -378,24 +427,29 @@ class _ApproveRequestDialogState extends State<ApproveRequestDialog> {
             if (picked != null) setState(() => _startDate = picked);
           },
           borderRadius: BorderRadius.circular(12),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            decoration: BoxDecoration(
-              border: Border.all(color: AppColors.borderLight),
-              borderRadius: BorderRadius.circular(12),
+          child: InputDecorator(
+            decoration: InputDecoration(
+              labelText: 'Data de início',
+              prefixIcon: const Icon(
+                Icons.calendar_today_outlined,
+                color: AppColors.textSecondary,
+              ),
+              filled: true,
+              fillColor: Theme.of(context).colorScheme.surface,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide:
+                    const BorderSide(color: AppColors.border, width: 1),
+              ),
             ),
-            child: Row(
-              children: [
-                const Icon(Icons.calendar_today_outlined,
-                    color: AppColors.primary, size: 20),
-                const SizedBox(width: 12),
-                Text(
-                  DateFormat('dd/MM/yyyy').format(_startDate),
-                  style: AppTextStyles.bodyMedium.copyWith(
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-              ],
+            child: Text(
+              DateFormat('dd/MM/yyyy').format(_startDate),
+              style: AppTextStyles.bodyMedium.copyWith(
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
             ),
           ),
         ),

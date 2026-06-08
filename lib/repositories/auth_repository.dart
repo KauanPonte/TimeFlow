@@ -13,6 +13,7 @@ class AuthRepository {
     required password,
     required name,
     File? profileImage,
+    bool isAdmin = false,
   }) async {
     try {
       final cred = await _auth.createUserWithEmailAndPassword(
@@ -25,6 +26,7 @@ class AuthRepository {
         'email': email.trim(),
         'name': name.trim(),
         'role': '',
+        'isAdmin': isAdmin,
         'status': 'pending',
         'profileImage': '',
         'createdAt': FieldValue.serverTimestamp(),
@@ -98,6 +100,7 @@ class AuthRepository {
         'email': data['email'] ?? email.trim(),
         'name': data['name'] ?? '',
         'role': data['role'] ?? '',
+        'isAdmin': data['isAdmin'] == true,
         'profileImage': data['profileImage'] ?? '',
       };
     } on FirebaseAuthException catch (e) {
@@ -215,6 +218,7 @@ class AuthRepository {
     await prefs.setString('userEmail', userData['email'] ?? '');
     await prefs.setString('userName', userData['name'] ?? '');
     await prefs.setString('userRole', userData['role'] ?? '');
+    await prefs.setBool('isAdmin', userData['isAdmin'] == true);
     await prefs.setString('profileImage', userData['profileImage'] ?? '');
     await prefs.setString('userUid', userData['uid'] ?? '');
   }
@@ -230,6 +234,7 @@ class AuthRepository {
       'email': prefs.getString('userEmail') ?? '',
       'name': prefs.getString('userName') ?? '',
       'role': prefs.getString('userRole') ?? '',
+      'isAdmin': prefs.getBool('isAdmin') ?? false,
       'profileImage': prefs.getString('profileImage') ?? '',
     };
   }

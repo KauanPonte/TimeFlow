@@ -23,6 +23,7 @@ class ProfileLoaded extends ProfileState {
   final String name;
   final String email;
   final String role;
+  final bool isAdmin;
   final String profileImageUrl;
   final int? workloadMinutes;
   final String contractType;
@@ -35,6 +36,7 @@ class ProfileLoaded extends ProfileState {
     required this.name,
     required this.email,
     required this.role,
+    this.isAdmin = false,
     required this.profileImageUrl,
     this.workloadMinutes,
     this.contractType = '',
@@ -49,6 +51,7 @@ class ProfileLoaded extends ProfileState {
         name,
         email,
         role,
+        isAdmin,
         profileImageUrl,
         workloadMinutes,
         contractType,
@@ -62,6 +65,7 @@ class ProfileLoaded extends ProfileState {
     String? name,
     String? email,
     String? role,
+    bool? isAdmin,
     String? profileImageUrl,
     int? workloadMinutes,
     String? contractType,
@@ -74,6 +78,7 @@ class ProfileLoaded extends ProfileState {
       name: name ?? this.name,
       email: email ?? this.email,
       role: role ?? this.role,
+      isAdmin: isAdmin ?? this.isAdmin,
       profileImageUrl: profileImageUrl ?? this.profileImageUrl,
       workloadMinutes: workloadMinutes ?? this.workloadMinutes,
       contractType: contractType ?? this.contractType,

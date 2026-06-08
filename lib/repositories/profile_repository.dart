@@ -50,6 +50,7 @@ class ProfileRepository {
           [],
       'project1': data['project1'] ?? '',
       'project2': data['project2'] ?? '',
+      'isAdmin': data['isAdmin'] == true,
     };
   }
 

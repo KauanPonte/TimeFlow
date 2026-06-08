@@ -26,16 +26,14 @@ class UserCard extends StatelessWidget {
     this.showDeleteAction = true,
   });
 
-  bool _isAdmin(String role) {
-    return role.toUpperCase().contains('ADM');
-  }
+  bool get _isAdmin => user['isAdmin'] == true;
 
   Color _getRoleColor(String role) {
-    return _isAdmin(role) ? AppColors.error : AppColors.primary;
+    return _isAdmin ? AppColors.error : AppColors.primary;
   }
 
   List<Color> _getRoleGradientColors(String role) {
-    if (_isAdmin(role)) {
+    if (_isAdmin) {
       return [AppColors.errorLight20, AppColors.errorLight10];
     }
     return [AppColors.primaryLight20, AppColors.primaryLight10];
@@ -52,11 +50,11 @@ class UserCard extends StatelessWidget {
   }
 
   Color _getRoleBadgeColor(String role) {
-    return _isAdmin(role) ? AppColors.errorLight10 : AppColors.primaryLight10;
+    return _isAdmin ? AppColors.errorLight10 : AppColors.primaryLight10;
   }
 
   Color _getRoleBorderColor(String role) {
-    return _isAdmin(role) ? AppColors.errorLight20 : AppColors.primaryLight30;
+    return _isAdmin ? AppColors.errorLight20 : AppColors.primaryLight30;
   }
 
   @override

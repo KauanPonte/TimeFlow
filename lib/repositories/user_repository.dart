@@ -69,6 +69,7 @@ class UserRepository {
         'project2': data['project2'] ?? '',
         'registeredAt': _formatTimestamp(data['createdAt']),
         'profileImage': data['profileImage'] ?? '',
+        'isAdmin': data['isAdmin'] == true,
         'todayWorkMode': todayWorkMode ?? '',
         'lastPunchType': lastPunchType ?? '',
         'didPunchToday': todayStatus != null,
@@ -177,11 +178,13 @@ class UserRepository {
     required String projectType,
     required List<String> projects,
     required DateTime startDate,
+    bool isAdmin = false,
   }) async {
     try {
       final workloadMinutes = _parseCargaHoraria(cargaHoraria);
       await _db.collection(_usersCollection).doc(requestId).update({
         'status': 'active',
+        'isAdmin': isAdmin,
         'workloadMinutes': workloadMinutes,
         'role': role,
         'contractType': contractType,
@@ -256,6 +259,7 @@ class UserRepository {
     required List<String> workDays,
     required String projectType,
     required List<String> projects,
+    required bool isAdmin,
   }) async {
     try {
       await _db.collection(_usersCollection).doc(userId).update({
@@ -266,6 +270,7 @@ class UserRepository {
         'projectType': projectType,
         'projects':
             projects.map((p) => p.trim()).where((p) => p.isNotEmpty).toList(),
+        'isAdmin': isAdmin,
         'updatedAt': FieldValue.serverTimestamp(),
       });
       return true;
