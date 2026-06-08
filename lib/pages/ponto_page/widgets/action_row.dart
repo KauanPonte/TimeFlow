@@ -13,6 +13,8 @@ class ActionRow extends StatelessWidget {
   final String? time;
   final bool isRegistering;
   final VoidCallback onTap;
+  // Quando true, indica que este tipo já tem uma solicitação pendente de aprovação.
+  final bool isPending;
 
   const ActionRow({
     super.key,
@@ -26,6 +28,7 @@ class ActionRow extends StatelessWidget {
     required this.isRegistering,
     this.optional = false,
     this.time,
+    this.isPending = false,
   });
 
   @override
@@ -33,8 +36,8 @@ class ActionRow extends StatelessWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
-    final bool enabled = isNext && !isRegistering;
-    final bool skipped = optional && !done && !isNext;
+    final bool enabled = isNext && !isRegistering && !isPending;
+    final bool skipped = optional && !done && !isNext && !isPending;
     final inactiveTextColor = colorScheme.onSurface.withValues(
       alpha: isDark ? 0.72 : 0.68,
     );
@@ -130,6 +133,14 @@ class ActionRow extends StatelessWidget {
                           style: AppTextStyles.bodySmall
                               .copyWith(color: accentColor, fontSize: 12),
                         )
+                      else if (isPending)
+                        Text(
+                          'Solicitação pendente de aprovação',
+                          style: AppTextStyles.bodySmall.copyWith(
+                            color: AppColors.warning,
+                            fontSize: 12,
+                          ),
+                        )
                       else if (isNext)
                         Text(
                           'Toque para registrar',
@@ -150,7 +161,32 @@ class ActionRow extends StatelessWidget {
                   ),
                 ),
                 // Indicador direita
-                if (isNext && !isRegistering)
+                if (isPending)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 7, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: AppColors.warning.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.hourglass_top_rounded,
+                            size: 12, color: AppColors.warning),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Pendente',
+                          style: AppTextStyles.bodySmall.copyWith(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.warning,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                else if (isNext && !isRegistering)
                   Icon(
                     Icons.arrow_forward_ios_rounded,
                     size: 14,
