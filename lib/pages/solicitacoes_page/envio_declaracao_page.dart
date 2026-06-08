@@ -128,7 +128,7 @@ class _EnvioDeclaracaoPageState extends State<EnvioDeclaracaoPage> {
           scrolledUnderElevation: 0,
           leading: IconButton(
             icon: Icon(
-              Icons.arrow_back_ios_new_rounded,
+              Icons.arrow_back,
               color: Theme.of(context).colorScheme.onSurface,
               size: 20,
             ),
