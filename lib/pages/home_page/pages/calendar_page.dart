@@ -105,7 +105,7 @@ class _CalendarPageState extends State<CalendarPage> {
   }
 
   bool _blocksRegistration(String type) {
-    return ['feriado', 'recesso'].contains(type);
+    return ['feriado', 'recesso', 'ponto_facultativo'].contains(type);
   }
 
   // Diálogo de exclusão (usa AppDialogScaffold)
