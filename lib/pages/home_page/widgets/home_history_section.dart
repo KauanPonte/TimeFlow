@@ -111,8 +111,10 @@ class _HomeHistorySectionState extends State<HomeHistorySection> {
       if (uid != null) {
         _monthlySummaryCache.invalidateMonth(uid, widget.currentMonth);
       }
-      // Recarrega eventos do calendário para atualizar cores/labels nos DayCards
+      // Recarrega eventos do calendário para atualizar cores/labels nos DayCards.
+      // Limpa o mapa existente para que eventos deletados não fiquem "presos".
       _loadedFixedHolidaysYears.remove(year);
+      _allVisibleEvents = {};
       _loadCalendarEvents();
       _loadMesResumo(force: true);
     });
