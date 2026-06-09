@@ -158,29 +158,33 @@ class _RegisteredUsersTabState extends State<RegisteredUsersTab>
               child: usersNonNull.isEmpty
                   ? const EmptyUsersState()
                   : filteredUsers.isEmpty
-                      ? const Center(
+                      ? Center(
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(
+                              const Icon(
                                 Icons.search_off,
                                 size: 64,
                                 color: AppColors.textSecondary,
                               ),
-                              SizedBox(height: 16),
+                              const SizedBox(height: 16),
                               Text(
                                 'Nenhum resultado encontrado',
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.w600,
-                                  color: AppColors.textPrimary,
+                                  color:
+                                      Theme.of(context).colorScheme.onSurface,
                                 ),
                               ),
-                              SizedBox(height: 8),
+                              const SizedBox(height: 8),
                               Text(
                                 'Tente buscar com outros termos',
                                 style: TextStyle(
-                                  color: AppColors.textSecondary,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurface
+                                      .withValues(alpha: 0.68),
                                 ),
                               ),
                             ],

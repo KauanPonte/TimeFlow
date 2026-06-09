@@ -18,8 +18,10 @@ class AdminAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return AppBar(
-      backgroundColor: Theme.of(context).colorScheme.surface,
+      backgroundColor: colorScheme.surface,
       elevation: 0,
       automaticallyImplyLeading: false,
       title: Row(
@@ -27,13 +29,9 @@ class AdminAppBar extends StatelessWidget implements PreferredSizeWidget {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  AppColors.lime,
-                  AppColors.primaryLight,
-                ],
+              image: const DecorationImage(
+                image: AssetImage('assets/app_icon/background_gradient.png'),
+                fit: BoxFit.cover,
               ),
               borderRadius: BorderRadius.circular(12),
               boxShadow: const [
@@ -69,7 +67,7 @@ class AdminAppBar extends StatelessWidget implements PreferredSizeWidget {
               Text(
                 'Painel Admin',
                 style: AppTextStyles.bodySmall.copyWith(
-                  color: AppColors.textSecondary,
+                  color: colorScheme.onSurface.withValues(alpha: 0.68),
                 ),
               ),
             ],
@@ -116,7 +114,7 @@ class AdminAppBar extends StatelessWidget implements PreferredSizeWidget {
                   Text(
                     'Perfil',
                     style: AppTextStyles.bodyMedium.copyWith(
-                      color: AppColors.textPrimary,
+                      color: colorScheme.onSurface,
                     ),
                   ),
                 ],
@@ -135,7 +133,7 @@ class AdminAppBar extends StatelessWidget implements PreferredSizeWidget {
                   Text(
                     'Configurações',
                     style: AppTextStyles.bodyMedium.copyWith(
-                      color: AppColors.textPrimary,
+                      color: colorScheme.onSurface,
                     ),
                   ),
                 ],
