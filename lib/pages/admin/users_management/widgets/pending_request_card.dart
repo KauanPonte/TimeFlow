@@ -16,10 +16,12 @@ class PendingRequestCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: AppColors.borderLight,
@@ -73,23 +75,24 @@ class PendingRequestCard extends StatelessWidget {
                         request['name'],
                         style: AppTextStyles.bodyLarge.copyWith(
                           fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
+                          color: colorScheme.onSurface,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.email_outlined,
                             size: 14,
-                            color: AppColors.textSecondary,
+                            color: colorScheme.onSurface.withValues(alpha: 0.6),
                           ),
                           const SizedBox(width: 4),
                           Expanded(
                             child: Text(
                               request['email'],
                               style: AppTextStyles.bodySmall.copyWith(
-                                color: AppColors.textSecondary,
+                                color: colorScheme.onSurface
+                                    .withValues(alpha: 0.6),
                               ),
                               overflow: TextOverflow.ellipsis,
                             ),

@@ -174,7 +174,7 @@ class _ApproveRequestDialogState extends State<ApproveRequestDialog> {
           },
         ),
         const SizedBox(height: 16),
-        _SectionLabel(label: 'Nível de Acesso'),
+        const _SectionLabel(label: 'Nível de Acesso'),
         const SizedBox(height: 8),
         Row(
           children: [
@@ -192,8 +192,7 @@ class _ApproveRequestDialogState extends State<ApproveRequestDialog> {
                   'Usuário',
                   style: AppTextStyles.bodyMedium.copyWith(
                     color: Colors.white,
-                    fontWeight:
-                        !_isAdmin ? FontWeight.w700 : FontWeight.w600,
+                    fontWeight: !_isAdmin ? FontWeight.w700 : FontWeight.w600,
                   ),
                 ),
               ),
@@ -213,8 +212,7 @@ class _ApproveRequestDialogState extends State<ApproveRequestDialog> {
                   'Administrador',
                   style: AppTextStyles.bodyMedium.copyWith(
                     color: Colors.white,
-                    fontWeight:
-                        _isAdmin ? FontWeight.w700 : FontWeight.w600,
+                    fontWeight: _isAdmin ? FontWeight.w700 : FontWeight.w600,
                   ),
                 ),
               ),
@@ -243,8 +241,7 @@ class _ApproveRequestDialogState extends State<ApproveRequestDialog> {
                     type,
                     style: AppTextStyles.bodyMedium.copyWith(
                       color: Colors.white,
-                      fontWeight:
-                          selected ? FontWeight.w700 : FontWeight.w600,
+                      fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
                     ),
                   ),
                 ),
@@ -266,7 +263,7 @@ class _ApproveRequestDialogState extends State<ApproveRequestDialog> {
         ],
         if (_contractType == 'Bolsista') ...[
           const SizedBox(height: 16),
-          _SectionLabel(label: 'Carga horária bolsista'),
+          const _SectionLabel(label: 'Carga horária bolsista'),
           const SizedBox(height: 8),
           Row(
             children: ['4 hrs', '6 hrs', '8 hrs'].map((label) {
@@ -314,8 +311,7 @@ class _ApproveRequestDialogState extends State<ApproveRequestDialog> {
                 label: Text(
                   option['label']!,
                   style: AppTextStyles.bodySmall.copyWith(
-                    fontWeight:
-                        selected ? FontWeight.w700 : FontWeight.w600,
+                    fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
                     color: Colors.white,
                   ),
                 ),
@@ -441,8 +437,7 @@ class _ApproveRequestDialogState extends State<ApproveRequestDialog> {
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide:
-                    const BorderSide(color: AppColors.border, width: 1),
+                borderSide: const BorderSide(color: AppColors.border, width: 1),
               ),
             ),
             child: Text(

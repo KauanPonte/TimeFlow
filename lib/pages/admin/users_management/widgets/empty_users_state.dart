@@ -7,6 +7,8 @@ class EmptyUsersState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -27,14 +29,14 @@ class EmptyUsersState extends StatelessWidget {
           Text(
             'Nenhum usuário cadastrado',
             style: AppTextStyles.h3.copyWith(
-              color: AppColors.textPrimary,
+              color: colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 8),
           Text(
             'Aprove solicitações pendentes\npara adicionar usuários',
             style: AppTextStyles.bodyMedium.copyWith(
-              color: AppColors.textSecondary,
+              color: colorScheme.onSurface.withValues(alpha: 0.68),
             ),
             textAlign: TextAlign.center,
           ),

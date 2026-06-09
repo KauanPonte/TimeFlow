@@ -351,6 +351,8 @@ class _AtestadoPendingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final fmt = DateFormat('dd/MM/yyyy');
     final inicio = fmt.format(DateTime.parse(atestado.dataInicio));
     final fim = fmt.format(DateTime.parse(atestado.dataFim));
@@ -364,9 +366,11 @@ class _AtestadoPendingCard extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.borderLight),
+        border: Border.all(
+          color: isDark ? AppColors.primaryLight30 : AppColors.borderLight,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -379,8 +383,10 @@ class _AtestadoPendingCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   atestado.employeeName,
-                  style: AppTextStyles.bodyMedium
-                      .copyWith(fontWeight: FontWeight.w700),
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    color: colorScheme.onSurface,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
               Text(

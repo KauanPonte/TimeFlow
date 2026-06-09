@@ -1942,13 +1942,9 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  AppColors.lime,
-                  AppColors.primaryLight,
-                ],
+              image: const DecorationImage(
+                image: AssetImage('assets/app_icon/background_gradient.png'),
+                fit: BoxFit.cover,
               ),
               borderRadius: BorderRadius.circular(12),
               boxShadow: const [
