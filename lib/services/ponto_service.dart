@@ -854,6 +854,21 @@ class PontoService {
     final mesId = DateFormat('yyyy-MM').format(month);
     final refMes = _refMes(uid, mesId);
 
+    // Se o mês inteiro é anterior à data de início do usuário → retorna zeros.
+    // Verifica antes do cache para não servir summaryCache obsoleto.
+    final userStartDateEarly = await _getUserCreatedAt(uid);
+    if (userStartDateEarly != null) {
+      final monthEnd = DateTime(month.year, month.month + 1, 0);
+      if (userStartDateEarly.isAfter(monthEnd)) {
+        return const MesResumo(
+          workedMinutes: 0,
+          expectedMinutes: 0,
+          businessDaysTotal: 0,
+          monthBalance: 0,
+        );
+      }
+    }
+
     // Se NÃO for o mês atual, tenta carregar o cache persistente do Firestore.
     // forceRecalculate ignora esse cache (usado quando admin altera feriados).
     if (!isCurrentMonth && !forceRecalculate) {
@@ -907,11 +922,31 @@ class PontoService {
     final workloadMinutes = userWorkload.workloadMinutes;
     final workDays = userWorkload.workDays;
 
+    // Início efetivo do usuário: ignora dias antes da data de admissão
+    final userStartDate = userStartDateEarly; // já carregado acima
+    final monthStart = DateTime(month.year, month.month, 1);
+    final ultimoDia = DateTime(month.year, month.month + 1, 0).day;
+    final monthEnd = DateTime(month.year, month.month, ultimoDia);
+
+    // effectiveStartDay: dia a partir do qual contar dias úteis esperados.
+    // Se o usuário ainda não havia começado neste mês → pula o mês inteiro.
+    // Se começou no meio deste mês → conta a partir do dia de início.
+    // Se já estava ativo antes deste mês → conta desde o dia 1.
+    final int effectiveStartDay;
+    if (userStartDate == null) {
+      effectiveStartDay = 1;
+    } else if (userStartDate.isAfter(monthEnd)) {
+      effectiveStartDay = ultimoDia + 1; // pula o mês inteiro
+    } else if (userStartDate.isAfter(monthStart)) {
+      effectiveStartDay = userStartDate.day;
+    } else {
+      effectiveStartDay = 1;
+    }
+
     // 1. Horas no mês: baseadas na jornada mensal esperada completa do mês consultado
     int diasUteisNoMes = 0;
-    final ultimoDia = DateTime(month.year, month.month + 1, 0).day;
 
-    for (int i = 1; i <= ultimoDia; i++) {
+    for (int i = effectiveStartDay; i <= ultimoDia; i++) {
       final date = DateTime(month.year, month.month, i);
       final diaId =
           '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
@@ -945,29 +980,6 @@ class PontoService {
     final todayData = isCurrentMonth ? dayDataMap[todayId] : null;
     final todayIsClosed = (todayData?['isClosed'] as bool?) ?? false;
 
-    // "saldo: contabiliza todos os dias uteis ... até o dia atual do mês"
-    // Caso seja um mês passado, contabiliza até o último dia daquele mês.
-    final limitDay = isCurrentMonth ? now.day : ultimoDia;
-
-    int expectedMinutesUntilLimit = 0;
-    for (int i = 1; i <= limitDay; i++) {
-      // Hoje só conta na expectativa se o dia estiver fechado (tem saída)
-      if (isCurrentMonth && i == now.day && !todayIsClosed) continue;
-
-      final date = DateTime(month.year, month.month, i);
-      final diaId =
-          '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-      bool isWeekend =
-          date.weekday == DateTime.saturday || date.weekday == DateTime.sunday;
-      bool isFolga = folgas.contains(diaId);
-      bool isAtestado = atestadoDays.contains(diaId);
-
-      // Assim como no user_reports_page, contabiliza apenas dias úteis na meta de saldo.
-      if (!isWeekend && !isFolga && !isAtestado && _isUserWorkDay(date, workDays)) {
-        expectedMinutesUntilLimit += workloadMinutes;
-      }
-    }
-
     // Soma horas trabalhadas + abono aprovado, excluindo hoje se ainda não fechado
     int workedMinutes = 0;
     for (final entry in dayDataMap.entries) {
@@ -976,9 +988,16 @@ class PontoService {
       workedMinutes += (entry.value['abonoMinutes'] as int?) ?? 0;
     }
 
-    // "subtrai isso (expectativa) pelo q realmente tem trabalhado e ent temos os saldo"
-    final double monthBalance =
-        (workedMinutes - expectedMinutesUntilLimit).toDouble();
+    // Saldo: soma dos deltaMinutes já salvos por dia via recalcularBancoDeHorasDoDia.
+    // Cada doc de dia armazena deltaMinutes calculado com a carga vigente naquele momento,
+    // respeitando mudanças retroativas de jornada. Isso é mais correto do que recalcular
+    // com a carga atual (que sobrescreveria o histórico de mudanças de schedule).
+    int monthBalanceMinutes = 0;
+    for (final entry in dayDataMap.entries) {
+      if (isCurrentMonth && !todayIsClosed && entry.key == todayId) continue;
+      monthBalanceMinutes += (entry.value['deltaMinutes'] as int?) ?? 0;
+    }
+    final double monthBalance = monthBalanceMinutes.toDouble();
 
     final resumo = MesResumo(
       workedMinutes: workedMinutes,
@@ -1030,52 +1049,10 @@ class PontoService {
 
     DateTime cursor = DateTime(createdAt.year, createdAt.month, 1);
     final currentMonthStart = DateTime(now.year, now.month, 1);
-    bool isFirstMonth = true;
 
     while (!cursor.isAfter(currentMonthStart)) {
       final resumo = await calcularResumoMensal(uid, cursor);
-      int monthBalance = resumo.monthBalance.toInt();
-
-      // Ajuste do primeiro mês: remove expectativa de dias antes de createdAt
-      // que não têm registro de ponto (dias com ponto ficam como dias normais).
-      if (isFirstMonth && createdAt.day > 1) {
-        final prefix =
-            '${cursor.year}-${cursor.month.toString().padLeft(2, '0')}';
-        final createdDayId =
-            '${createdAt.year}-${createdAt.month.toString().padLeft(2, '0')}-${createdAt.day.toString().padLeft(2, '0')}';
-
-        // Busca dias anteriores à criação que tenham workedMinutes > 0
-        final diasAntesSnap = await FirebaseFirestore.instance
-            .collection(_root)
-            .doc(uid)
-            .collection('dias')
-            .where('date', isGreaterThanOrEqualTo: '$prefix-01')
-            .where('date', isLessThan: createdDayId)
-            .get();
-
-        final daysWithPunch = diasAntesSnap.docs
-            .where((d) => ((d.data()['workedMinutes'] as int?) ?? 0) > 0)
-            .map((d) => d.id)
-            .toSet();
-
-        final calendarService = CalendarService();
-        final folgas = await calendarService.getDaysThatReduceWorkload(
-            cursor.year, cursor.month);
-
-        for (int i = 1; i < createdAt.day; i++) {
-          final date = DateTime(cursor.year, cursor.month, i);
-          final diaId =
-              '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-          final isWeekend = date.weekday == DateTime.saturday ||
-              date.weekday == DateTime.sunday;
-          final isFolga = folgas.contains(diaId);
-          if (!isWeekend && !isFolga && _isUserWorkDay(date, workDays) && !daysWithPunch.contains(diaId)) {
-            // Dia útil sem ponto antes da criação: reverte a expectativa
-            monthBalance += workloadMinutes;
-          }
-        }
-      }
-      isFirstMonth = false;
+      final int monthBalance = resumo.monthBalance.toInt();
 
       totalBalance += monthBalance;
       cursor = DateTime(cursor.year, cursor.month + 1, 1);
