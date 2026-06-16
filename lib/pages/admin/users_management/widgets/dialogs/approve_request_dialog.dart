@@ -80,8 +80,12 @@ class _ApproveRequestDialogState extends State<ApproveRequestDialog> {
         _projectControllers
           ..clear()
           ..add(TextEditingController());
-      } else {
+      } else if (type == 'Bolsista') {
         _workloadController.text = '4';
+        _selectedBolsistaHour = '4';
+      } else if (type == 'Voluntário') {
+        _workloadController.text = '0';
+        _selectedWorkDays.clear();
         _selectedBolsistaHour = '4';
       }
     });
@@ -132,13 +136,25 @@ class _ApproveRequestDialogState extends State<ApproveRequestDialog> {
       }
     }
 
+    if (_contractType == 'Voluntário') {
+      if (_projectType.isEmpty) {
+        _projectTypeError = 'Selecione LAPADA ou IRACEMA';
+        valid = false;
+      } else {
+        _projectTypeError = null;
+      }
+    }
+
     if (!valid) {
       setState(() {});
       return;
     }
 
-    final cargaHoraria =
-        _contractType == 'Bolsista' ? _selectedBolsistaHour : workload;
+    final cargaHoraria = _contractType == 'Bolsista'
+        ? _selectedBolsistaHour
+        : _contractType == 'Voluntário'
+            ? '0'
+            : workload;
 
     Navigator.pop(context);
     widget.onApprove(
@@ -182,8 +198,8 @@ class _ApproveRequestDialogState extends State<ApproveRequestDialog> {
               child: OutlinedButton(
                 style: OutlinedButton.styleFrom(
                   backgroundColor: !_isAdmin
-                      ? const Color(0xFF178573)
-                      : const Color(0xFF62C1B1),
+                      ? const Color(0xFF62C1B1)
+                      : const Color(0xFF178573),
                   foregroundColor: Colors.white,
                   side: BorderSide.none,
                 ),
@@ -202,8 +218,8 @@ class _ApproveRequestDialogState extends State<ApproveRequestDialog> {
               child: OutlinedButton(
                 style: OutlinedButton.styleFrom(
                   backgroundColor: _isAdmin
-                      ? const Color(0xFF178573)
-                      : const Color(0xFF62C1B1),
+                      ? const Color(0xFF62C1B1)
+                      : const Color(0xFF178573),
                   foregroundColor: Colors.white,
                   side: BorderSide.none,
                 ),
@@ -223,7 +239,7 @@ class _ApproveRequestDialogState extends State<ApproveRequestDialog> {
         _SectionLabel(label: 'Tipo de Contrato', error: _contractTypeError),
         const SizedBox(height: 8),
         Row(
-          children: ['CLT', 'Bolsista'].map((type) {
+          children: ['CLT', 'Bolsista', 'Voluntário'].map((type) {
             final selected = _contractType == type;
             return Expanded(
               child: Padding(
@@ -231,15 +247,16 @@ class _ApproveRequestDialogState extends State<ApproveRequestDialog> {
                 child: OutlinedButton(
                   style: OutlinedButton.styleFrom(
                     backgroundColor: selected
-                        ? const Color(0xFF178573)
-                        : const Color(0xFF62C1B1),
+                        ? const Color(0xFF62C1B1)
+                        : const Color(0xFF178573),
                     foregroundColor: Colors.white,
                     side: BorderSide.none,
+                    padding: EdgeInsets.zero,
                   ),
                   onPressed: () => _setContractType(type),
                   child: Text(
                     type,
-                    style: AppTextStyles.bodyMedium.copyWith(
+                    style: AppTextStyles.bodySmall.copyWith(
                       color: Colors.white,
                       fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
                     ),
@@ -336,6 +353,93 @@ class _ApproveRequestDialogState extends State<ApproveRequestDialog> {
                       backgroundColor: selected
                           ? const Color(0xFF178573)
                           : const Color(0xFF62C1B1),
+                      foregroundColor: Colors.white,
+                      side: BorderSide.none,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _projectType = type;
+                        _projectTypeError = null;
+                      });
+                    },
+                    child: Text(
+                      type,
+                      style: AppTextStyles.bodyMedium.copyWith(
+                        color: Colors.white,
+                        fontWeight:
+                            selected ? FontWeight.w700 : FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+          ..._projectControllers.asMap().entries.map((entry) {
+            final index = entry.key;
+            final controller = entry.value;
+            return Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: AppDialogField(
+                      label: 'Projeto ${index + 1}',
+                      hintText: 'Nome do projeto',
+                      controller: controller,
+                      errorText: null,
+                      icon: Icons.work_outline,
+                    ),
+                  ),
+                  if (_projectControllers.length > 1)
+                    IconButton(
+                      onPressed: () {
+                        setState(() {
+                          controller.dispose();
+                          _projectControllers.removeAt(index);
+                        });
+                      },
+                      icon: const Icon(Icons.remove_circle_outline),
+                      color: Colors.redAccent,
+                      tooltip: 'Remover projeto',
+                    ),
+                ],
+              ),
+            );
+          }),
+          const SizedBox(height: 4),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: () {
+                setState(() {
+                  _projectControllers.add(TextEditingController());
+                });
+              },
+              icon: const Icon(Icons.add, size: 18),
+              label: const Text('Adicionar projeto'),
+              style: TextButton.styleFrom(
+                foregroundColor: const Color(0xFF178573),
+                padding: EdgeInsets.zero,
+              ),
+            ),
+          ),
+        ],
+        if (_contractType == 'Voluntário') ...[
+          const SizedBox(height: 16),
+          _SectionLabel(label: 'Projetos', error: _projectTypeError),
+          const SizedBox(height: 8),
+          Row(
+            children: ['LAPADA', 'IRACEMA'].map((type) {
+              final selected = _projectType == type;
+              return Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      backgroundColor: selected
+                          ? const Color(0xFF62C1B1)
+                          : const Color(0xFF178573),
                       foregroundColor: Colors.white,
                       side: BorderSide.none,
                     ),

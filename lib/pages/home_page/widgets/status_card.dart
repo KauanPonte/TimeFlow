@@ -242,25 +242,27 @@ class _StatusCardState extends State<StatusCard>
               color: colorScheme.onSurface.withValues(alpha: 0.68),
             ),
           ),
-          const SizedBox(height: 12),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: LinearProgressIndicator(
-              value: widget.workProgress,
-              minHeight: 8,
-              backgroundColor:
-                  isDark ? AppColors.darkSurfaceAlt : AppColors.borderLight,
-              valueColor:
-                  const AlwaysStoppedAnimation<Color>(AppColors.primary),
+          if (widget.monthExpectedMinutes > 0) ...[
+            const SizedBox(height: 12),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: LinearProgressIndicator(
+                value: widget.workProgress,
+                minHeight: 8,
+                backgroundColor:
+                    isDark ? AppColors.darkSurfaceAlt : AppColors.borderLight,
+                valueColor:
+                    const AlwaysStoppedAnimation<Color>(AppColors.primary),
+              ),
             ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            '${(widget.workProgress * 100).toStringAsFixed(0)}% da jornada diária',
-            style: AppTextStyles.bodySmall.copyWith(
-              color: colorScheme.onSurface.withValues(alpha: 0.68),
+            const SizedBox(height: 6),
+            Text(
+              '${(widget.workProgress * 100).toStringAsFixed(0)}% da jornada diária',
+              style: AppTextStyles.bodySmall.copyWith(
+                color: colorScheme.onSurface.withValues(alpha: 0.68),
+              ),
             ),
-          ),
+          ],
 
           // --- SEÇÃO DE DATAS E MÊS ---
           const SizedBox(height: 12),

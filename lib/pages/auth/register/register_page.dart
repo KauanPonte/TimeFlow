@@ -25,7 +25,6 @@ class _RegisterPageState extends State<RegisterPage> {
   final passwordController = TextEditingController();
   File? selectedImage;
   bool _obscurePassword = true;
-  bool _isAdmin = false;
   late AuthBloc _authBloc;
 
   @override
@@ -233,75 +232,11 @@ class _RegisterPageState extends State<RegisterPage> {
                                         password: passwordController.text,
                                         name: nameController.text.trim(),
                                         profileImage: selectedImage,
-                                        isAdmin: _isAdmin,
+                                        isAdmin: false,
                                       ),
                                     );
                               }
                             },
-                          ),
-                          const SizedBox(height: 32),
-
-                          // Access level selector
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              'Nível de Acesso',
-                              style: AppTextStyles.bodyMedium.copyWith(
-                                fontWeight: FontWeight.w600,
-                                color:
-                                    Theme.of(context).colorScheme.onSurface,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: OutlinedButton(
-                                  style: OutlinedButton.styleFrom(
-                                    backgroundColor: !_isAdmin
-                                        ? AppColors.primary
-                                        : AppColors.primaryLight,
-                                    foregroundColor: Colors.white,
-                                    side: BorderSide.none,
-                                  ),
-                                  onPressed: () =>
-                                      setState(() => _isAdmin = false),
-                                  child: Text(
-                                    'Usuário',
-                                    style: AppTextStyles.bodyMedium.copyWith(
-                                      color: Colors.white,
-                                      fontWeight: !_isAdmin
-                                          ? FontWeight.w700
-                                          : FontWeight.w600,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: OutlinedButton(
-                                  style: OutlinedButton.styleFrom(
-                                    backgroundColor: _isAdmin
-                                        ? AppColors.primary
-                                        : AppColors.primaryLight,
-                                    foregroundColor: Colors.white,
-                                    side: BorderSide.none,
-                                  ),
-                                  onPressed: () =>
-                                      setState(() => _isAdmin = true),
-                                  child: Text(
-                                    'Administrador',
-                                    style: AppTextStyles.bodyMedium.copyWith(
-                                      color: Colors.white,
-                                      fontWeight: _isAdmin
-                                          ? FontWeight.w700
-                                          : FontWeight.w600,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
                           ),
                           const SizedBox(height: 32),
 
@@ -318,7 +253,7 @@ class _RegisterPageState extends State<RegisterPage> {
                                       password: passwordController.text,
                                       name: nameController.text.trim(),
                                       profileImage: selectedImage,
-                                      isAdmin: _isAdmin,
+                                      isAdmin: false,
                                     ),
                                   );
                             },

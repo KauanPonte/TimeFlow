@@ -144,9 +144,13 @@ class _CreateUserViewState extends State<CreateUserView> {
           ..forEach((c) => c.dispose())
           ..clear()
           ..add(TextEditingController());
-      } else {
+      } else if (type == 'Bolsista') {
         _selectedBolsistaHour = '4';
         _cargaHorariaController.text = '4';
+      } else if (type == 'Voluntário') {
+        _cargaHorariaController.text = '0';
+        _selectedWorkDays.clear();
+        _selectedBolsistaHour = '4';
       }
     });
     context.read<CreateUserBloc>().add(
@@ -390,24 +394,26 @@ class _CreateUserViewState extends State<CreateUserView> {
                       },
                     ),
                   ),
-                  const SizedBox(height: 16),
-
-                  CustomTextField(
-                    controller: _cargaHorariaController,
-                    labelText: 'Carga Horária',
-                    prefixIcon: Icons.access_time_outlined,
-                    errorText: formState?.cargaHorariaError,
-                    isValid: formState?.cargaHorariaValid ?? false,
-                    readOnly: _contractType.isNotEmpty,
-                    onChanged: _contractType.isEmpty
-                        ? (value) {
-                            context.read<CreateUserBloc>().add(
-                                  ValidateFieldEvent(
-                                      fieldName: 'cargaHoraria', value: value),
-                                );
-                          }
-                        : null,
-                  ),
+                  if (_contractType != 'Voluntário') ...[
+                    const SizedBox(height: 16),
+                    CustomTextField(
+                      controller: _cargaHorariaController,
+                      labelText: 'Carga Horária',
+                      prefixIcon: Icons.access_time_outlined,
+                      errorText: formState?.cargaHorariaError,
+                      isValid: formState?.cargaHorariaValid ?? false,
+                      readOnly: _contractType.isNotEmpty,
+                      onChanged: _contractType.isEmpty
+                          ? (value) {
+                              context.read<CreateUserBloc>().add(
+                                    ValidateFieldEvent(
+                                        fieldName: 'cargaHoraria',
+                                        value: value),
+                                  );
+                            }
+                          : null,
+                    ),
+                  ],
                   const SizedBox(height: 16),
 
                   CustomTextField(
@@ -457,8 +463,8 @@ class _CreateUserViewState extends State<CreateUserView> {
                         child: OutlinedButton(
                           style: OutlinedButton.styleFrom(
                             backgroundColor: !_isAdmin
-                                ? AppColors.primary
-                                : AppColors.primaryLight,
+                                ? AppColors.primaryLight
+                                : AppColors.primary,
                             foregroundColor: Colors.white,
                             side: BorderSide.none,
                           ),
@@ -479,8 +485,8 @@ class _CreateUserViewState extends State<CreateUserView> {
                         child: OutlinedButton(
                           style: OutlinedButton.styleFrom(
                             backgroundColor: _isAdmin
-                                ? AppColors.primary
-                                : AppColors.primaryLight,
+                                ? AppColors.primaryLight
+                                : AppColors.primary,
                             foregroundColor: Colors.white,
                             side: BorderSide.none,
                           ),
@@ -509,51 +515,34 @@ class _CreateUserViewState extends State<CreateUserView> {
                   ),
                   const SizedBox(height: 12),
                   Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          style: OutlinedButton.styleFrom(
-                            backgroundColor: _contractType == 'CLT'
-                                ? AppColors.primary
-                                : AppColors.primaryLight,
-                            foregroundColor: Colors.white,
-                            side: BorderSide.none,
-                          ),
-                          onPressed: () => _setContractType('CLT'),
-                          child: Text(
-                            'CLT',
-                            style: AppTextStyles.bodyMedium.copyWith(
-                              color: Colors.white,
-                              fontWeight: _contractType == 'CLT'
-                                  ? FontWeight.w700
-                                  : FontWeight.w600,
+                    children: ['CLT', 'Bolsista', 'Voluntário'].map((type) {
+                      final selected = _contractType == type;
+                      return Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          child: OutlinedButton(
+                            style: OutlinedButton.styleFrom(
+                              backgroundColor: selected
+                                  ? AppColors.primaryLight
+                                  : AppColors.primary,
+                              foregroundColor: Colors.white,
+                              side: BorderSide.none,
+                              padding: EdgeInsets.zero,
+                            ),
+                            onPressed: () => _setContractType(type),
+                            child: Text(
+                              type,
+                              style: AppTextStyles.bodySmall.copyWith(
+                                color: Colors.white,
+                                fontWeight: selected
+                                    ? FontWeight.w700
+                                    : FontWeight.w600,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: OutlinedButton(
-                          style: OutlinedButton.styleFrom(
-                            backgroundColor: _contractType == 'Bolsista'
-                                ? AppColors.primary
-                                : AppColors.primaryLight,
-                            foregroundColor: Colors.white,
-                            side: BorderSide.none,
-                          ),
-                          onPressed: () => _setContractType('Bolsista'),
-                          child: Text(
-                            'Bolsista',
-                            style: AppTextStyles.bodyMedium.copyWith(
-                              color: Colors.white,
-                              fontWeight: _contractType == 'Bolsista'
-                                  ? FontWeight.w700
-                                  : FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
+                      );
+                    }).toList(),
                   ),
                   if (formState?.contractTypeError != null) ...[
                     const SizedBox(height: 8),
@@ -587,8 +576,8 @@ class _CreateUserViewState extends State<CreateUserView> {
                             child: OutlinedButton(
                               style: OutlinedButton.styleFrom(
                                 backgroundColor: selected
-                                    ? AppColors.primary
-                                    : AppColors.primaryLight,
+                                    ? AppColors.primaryLight
+                                    : AppColors.primary,
                                 foregroundColor: Colors.white,
                                 side: BorderSide.none,
                               ),
@@ -633,8 +622,8 @@ class _CreateUserViewState extends State<CreateUserView> {
                           ),
                           selected: selected,
                           onSelected: (_) => _toggleWorkDay(option['value']!),
-                          selectedColor: AppColors.primary,
-                          backgroundColor: AppColors.primaryLight,
+                          selectedColor: AppColors.primaryLight,
+                          backgroundColor: AppColors.primary,
                         );
                       }).toList(),
                     ),
@@ -681,8 +670,8 @@ class _CreateUserViewState extends State<CreateUserView> {
                             child: OutlinedButton(
                               style: OutlinedButton.styleFrom(
                                 backgroundColor: selected
-                                    ? AppColors.primary
-                                    : AppColors.primaryLight,
+                                    ? AppColors.primaryLight
+                                    : AppColors.primary,
                                 foregroundColor: Colors.white,
                                 side: BorderSide.none,
                               ),
@@ -753,16 +742,99 @@ class _CreateUserViewState extends State<CreateUserView> {
                     const SizedBox(height: 16),
                   ],
 
-                  /*Padding(
-                    padding: const EdgeInsets.only(left: 16),
-                    child: Text(
-                      'Ex: Funcionário, Gerente, Administrador',
-                      style: AppTextStyles.bodySmall.copyWith(
-                        color: AppColors.textSecondary,
-                        fontStyle: FontStyle.italic,
+                  if (_contractType == 'Voluntário') ...[
+                    Text(
+                      'Projetos',
+                      style: AppTextStyles.bodyMedium.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
-                  ),*/
+                    const SizedBox(height: 12),
+                    Row(
+                      children: ['LAPADA', 'IRACEMA'].map((type) {
+                        final selected = _projectType == type;
+                        return Expanded(
+                          child: Padding(
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 4),
+                            child: OutlinedButton(
+                              style: OutlinedButton.styleFrom(
+                                backgroundColor: selected
+                                    ? AppColors.primaryLight
+                                    : AppColors.primary,
+                                foregroundColor: Colors.white,
+                                side: BorderSide.none,
+                              ),
+                              onPressed: () {
+                                setState(() => _projectType = type);
+                              },
+                              child: Text(
+                                type,
+                                style: AppTextStyles.bodyMedium.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: selected
+                                      ? FontWeight.w700
+                                      : FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                    ..._projectControllers.asMap().entries.map((entry) {
+                      final index = entry.key;
+                      final controller = entry.value;
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 16),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: CustomTextField(
+                                controller: controller,
+                                labelText: 'Projeto ${index + 1}',
+                                prefixIcon: Icons.work_outline,
+                              ),
+                            ),
+                            if (_projectControllers.length > 1)
+                              IconButton(
+                                onPressed: () {
+                                  setState(() {
+                                    controller.dispose();
+                                    _projectControllers.removeAt(index);
+                                  });
+                                },
+                                icon:
+                                    const Icon(Icons.remove_circle_outline),
+                                color: Colors.redAccent,
+                                tooltip: 'Remover projeto',
+                              ),
+                          ],
+                        ),
+                      );
+                    }),
+                    const SizedBox(height: 12),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton.icon(
+                        onPressed: () {
+                          setState(() {
+                            _projectControllers
+                                .add(TextEditingController());
+                          });
+                        },
+                        icon: const Icon(Icons.add, size: 18),
+                        label: const Text('Adicionar projeto'),
+                        style: TextButton.styleFrom(
+                          foregroundColor: const Color(0xFF178573),
+                          padding: EdgeInsets.zero,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+
                   const SizedBox(height: 32),
 
                   // Action Buttons

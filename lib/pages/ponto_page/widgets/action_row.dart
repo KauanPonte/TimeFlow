@@ -188,8 +188,8 @@ class ActionRow extends StatelessWidget {
                   )
                 else if (isNext && !isRegistering)
                   Icon(
-                    Icons.arrow_forward_ios_rounded,
-                    size: 14,
+                    Icons.check_rounded,
+                    size: 18,
                     color: isDark ? colorScheme.onSurface : accentColor,
                   )
                 else if (done)
