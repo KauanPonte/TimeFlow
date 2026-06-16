@@ -131,11 +131,14 @@ class _EditUserDialogState extends State<EditUserDialog> {
         _projectControllers
           ..clear()
           ..add(TextEditingController());
-      } else {
+      } else if (type == 'Bolsista') {
         if (!['4', '6', '8'].contains(_selectedBolsistaHour)) {
           _selectedBolsistaHour = '4';
         }
         _workloadController.text = _selectedBolsistaHour;
+      } else if (type == 'Voluntário') {
+        _workloadController.text = '0';
+        _selectedWorkDays.clear();
       }
     });
   }
@@ -183,6 +186,15 @@ class _EditUserDialogState extends State<EditUserDialog> {
       } else {
         _workDaysError = null;
       }
+      if (_projectType.isEmpty) {
+        _projectTypeError = 'Selecione LAPADA ou IRACEMA';
+        valid = false;
+      } else {
+        _projectTypeError = null;
+      }
+    }
+
+    if (_contractType == 'Voluntário') {
       if (_projectType.isEmpty) {
         _projectTypeError = 'Selecione LAPADA ou IRACEMA';
         valid = false;
@@ -264,8 +276,8 @@ class _EditUserDialogState extends State<EditUserDialog> {
                 child: OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(
                     backgroundColor: !_isAdmin
-                        ? const Color(0xFF178573)
-                        : const Color(0xFF62C1B1),
+                        ? const Color(0xFF62C1B1)
+                        : const Color(0xFF178573),
                     foregroundColor: Colors.white,
                     side: BorderSide.none,
                   ),
@@ -287,8 +299,8 @@ class _EditUserDialogState extends State<EditUserDialog> {
                 child: OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(
                     backgroundColor: _isAdmin
-                        ? const Color(0xFF178573)
-                        : const Color(0xFF62C1B1),
+                        ? const Color(0xFF62C1B1)
+                        : const Color(0xFF178573),
                     foregroundColor: Colors.white,
                     side: BorderSide.none,
                   ),
@@ -316,7 +328,7 @@ class _EditUserDialogState extends State<EditUserDialog> {
         _SectionLabel(label: 'Tipo de Contrato', error: _contractTypeError),
         const SizedBox(height: 8),
         Row(
-          children: ['CLT', 'Bolsista'].map((type) {
+          children: ['CLT', 'Bolsista', 'Voluntário'].map((type) {
             final selected = _contractType == type;
             return Expanded(
               child: Padding(
@@ -324,15 +336,16 @@ class _EditUserDialogState extends State<EditUserDialog> {
                 child: OutlinedButton(
                   style: OutlinedButton.styleFrom(
                     backgroundColor: selected
-                        ? const Color(0xFF178573)
-                        : const Color(0xFF62C1B1),
+                        ? const Color(0xFF62C1B1)
+                        : const Color(0xFF178573),
                     foregroundColor: Colors.white,
                     side: BorderSide.none,
+                    padding: EdgeInsets.zero,
                   ),
                   onPressed: () => _setContractType(type),
                   child: Text(
                     type,
-                    style: AppTextStyles.bodyMedium.copyWith(
+                    style: AppTextStyles.bodySmall.copyWith(
                       color: Colors.white,
                       fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
                     ),
@@ -368,8 +381,8 @@ class _EditUserDialogState extends State<EditUserDialog> {
                   child: OutlinedButton(
                     style: OutlinedButton.styleFrom(
                       backgroundColor: selected
-                          ? const Color(0xFF178573)
-                          : const Color(0xFF62C1B1),
+                          ? const Color(0xFF62C1B1)
+                          : const Color(0xFF178573),
                       foregroundColor: Colors.white,
                       side: BorderSide.none,
                     ),
@@ -410,14 +423,14 @@ class _EditUserDialogState extends State<EditUserDialog> {
                 ),
                 selected: selected,
                 onSelected: (_) => _toggleWorkDay(option['value']!),
-                selectedColor: const Color(0xFF178573),
-                backgroundColor: const Color(0xFF62C1B1),
+                selectedColor: const Color(0xFF62C1B1),
+                backgroundColor: const Color(0xFF178573),
                 side: BorderSide(
                   color: Theme.of(context).brightness == Brightness.dark
                       ? Colors.white.withValues(alpha: 0.72)
                       : selected
-                          ? const Color(0xFF178573)
-                          : const Color(0xFF62C1B1),
+                          ? const Color(0xFF62C1B1)
+                          : const Color(0xFF178573),
                 ),
               );
             }).toList(),
@@ -434,8 +447,95 @@ class _EditUserDialogState extends State<EditUserDialog> {
                   child: OutlinedButton(
                     style: OutlinedButton.styleFrom(
                       backgroundColor: selected
-                          ? const Color(0xFF178573)
-                          : const Color(0xFF62C1B1),
+                          ? const Color(0xFF62C1B1)
+                          : const Color(0xFF178573),
+                      foregroundColor: Colors.white,
+                      side: BorderSide.none,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _projectType = type;
+                        _projectTypeError = null;
+                      });
+                    },
+                    child: Text(
+                      type,
+                      style: AppTextStyles.bodyMedium.copyWith(
+                        color: Colors.white,
+                        fontWeight:
+                            selected ? FontWeight.w700 : FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+          ..._projectControllers.asMap().entries.map((entry) {
+            final index = entry.key;
+            final controller = entry.value;
+            return Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: AppDialogField(
+                      label: 'Projeto ${index + 1}',
+                      hintText: 'Nome do projeto',
+                      controller: controller,
+                      errorText: null,
+                      icon: Icons.work_outline,
+                    ),
+                  ),
+                  if (_projectControllers.length > 1)
+                    IconButton(
+                      onPressed: () {
+                        setState(() {
+                          controller.dispose();
+                          _projectControllers.removeAt(index);
+                        });
+                      },
+                      icon: const Icon(Icons.remove_circle_outline),
+                      color: Colors.redAccent,
+                      tooltip: 'Remover projeto',
+                    ),
+                ],
+              ),
+            );
+          }),
+          const SizedBox(height: 4),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: () {
+                setState(() {
+                  _projectControllers.add(TextEditingController());
+                });
+              },
+              icon: const Icon(Icons.add, size: 18),
+              label: const Text('Adicionar projeto'),
+              style: TextButton.styleFrom(
+                foregroundColor: const Color(0xFF178573),
+                padding: EdgeInsets.zero,
+              ),
+            ),
+          ),
+        ],
+        if (_contractType == 'Voluntário') ...[
+          const SizedBox(height: 16),
+          _SectionLabel(label: 'Projetos', error: _projectTypeError),
+          const SizedBox(height: 8),
+          Row(
+            children: ['LAPADA', 'IRACEMA'].map((type) {
+              final selected = _projectType == type;
+              return Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      backgroundColor: selected
+                          ? const Color(0xFF62C1B1)
+                          : const Color(0xFF178573),
                       foregroundColor: Colors.white,
                       side: BorderSide.none,
                     ),

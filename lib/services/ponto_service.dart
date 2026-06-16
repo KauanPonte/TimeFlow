@@ -45,8 +45,8 @@ class PontoService {
     return (userSnap.data()?['workloadMinutes'] as int?) ?? (8 * 60);
   }
 
-  /// Retorna workloadMinutes + workDays para o usuário (servidor com fallback para cache).
-  static Future<({int workloadMinutes, List<String> workDays})>
+  /// Retorna workloadMinutes + workDays + contractType para o usuário (servidor com fallback para cache).
+  static Future<({int workloadMinutes, List<String> workDays, String contractType})>
       _getUserWorkload(String uid) async {
     final ref = FirebaseFirestore.instance.collection('usuarios').doc(uid);
     DocumentSnapshot<Map<String, dynamic>> snap;
@@ -61,7 +61,8 @@ class PontoService {
             ?.map((e) => e.toString())
             .toList() ??
         [];
-    return (workloadMinutes: minutes, workDays: days);
+    final contract = (data['contractType'] as String?) ?? '';
+    return (workloadMinutes: minutes, workDays: days, contractType: contract);
   }
 
   /// Verifica se uma data é dia de trabalho para o usuário.
@@ -225,11 +226,12 @@ class PontoService {
       final int abonoMinutes = (diaData?['abonoMinutes'] as int?) ?? 0;
       final userWorkload = await _getUserWorkload(uid);
       final int workloadMinutes = userWorkload.workloadMinutes;
+      final bool isVoluntario = userWorkload.contractType == 'Voluntário';
       final bool isWorkDay =
           _isUserWorkDay(ServerTimeService.now(), userWorkload.workDays);
       final int deltaMinutes = isExcused
           ? workedMinutes
-          : (diaFechado && isWorkDay
+          : (diaFechado && (isWorkDay || isVoluntario)
               ? (workedMinutes + abonoMinutes - workloadMinutes)
               : 0);
       final int oldDelta = (diaData?['deltaMinutes'] as int?) ?? 0;
@@ -608,6 +610,7 @@ class PontoService {
     final workedMinutes = _computeWorkedMinutesFromEventosFechado(eventos);
     final userWorkload = await _getUserWorkload(uid);
     final workloadMinutes = userWorkload.workloadMinutes;
+    final bool isVoluntario = userWorkload.contractType == 'Voluntário';
 
     final diaSnapPre = await refDia.get();
     final bool isExcused = (diaSnapPre.data()?['isExcused'] as bool?) ?? false;
@@ -633,7 +636,7 @@ class PontoService {
     final bool isWorkDay = _isUserWorkDay(date, userWorkload.workDays);
 
     final bool falta =
-        !ehHoje && eventos.isEmpty && !isWeekend && !isEffectiveHoliday && !isExcused && isWorkDay;
+        !ehHoje && eventos.isEmpty && !isWeekend && !isEffectiveHoliday && !isExcused && isWorkDay && !isVoluntario;
 
     final bool emAberto = !diaFechado && eventos.isNotEmpty;
 
@@ -1103,7 +1106,10 @@ class PontoService {
         (userCreatedAt != null && userCreatedAt.isAfter(monthStart))
             ? userCreatedAt
             : monthStart;
-    final userWorkDays = (await _getUserWorkload(uid)).workDays;
+    final userWorkload = await _getUserWorkload(uid);
+    final userWorkDays = userWorkload.workDays;
+    // Voluntário não tem jornada obrigatória — nunca gera falta
+    if (userWorkload.contractType == 'Voluntário') return;
 
     final prefix =
         '${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}';
