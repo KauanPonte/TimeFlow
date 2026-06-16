@@ -30,6 +30,16 @@ class ProfileRepository {
     final workloadMinutes = (data['workloadMinutes'] ??
         data['cargaHorariaMinutos'] ??
         data['cargaHorairaMinutos']) as int?;
+    final projectsList = (data['projects'] as List<dynamic>?)
+            ?.map((e) => e.toString().trim())
+            .where((e) => e.isNotEmpty)
+            .toList() ??
+        [];
+    final legacyProjects = [
+      data['project1']?.toString().trim() ?? '',
+      data['project2']?.toString().trim() ?? '',
+    ].where((e) => e.isNotEmpty).toList();
+    final projects = projectsList.isNotEmpty ? projectsList : legacyProjects;
 
     return {
       'uid': uid,
@@ -44,10 +54,7 @@ class ProfileRepository {
               .toList() ??
           [],
       'projectType': data['projectType'] ?? '',
-      'projects': (data['projects'] as List<dynamic>?)
-              ?.map((e) => e.toString())
-              .toList() ??
-          [],
+      'projects': projects,
       'project1': data['project1'] ?? '',
       'project2': data['project2'] ?? '',
       'isAdmin': data['isAdmin'] == true,
