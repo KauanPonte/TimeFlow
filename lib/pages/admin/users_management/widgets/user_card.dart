@@ -166,6 +166,8 @@ class UserCard extends StatelessWidget {
                               Expanded(
                                 child: Text(
                                   user['name'],
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                   style: AppTextStyles.bodyLarge.copyWith(
                                     fontWeight: FontWeight.w600,
                                     color: colorScheme.onSurface,
@@ -229,37 +231,51 @@ class UserCard extends StatelessWidget {
                             ],
                           ),
                           const SizedBox(height: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: _getRoleBadgeColor(user['role']),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color: _getRoleBorderColor(user['role']),
-                                width: 1,
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.badge_outlined,
-                                  size: 14,
-                                  color: roleColor,
+                          LayoutBuilder(
+                            builder: (context, constraints) {
+                              return ConstrainedBox(
+                                constraints: BoxConstraints(
+                                  maxWidth: constraints.maxWidth,
                                 ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  user['role'],
-                                  style: AppTextStyles.bodySmall.copyWith(
-                                    color: roleColor,
-                                    fontWeight: FontWeight.w600,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: _getRoleBadgeColor(user['role']),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                      color: _getRoleBorderColor(user['role']),
+                                      width: 1,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.badge_outlined,
+                                        size: 14,
+                                        color: roleColor,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Flexible(
+                                        child: Text(
+                                          user['role'],
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style:
+                                              AppTextStyles.bodySmall.copyWith(
+                                            color: roleColor,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                              ],
-                            ),
+                              );
+                            },
                           ),
                         ],
                       ),
@@ -269,7 +285,8 @@ class UserCard extends StatelessWidget {
                     if (showActions)
                       Theme(
                         data: Theme.of(context).copyWith(
-                          dividerColor: colorScheme.onSurface.withValues(alpha: 0.12),
+                          dividerColor:
+                              colorScheme.onSurface.withValues(alpha: 0.12),
                         ),
                         child: PopupMenuButton<String>(
                           icon: Icon(

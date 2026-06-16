@@ -467,9 +467,8 @@ class _CreateUserViewState extends State<CreateUserView> {
                             'Usuário',
                             style: AppTextStyles.bodyMedium.copyWith(
                               color: Colors.white,
-                              fontWeight: !_isAdmin
-                                  ? FontWeight.w700
-                                  : FontWeight.w600,
+                              fontWeight:
+                                  !_isAdmin ? FontWeight.w700 : FontWeight.w600,
                             ),
                           ),
                         ),
@@ -485,13 +484,17 @@ class _CreateUserViewState extends State<CreateUserView> {
                             side: BorderSide.none,
                           ),
                           onPressed: () => setState(() => _isAdmin = true),
-                          child: Text(
-                            'Administrador',
-                            style: AppTextStyles.bodyMedium.copyWith(
-                              color: Colors.white,
-                              fontWeight: _isAdmin
-                                  ? FontWeight.w700
-                                  : FontWeight.w600,
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              'Administrador',
+                              maxLines: 1,
+                              style: AppTextStyles.bodyMedium.copyWith(
+                                color: Colors.white,
+                                fontWeight: _isAdmin
+                                    ? FontWeight.w700
+                                    : FontWeight.w600,
+                              ),
                             ),
                           ),
                         ),
@@ -635,6 +638,14 @@ class _CreateUserViewState extends State<CreateUserView> {
                           onSelected: (_) => _toggleWorkDay(option['value']!),
                           selectedColor: AppColors.primary,
                           backgroundColor: AppColors.primaryLight,
+                          side: BorderSide(
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.white.withValues(alpha: 0.72)
+                                    : selected
+                                        ? AppColors.primary
+                                        : AppColors.primaryLight,
+                          ),
                         );
                       }).toList(),
                     ),

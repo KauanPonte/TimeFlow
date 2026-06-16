@@ -248,8 +248,7 @@ class _RegisterPageState extends State<RegisterPage> {
                               'Nível de Acesso',
                               style: AppTextStyles.bodyMedium.copyWith(
                                 fontWeight: FontWeight.w600,
-                                color:
-                                    Theme.of(context).colorScheme.onSurface,
+                                color: Theme.of(context).colorScheme.onSurface,
                               ),
                             ),
                           ),
@@ -290,13 +289,17 @@ class _RegisterPageState extends State<RegisterPage> {
                                   ),
                                   onPressed: () =>
                                       setState(() => _isAdmin = true),
-                                  child: Text(
-                                    'Administrador',
-                                    style: AppTextStyles.bodyMedium.copyWith(
-                                      color: Colors.white,
-                                      fontWeight: _isAdmin
-                                          ? FontWeight.w700
-                                          : FontWeight.w600,
+                                  child: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text(
+                                      'Administrador',
+                                      maxLines: 1,
+                                      style: AppTextStyles.bodyMedium.copyWith(
+                                        color: Colors.white,
+                                        fontWeight: _isAdmin
+                                            ? FontWeight.w700
+                                            : FontWeight.w600,
+                                      ),
                                     ),
                                   ),
                                 ),
