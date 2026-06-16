@@ -179,7 +179,7 @@ class _ApproveRequestDialogState extends State<ApproveRequestDialog> {
         Row(
           children: [
             Expanded(
-              child: OutlinedButton(
+              child: OutlinedButton.icon(
                 style: OutlinedButton.styleFrom(
                   backgroundColor: !_isAdmin
                       ? const Color(0xFF178573)
@@ -188,7 +188,8 @@ class _ApproveRequestDialogState extends State<ApproveRequestDialog> {
                   side: BorderSide.none,
                 ),
                 onPressed: () => setState(() => _isAdmin = false),
-                child: Text(
+                icon: const Icon(Icons.person_outline, size: 18),
+                label: Text(
                   'Usuário',
                   style: AppTextStyles.bodyMedium.copyWith(
                     color: Colors.white,
@@ -199,7 +200,7 @@ class _ApproveRequestDialogState extends State<ApproveRequestDialog> {
             ),
             const SizedBox(width: 8),
             Expanded(
-              child: OutlinedButton(
+              child: OutlinedButton.icon(
                 style: OutlinedButton.styleFrom(
                   backgroundColor: _isAdmin
                       ? const Color(0xFF178573)
@@ -208,11 +209,16 @@ class _ApproveRequestDialogState extends State<ApproveRequestDialog> {
                   side: BorderSide.none,
                 ),
                 onPressed: () => setState(() => _isAdmin = true),
-                child: Text(
-                  'Administrador',
-                  style: AppTextStyles.bodyMedium.copyWith(
-                    color: Colors.white,
-                    fontWeight: _isAdmin ? FontWeight.w700 : FontWeight.w600,
+                icon: const Icon(Icons.admin_panel_settings_outlined, size: 18),
+                label: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    'Administrador',
+                    maxLines: 1,
+                    style: AppTextStyles.bodyMedium.copyWith(
+                      color: Colors.white,
+                      fontWeight: _isAdmin ? FontWeight.w700 : FontWeight.w600,
+                    ),
                   ),
                 ),
               ),
@@ -319,6 +325,13 @@ class _ApproveRequestDialogState extends State<ApproveRequestDialog> {
                 onSelected: (_) => _toggleWorkDay(option['value']!),
                 selectedColor: const Color(0xFF178573),
                 backgroundColor: const Color(0xFF62C1B1),
+                side: BorderSide(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white.withValues(alpha: 0.72)
+                      : selected
+                          ? const Color(0xFF178573)
+                          : const Color(0xFF62C1B1),
+                ),
               );
             }).toList(),
           ),

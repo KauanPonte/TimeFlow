@@ -43,12 +43,14 @@ class ProfileInfoCard extends StatelessWidget {
         : '${hours}h${mins.toString().padLeft(2, '0')}';
   }
 
-  bool get _isBolsista => contractType == 'Bolsista';
-
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final linkedProjects =
+        projects.map((project) => project.trim()).where((project) {
+      return project.isNotEmpty;
+    }).toList();
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -130,7 +132,7 @@ class ProfileInfoCard extends StatelessWidget {
               value: contractType,
             ),
           ],
-          if (_isBolsista && workDays.isNotEmpty) ...[
+          if (contractType == 'Bolsista' && workDays.isNotEmpty) ...[
             _divider(),
             ProfileInfoRow(
               icon: Icons.calendar_today_outlined,
@@ -138,12 +140,14 @@ class ProfileInfoCard extends StatelessWidget {
               value: workDays.join(', '),
             ),
           ],
-          if (_isBolsista && projects.isNotEmpty) ...[
+          if (linkedProjects.isNotEmpty) ...[
             _divider(),
             ProfileInfoRow(
               icon: Icons.work_outline,
-              label: projects.length == 1 ? 'Projeto vinculado' : 'Projetos vinculados',
-              value: projects.join('\n'),
+              label: linkedProjects.length == 1
+                  ? 'Projeto vinculado'
+                  : 'Projetos vinculados',
+              value: linkedProjects.join('\n'),
             ),
           ],
         ],

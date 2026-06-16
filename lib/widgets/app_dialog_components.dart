@@ -32,15 +32,28 @@ class AppDialogScaffold extends StatelessWidget {
     final accentColor = isDestructive ? AppColors.error : AppColors.primary;
     final colorScheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final maxDialogHeight = MediaQuery.sizeOf(context).height - 80;
+    final mediaQuery = MediaQuery.of(context);
+    final availableHeight = mediaQuery.size.height -
+        mediaQuery.viewInsets.vertical -
+        mediaQuery.viewPadding.vertical;
+    final maxDialogHeight =
+        (availableHeight - 32).clamp(280.0, availableHeight);
+    final isCompactHeight = maxDialogHeight < 560;
+    final dialogPadding = isCompactHeight ? 16.0 : 24.0;
+    final headerSpacing = isCompactHeight ? 16.0 : 24.0;
+    final contentSpacing = isCompactHeight ? 12.0 : 20.0;
+    final actionSpacing = isCompactHeight ? 16.0 : 24.0;
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+      insetPadding: EdgeInsets.symmetric(
+        horizontal: 24,
+        vertical: isCompactHeight ? 16 : 40,
+      ),
       child: ConstrainedBox(
         constraints: BoxConstraints(maxHeight: maxDialogHeight),
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.all(dialogPadding),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -98,13 +111,13 @@ class AppDialogScaffold extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: headerSpacing),
               Divider(
                 height: 1,
                 color:
                     isDark ? AppColors.primaryLight30 : AppColors.borderLight,
               ),
-              const SizedBox(height: 20),
+              SizedBox(height: contentSpacing),
               Flexible(
                 child: SingleChildScrollView(
                   child: Column(
@@ -113,7 +126,7 @@ class AppDialogScaffold extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: actionSpacing),
               Row(
                 children: [
                   Expanded(

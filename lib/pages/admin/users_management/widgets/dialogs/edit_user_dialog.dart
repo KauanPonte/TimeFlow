@@ -79,14 +79,12 @@ class _EditUserDialogState extends State<EditUserDialog> {
     // Carga horária: converte minutos de volta para horas
     final currentHour = _minutesToHourString(widget.currentWorkloadMinutes);
     _workloadController = TextEditingController(text: currentHour);
-    _selectedBolsistaHour = ['4', '6', '8'].contains(currentHour)
-        ? currentHour
-        : '4';
+    _selectedBolsistaHour =
+        ['4', '6', '8'].contains(currentHour) ? currentHour : '4';
 
     // Projetos: inicializa com os valores atuais
-    final initial = widget.currentProjects.isNotEmpty
-        ? widget.currentProjects
-        : [''];
+    final initial =
+        widget.currentProjects.isNotEmpty ? widget.currentProjects : [''];
     _projectControllers =
         initial.map((p) => TextEditingController(text: p)).toList();
   }
@@ -256,7 +254,7 @@ class _EditUserDialogState extends State<EditUserDialog> {
           },
         ),
         const SizedBox(height: 16),
-        _SectionLabel(label: 'Permissão'),
+        const _SectionLabel(label: 'Permissão'),
         const SizedBox(height: 8),
         Row(
           children: [
@@ -295,12 +293,18 @@ class _EditUserDialogState extends State<EditUserDialog> {
                     side: BorderSide.none,
                   ),
                   onPressed: () => setState(() => _isAdmin = true),
-                  icon: const Icon(Icons.admin_panel_settings_outlined, size: 18),
-                  label: Text(
-                    'Administrador',
-                    style: AppTextStyles.bodyMedium.copyWith(
-                      color: Colors.white,
-                      fontWeight: _isAdmin ? FontWeight.w700 : FontWeight.w600,
+                  icon:
+                      const Icon(Icons.admin_panel_settings_outlined, size: 18),
+                  label: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      'Administrador',
+                      maxLines: 1,
+                      style: AppTextStyles.bodyMedium.copyWith(
+                        color: Colors.white,
+                        fontWeight:
+                            _isAdmin ? FontWeight.w700 : FontWeight.w600,
+                      ),
                     ),
                   ),
                 ),
@@ -330,8 +334,7 @@ class _EditUserDialogState extends State<EditUserDialog> {
                     type,
                     style: AppTextStyles.bodyMedium.copyWith(
                       color: Colors.white,
-                      fontWeight:
-                          selected ? FontWeight.w700 : FontWeight.w600,
+                      fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
                     ),
                   ),
                 ),
@@ -353,7 +356,7 @@ class _EditUserDialogState extends State<EditUserDialog> {
         ],
         if (_contractType == 'Bolsista') ...[
           const SizedBox(height: 16),
-          _SectionLabel(label: 'Carga horária bolsista'),
+          const _SectionLabel(label: 'Carga horária bolsista'),
           const SizedBox(height: 8),
           Row(
             children: ['4 hrs', '6 hrs', '8 hrs'].map((label) {
@@ -401,8 +404,7 @@ class _EditUserDialogState extends State<EditUserDialog> {
                 label: Text(
                   option['label']!,
                   style: AppTextStyles.bodySmall.copyWith(
-                    fontWeight:
-                        selected ? FontWeight.w700 : FontWeight.w600,
+                    fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
                     color: Colors.white,
                   ),
                 ),
@@ -410,6 +412,13 @@ class _EditUserDialogState extends State<EditUserDialog> {
                 onSelected: (_) => _toggleWorkDay(option['value']!),
                 selectedColor: const Color(0xFF178573),
                 backgroundColor: const Color(0xFF62C1B1),
+                side: BorderSide(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white.withValues(alpha: 0.72)
+                      : selected
+                          ? const Color(0xFF178573)
+                          : const Color(0xFF62C1B1),
+                ),
               );
             }).toList(),
           ),
